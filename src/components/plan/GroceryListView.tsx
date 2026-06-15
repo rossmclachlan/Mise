@@ -1,12 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { GroceryItem, Staple } from '../../types';
+import type { GroceryItem, PantryItem, Staple } from '../../types';
 import { ChecklistSection } from '../ui/ChecklistSection';
+import { ItemListSection } from '../ui/ItemListSection';
 
 interface GroceryListViewProps {
   groceryList: GroceryItem[];
   setGroceryList: Dispatch<SetStateAction<GroceryItem[]>>;
   staples: Staple[];
   setStaples: Dispatch<SetStateAction<Staple[]>>;
+  pantry: PantryItem[];
+  setPantry: Dispatch<SetStateAction<PantryItem[]>>;
 }
 
 export function GroceryListView({
@@ -14,6 +17,8 @@ export function GroceryListView({
   setGroceryList,
   staples,
   setStaples,
+  pantry,
+  setPantry,
 }: GroceryListViewProps) {
   function toggleItem(id: string) {
     setGroceryList((prev) =>
@@ -43,6 +48,14 @@ export function GroceryListView({
     setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
   }
 
+  function removePantryItem(id: string) {
+    setPantry((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function addPantryItem(text: string) {
+    setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+  }
+
   return (
     <div className="space-y-6 px-4 pb-8 pt-4">
       <ChecklistSection
@@ -62,6 +75,15 @@ export function GroceryListView({
         onAdd={addItem}
         addPlaceholder="Add an item"
         emptyText="Your grocery list is empty."
+        pantryItems={pantry}
+      />
+      <ItemListSection
+        title="Pantry"
+        items={pantry}
+        onRemove={removePantryItem}
+        onAdd={addPantryItem}
+        addPlaceholder="Add a pantry item"
+        emptyText="No pantry items yet."
       />
     </div>
   );

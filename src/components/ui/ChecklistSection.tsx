@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Package, Plus, X } from 'lucide-react';
+import type { PantryItem } from '../../types';
 
 export interface ChecklistItem {
   id: string;
@@ -8,7 +9,7 @@ export interface ChecklistItem {
 }
 
 interface ChecklistSectionProps {
-  title: string;
+  title?: string;
   items: ChecklistItem[];
   onToggle: (id: string) => void;
   onRemove?: (id: string) => void;
@@ -16,6 +17,7 @@ interface ChecklistSectionProps {
   addPlaceholder?: string;
   emptyText?: string;
   large?: boolean;
+  pantryItems?: PantryItem[];
 }
 
 export function ChecklistSection({
@@ -27,6 +29,7 @@ export function ChecklistSection({
   addPlaceholder = 'Add item',
   emptyText,
   large,
+  pantryItems,
 }: ChecklistSectionProps) {
   const [draft, setDraft] = useState('');
 
@@ -39,9 +42,15 @@ export function ChecklistSection({
     setDraft('');
   }
 
+  function isInPantry(item: ChecklistItem): boolean {
+    if (!pantryItems?.length) return false;
+    const text = item.text.toLowerCase();
+    return pantryItems.some((p) => p.text.trim() && text.includes(p.text.toLowerCase()));
+  }
+
   return (
     <section>
-      <h2 className="label-section mb-2">{title}</h2>
+      {title && <h2 className="label-section mb-2">{title}</h2>}
 
       {sorted.length === 0 && emptyText ? (
         <p className="card px-4 py-3 text-sm text-ink-variant">{emptyText}</p>
@@ -66,12 +75,22 @@ export function ChecklistSection({
                 >
                   {item.checked && <Check size={large ? 18 : 14} strokeWidth={3} />}
                 </span>
-                <span
-                  className={`flex-1 ${large ? 'text-lg' : 'text-sm'} ${
-                    item.checked ? 'text-ink-variant line-through' : 'text-ink'
-                  }`}
-                >
-                  {item.text}
+                <span className="flex flex-1 items-center gap-2 overflow-hidden">
+                  <span
+                    className={`truncate ${large ? 'text-lg' : 'text-sm'} ${
+                      item.checked ? 'text-ink-variant line-through' : 'text-ink'
+                    }`}
+                  >
+                    {item.text}
+                  </span>
+                  {isInPantry(item) && (
+                    <span
+                      aria-label="In pantry"
+                      className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent-container p-1 text-on-accent-container"
+                    >
+                      <Package size={large ? 14 : 12} />
+                    </span>
+                  )}
                 </span>
               </button>
               {onRemove && (
@@ -105,7 +124,7 @@ export function ChecklistSection({
             type="button"
             onClick={submitAdd}
             disabled={!draft.trim()}
-            aria-label={`Add to ${title}`}
+            aria-label={`Add ${title ? `to ${title}` : 'item'}`}
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
           >
             <Plus size={20} />
