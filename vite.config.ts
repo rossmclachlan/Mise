@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/Mise/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,7 +19,8 @@ export default defineConfig({
         theme_color: '#4A6741',
         background_color: '#FAFAF8',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/Mise/',
+        scope: '/Mise/',
         icons: [
           {
             src: 'icon.svg',
