@@ -22,12 +22,12 @@ export function BottomSheet({ isOpen, onClose, title, children, tall }: BottomSh
         onClick={onClose}
       />
       <div
-        className={`relative flex w-full max-w-[480px] flex-col self-end rounded-t-[20px] bg-white shadow-xl ${
+        className={`relative flex w-full max-w-[480px] flex-col self-end rounded-t-[28px] bg-surface shadow-xl ${
           tall ? 'h-[92vh]' : 'max-h-[85vh]'
         }`}
       >
         <div className="flex shrink-0 flex-col items-center pt-2.5">
-          <div className="h-1.5 w-10 rounded-full bg-gray-300" />
+          <div className="h-1.5 w-10 rounded-full bg-outline" />
           {title && (
             <div className="mt-2 flex w-full items-center justify-between px-4 pb-2">
               <h2 className="text-lg font-semibold text-ink">{title}</h2>
@@ -35,7 +35,7 @@ export function BottomSheet({ isOpen, onClose, title, children, tall }: BottomSh
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="rounded-full p-1 text-ink/50"
+                className="rounded-full p-1 text-ink-variant active:bg-surface-variant"
               >
                 <X size={22} />
               </button>

@@ -54,21 +54,21 @@ export function CookView({ recipe, onBack }: CookViewProps) {
       <button
         type="button"
         onClick={onBack}
-        className="mb-3 flex items-center gap-1 self-start text-sm font-medium text-ink/60"
+        className="mb-3 flex items-center gap-1 self-start text-sm font-medium text-ink-variant"
       >
         <ArrowLeft size={18} /> Back
       </button>
 
       <h1 className="text-xl font-bold">{recipe.title}</h1>
 
-      <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
+      <div className="card mt-3 flex items-center gap-3 p-3">
         <span className="font-medium">Servings</span>
         <div className="ml-auto flex items-center gap-3">
           <button
             type="button"
             onClick={() => setServings((s) => Math.max(1, s - 1))}
             aria-label="Decrease servings"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 active:bg-gray-200"
+            className="btn-icon"
           >
             <Minus size={16} />
           </button>
@@ -77,14 +77,14 @@ export function CookView({ recipe, onBack }: CookViewProps) {
             type="button"
             onClick={() => setServings((s) => s + 1)}
             aria-label="Increase servings"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 active:bg-gray-200"
+            className="btn-icon"
           >
             <Plus size={16} />
           </button>
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl bg-white shadow-sm">
+      <div className="card mt-3">
         <button
           type="button"
           onClick={() => setIngredientsOpen((o) => !o)}
@@ -97,11 +97,11 @@ export function CookView({ recipe, onBack }: CookViewProps) {
           />
         </button>
         {ingredientsOpen && (
-          <ul className="divide-y divide-gray-100 border-t border-gray-100 px-3">
+          <ul className="divide-y divide-outline/60 border-t border-outline/60 px-3">
             {recipe.ingredients.map((ing, i) => (
               <li key={i} className="flex justify-between gap-3 py-2 text-sm">
                 <span>{ing.name}</span>
-                <span className="shrink-0 text-ink/60">
+                <span className="shrink-0 text-ink-variant">
                   {[scaleAmount(ing.amount, ratio), ing.unit].filter(Boolean).join(' ')}
                 </span>
               </li>
@@ -111,13 +111,13 @@ export function CookView({ recipe, onBack }: CookViewProps) {
       </div>
 
       {totalSteps === 0 ? (
-        <p className="mt-16 text-center text-sm text-ink/50">
+        <p className="mt-16 text-center text-sm text-ink-variant">
           This recipe has no steps.
         </p>
       ) : (
         <>
           <div className="mt-4 flex flex-1 flex-col items-center justify-center py-6 text-center">
-            <span className="text-sm font-semibold uppercase tracking-wide text-accent">
+            <span className="label-section text-accent">
               Step {stepIndex + 1} of {totalSteps}
             </span>
             <p className="mt-3 text-2xl font-semibold leading-snug">{currentStep}</p>
@@ -131,37 +131,21 @@ export function CookView({ recipe, onBack }: CookViewProps) {
                     </span>
                     <div className="flex gap-2">
                       {timer.isRunning ? (
-                        <button
-                          type="button"
-                          onClick={timer.pause}
-                          className="flex items-center gap-1.5 rounded-xl bg-gray-100 px-4 py-2 font-semibold"
-                        >
+                        <button type="button" onClick={timer.pause} className="btn-tonal">
                           <Pause size={16} /> Pause
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={timer.resume}
-                          className="flex items-center gap-1.5 rounded-xl bg-gray-100 px-4 py-2 font-semibold"
-                        >
+                        <button type="button" onClick={timer.resume} className="btn-tonal">
                           <Play size={16} /> Resume
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={timer.reset}
-                        className="flex items-center gap-1.5 rounded-xl bg-gray-100 px-4 py-2 font-semibold"
-                      >
+                      <button type="button" onClick={timer.reset} className="btn-tonal">
                         <RotateCcw size={16} /> Reset
                       </button>
                     </div>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => timer.start(duration)}
-                    className="rounded-xl bg-accent px-6 py-3 font-semibold text-white"
-                  >
+                  <button type="button" onClick={() => timer.start(duration)} className="btn-filled">
                     Start Timer ({formatSeconds(duration)})
                   </button>
                 )}
@@ -174,7 +158,7 @@ export function CookView({ recipe, onBack }: CookViewProps) {
               type="button"
               onClick={goPrev}
               disabled={stepIndex === 0}
-              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-white py-3 font-semibold shadow-sm disabled:opacity-40"
+              className="btn-outlined flex-1"
             >
               <ChevronLeft size={20} /> Prev
             </button>
@@ -182,7 +166,7 @@ export function CookView({ recipe, onBack }: CookViewProps) {
               type="button"
               onClick={goNext}
               disabled={stepIndex === totalSteps - 1}
-              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-3 font-semibold text-white disabled:opacity-40"
+              className="btn-filled flex-1"
             >
               Next <ChevronRight size={20} />
             </button>

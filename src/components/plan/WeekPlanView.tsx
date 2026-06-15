@@ -18,7 +18,7 @@ interface WeekPlanViewProps {
 }
 
 const actionButtonClass =
-  'flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-50 py-2 text-sm font-medium text-ink/70 active:bg-gray-100';
+  'flex flex-1 items-center justify-center gap-1.5 rounded-full border border-outline py-2 text-sm font-medium text-ink-variant active:bg-surface-variant';
 
 export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }: WeekPlanViewProps) {
   const [pickerDay, setPickerDay] = useState<WeekDay | null>(null);
@@ -66,10 +66,8 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
             entry?.type === 'recipe' ? recipes.find((r) => r.id === entry.recipeId) : undefined;
 
           return (
-            <div key={day} className="rounded-xl bg-white p-3 shadow-sm">
-              <div className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">
-                {WEEK_DAY_LABELS[day]}
-              </div>
+            <div key={day} className="card p-3">
+              <div className="label-section mb-2">{WEEK_DAY_LABELS[day]}</div>
 
               {!entry && (
                 <div className="flex gap-2">
@@ -102,7 +100,7 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
                     type="button"
                     onClick={() => setEntry(day, undefined)}
                     aria-label="Clear"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/40"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
                   >
                     <X size={18} />
                   </button>
@@ -114,7 +112,7 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
                   <button
                     type="button"
                     onClick={() => openIdea(day)}
-                    className="flex-1 text-left text-base italic text-ink/70"
+                    className="flex-1 text-left text-base italic text-ink-variant"
                   >
                     {entry.text}
                   </button>
@@ -122,7 +120,7 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
                     type="button"
                     onClick={() => setEntry(day, undefined)}
                     aria-label="Clear"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/40"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
                   >
                     <X size={18} />
                   </button>
@@ -131,12 +129,12 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
 
               {entry?.type === 'skip' && (
                 <div className="flex items-center justify-between gap-2">
-                  <span className="flex-1 text-base text-ink/40">Skipped</span>
+                  <span className="flex-1 text-base text-ink-variant">Skipped</span>
                   <button
                     type="button"
                     onClick={() => setEntry(day, undefined)}
                     aria-label="Clear"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/40"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
                   >
                     <X size={18} />
                   </button>
@@ -149,9 +147,9 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
 
       <BottomSheet isOpen={pickerDay !== null} onClose={() => setPickerDay(null)} title="Choose a Recipe">
         {recipes.length === 0 ? (
-          <p className="py-4 text-center text-sm text-ink/50">No recipes yet.</p>
+          <p className="py-4 text-center text-sm text-ink-variant">No recipes yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-outline/60">
             {recipes.map((recipe) => (
               <li key={recipe.id}>
                 <button
@@ -170,18 +168,14 @@ export function WeekPlanView({ recipes, weekPlan, setWeekPlan, onSelectRecipe }:
       <BottomSheet isOpen={ideaDay !== null} onClose={() => setIdeaDay(null)} title="Meal Idea">
         <div className="flex flex-col gap-4 pb-4">
           <textarea
-            className="rounded-lg border border-gray-200 px-3 py-2 text-base focus:border-accent focus:outline-none"
+            className="input-field"
             rows={3}
             value={ideaText}
             onChange={(e) => setIdeaText(e.target.value)}
             placeholder="e.g. Something with the leftover chicken"
             autoFocus
           />
-          <button
-            type="button"
-            onClick={saveIdea}
-            className="w-full rounded-xl bg-accent py-3 font-semibold text-white"
-          >
+          <button type="button" onClick={saveIdea} className="btn-filled w-full">
             Save
           </button>
         </div>

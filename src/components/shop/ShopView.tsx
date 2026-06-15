@@ -43,14 +43,14 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
           type="button"
           onClick={clearChecked}
           disabled={!hasChecked}
-          className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold shadow-sm disabled:opacity-40"
+          className="btn-tonal px-4 py-2.5 text-sm"
         >
           Clear checked
         </button>
       </div>
 
       {isEmpty ? (
-        <p className="mt-16 text-center text-base text-ink/50">
+        <p className="mt-16 text-center text-base text-ink-variant">
           Your list is empty. Add items in Plan mode.
         </p>
       ) : (

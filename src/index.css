@@ -2,8 +2,17 @@
 
 @theme {
   --color-bg: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-surface-variant: #EFEDE6;
   --color-accent: #4A6741;
+  --color-accent-container: #DDEAD2;
+  --color-on-accent-container: #16280F;
   --color-ink: #1C1C1A;
+  --color-ink-variant: #6E7568;
+  --color-outline: #DDDBD3;
+  --color-error: #BA1A1A;
+  --color-error-container: #FFDAD6;
+  --color-on-error-container: #410002;
 }
 
 @layer base {
@@ -24,5 +33,58 @@
 
   button {
     font-family: inherit;
+  }
+
+  h1 {
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  /* Surfaces */
+  .card {
+    @apply rounded-2xl bg-surface shadow-[0_1px_2px_rgba(28,28,26,0.06),0_1px_8px_rgba(28,28,26,0.04)];
+  }
+
+  /* Section / group labels (M3 "label" style) */
+  .label-section {
+    @apply text-xs font-bold uppercase tracking-wider text-ink-variant;
+  }
+
+  /* Buttons (M3: fully-rounded filled / tonal / outlined / text) */
+  .btn-filled {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition active:opacity-90 disabled:opacity-40 disabled:shadow-none;
+  }
+
+  .btn-tonal {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent-container px-6 py-3 text-sm font-semibold text-on-accent-container transition active:opacity-80 disabled:opacity-40;
+  }
+
+  .btn-outlined {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-outline bg-transparent px-6 py-3 text-sm font-semibold text-ink transition active:bg-surface-variant disabled:opacity-40;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-error-container bg-transparent px-6 py-3 text-sm font-semibold text-error transition active:bg-error-container disabled:opacity-40;
+  }
+
+  /* Small round icon buttons (steppers, close, remove) */
+  .btn-icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-variant text-ink transition active:bg-outline/50;
+  }
+
+  /* Text inputs / textareas (M3 outlined field, app shape language) */
+  .input-field {
+    @apply rounded-xl border border-outline bg-surface px-3 py-2.5 text-base text-ink placeholder:text-ink-variant focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15;
+  }
+
+  /* Floating action button (M3 large-shape FAB) */
+  .fab {
+    @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg active:shadow-md;
+  }
+
+  /* M3-style square checkbox indicator */
+  .checkbox-indicator {
+    @apply flex shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors;
   }
 }

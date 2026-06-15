@@ -13,7 +13,7 @@ export function RecipeGrid({ recipes, onSelect, onAdd }: RecipeGridProps) {
   return (
     <div className="px-4 pt-4">
       {recipes.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-ink/50">
+        <p className="mt-16 text-center text-sm text-ink-variant">
           No recipes yet. Tap the + button to add your first recipe.
         </p>
       ) : (
@@ -25,13 +25,13 @@ export function RecipeGrid({ recipes, onSelect, onAdd }: RecipeGridProps) {
                 key={recipe.id}
                 type="button"
                 onClick={() => onSelect(recipe.id)}
-                className="flex flex-col items-start overflow-hidden rounded-xl bg-white text-left shadow-sm active:shadow-none"
+                className="card flex flex-col items-start overflow-hidden text-left active:shadow-none"
               >
                 <RecipeImage className="aspect-square w-full" />
                 <div className="flex flex-col items-start p-3">
                   <span className="font-semibold leading-snug">{recipe.title}</span>
                   {domain && (
-                    <span className="mt-1 text-xs text-ink/50">{domain}</span>
+                    <span className="mt-1 text-xs text-ink-variant">{domain}</span>
                   )}
                 </div>
               </button>
@@ -44,7 +44,7 @@ export function RecipeGrid({ recipes, onSelect, onAdd }: RecipeGridProps) {
         type="button"
         onClick={onAdd}
         aria-label="Add recipe"
-        className="absolute bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg"
+        className="fab absolute bottom-20 right-4 z-30"
       >
         <Plus size={28} />
       </button>

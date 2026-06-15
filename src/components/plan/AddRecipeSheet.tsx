@@ -28,8 +28,7 @@ const EMPTY_FORM: FormState = {
   notes: '',
 };
 
-const inputClass =
-  'rounded-lg border border-gray-200 px-3 py-2 text-base focus:border-accent focus:outline-none';
+const inputClass = 'input-field';
 
 function stripStepNumbering(line: string): string {
   return line.replace(/^\s*\d+[.)]\s*/, '').trim();
@@ -154,18 +153,14 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
           </Field>
 
           <div className="mt-2 flex gap-3">
-            <button
-              type="button"
-              onClick={resetAndClose}
-              className="flex-1 rounded-xl border border-gray-200 py-3 font-semibold"
-            >
+            <button type="button" onClick={resetAndClose} className="btn-outlined flex-1">
               Cancel
             </button>
             <button
               type="button"
               onClick={handlePreview}
               disabled={!form.title.trim()}
-              className="flex-1 rounded-xl bg-accent py-3 font-semibold text-white disabled:opacity-40"
+              className="btn-filled flex-1"
             >
               Next
             </button>
@@ -173,24 +168,24 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
         </div>
       ) : (
         <div className="flex flex-col gap-4 pb-4">
-          <p className="text-sm text-ink/60">
+          <p className="text-sm text-ink-variant">
             Here's how we parsed your ingredients. Go back to edit the raw
             text if anything looks off.
           </p>
 
           {parsedIngredients.length === 0 ? (
-            <p className="rounded-xl bg-gray-50 p-3 text-sm text-ink/50">
+            <p className="rounded-2xl bg-surface-variant p-3 text-sm text-ink-variant">
               No ingredients added.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 rounded-xl bg-white">
+            <ul className="card divide-y divide-outline/60 overflow-hidden">
               {parsedIngredients.map((ing, i) => (
                 <li
                   key={i}
                   className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
                 >
                   <span className="font-medium">{ing.name || '—'}</span>
-                  <span className="shrink-0 text-ink/50">
+                  <span className="shrink-0 text-ink-variant">
                     {[ing.amount, ing.unit].filter(Boolean).join(' ') || '—'}
                   </span>
                 </li>
@@ -199,18 +194,10 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
           )}
 
           <div className="mt-2 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setStep('form')}
-              className="flex-1 rounded-xl border border-gray-200 py-3 font-semibold"
-            >
+            <button type="button" onClick={() => setStep('form')} className="btn-outlined flex-1">
               Back
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex-1 rounded-xl bg-accent py-3 font-semibold text-white"
-            >
+            <button type="button" onClick={handleSave} className="btn-filled flex-1">
               Save Recipe
             </button>
           </div>
@@ -223,7 +210,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-ink/70">{label}</span>
+      <span className="text-sm font-medium text-ink-variant">{label}</span>
       {children}
     </label>
   );
