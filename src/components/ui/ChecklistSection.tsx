@@ -1,11 +1,34 @@
-import { useState } from 'react';
-import { Check, Package, Plus, X } from 'lucide-react';
-import type { PantryItem } from '../../types';
+import { useEffect, useState } from 'react';
+import {
+  Archive,
+  Beef,
+  Carrot,
+  Check,
+  Croissant,
+  CupSoda,
+  Fish,
+  Milk,
+  Package,
+  Plus,
+  Snowflake,
+  Tag,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  GROCERY_CATEGORIES,
+  GROCERY_CATEGORY_LABELS,
+  type GroceryCategory,
+  type PantryItem,
+} from '../../types';
+import { categoriseItem } from '../../utils/categorise';
+import { BottomSheet } from './BottomSheet';
 
 export interface ChecklistItem {
   id: string;
   text: string;
   checked: boolean;
+  category?: GroceryCategory;
 }
 
 interface ChecklistSectionProps {
@@ -13,12 +36,33 @@ interface ChecklistSectionProps {
   items: ChecklistItem[];
   onToggle: (id: string) => void;
   onRemove?: (id: string) => void;
-  onAdd?: (text: string) => void;
+  onAdd?: (text: string, category?: GroceryCategory) => void;
+  onCategoryChange?: (id: string, category: GroceryCategory) => void;
+  showCategoryPreview?: boolean;
   addPlaceholder?: string;
   emptyText?: string;
   large?: boolean;
   pantryItems?: PantryItem[];
 }
+
+const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
+  produce: Carrot,
+  dairy: Milk,
+  meat: Beef,
+  fish: Fish,
+  bakery: Croissant,
+  pantry: Archive,
+  frozen: Snowflake,
+  drinks: CupSoda,
+  other: Tag,
+};
+
+function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
+  const Icon = CATEGORY_ICONS[category];
+  return <Icon size={size} />;
+}
+
+type CategoryPickerTarget = { type: 'item'; id: string } | { type: 'draft' };
 
 export function ChecklistSection({
   title,
@@ -26,26 +70,52 @@ export function ChecklistSection({
   onToggle,
   onRemove,
   onAdd,
+  onCategoryChange,
+  showCategoryPreview,
   addPlaceholder = 'Add item',
   emptyText,
   large,
   pantryItems,
 }: ChecklistSectionProps) {
   const [draft, setDraft] = useState('');
+  const [draftCategory, setDraftCategory] = useState<GroceryCategory | null>(null);
+  const [draftCategoryOverride, setDraftCategoryOverride] = useState<GroceryCategory | null>(null);
+  const [categoryPickerTarget, setCategoryPickerTarget] = useState<CategoryPickerTarget | null>(null);
 
   const sorted = [...items].sort((a, b) => Number(a.checked) - Number(b.checked));
+
+  useEffect(() => {
+    if (!showCategoryPreview) return;
+    const text = draft.trim();
+    if (!text) return;
+    const handle = setTimeout(() => setDraftCategory(categoriseItem(text)), 300);
+    return () => clearTimeout(handle);
+  }, [draft, showCategoryPreview]);
+
+  const effectiveDraftCategory = draftCategoryOverride ?? draftCategory ?? 'other';
 
   function submitAdd() {
     const text = draft.trim();
     if (!text) return;
-    onAdd?.(text);
+    onAdd?.(text, showCategoryPreview ? effectiveDraftCategory : undefined);
     setDraft('');
+    setDraftCategory(null);
+    setDraftCategoryOverride(null);
   }
 
   function isInPantry(item: ChecklistItem): boolean {
     if (!pantryItems?.length) return false;
     const text = item.text.toLowerCase();
     return pantryItems.some((p) => p.text.trim() && text.includes(p.text.toLowerCase()));
+  }
+
+  function selectCategory(category: GroceryCategory) {
+    if (categoryPickerTarget?.type === 'item') {
+      onCategoryChange?.(categoryPickerTarget.id, category);
+    } else if (categoryPickerTarget?.type === 'draft') {
+      setDraftCategoryOverride(category);
+    }
+    setCategoryPickerTarget(null);
   }
 
   return (
@@ -93,6 +163,16 @@ export function ChecklistSection({
                   )}
                 </span>
               </button>
+              {onCategoryChange && (
+                <button
+                  type="button"
+                  onClick={() => setCategoryPickerTarget({ type: 'item', id: item.id })}
+                  aria-label={`Category: ${GROCERY_CATEGORY_LABELS[item.category ?? 'other']}`}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
+                >
+                  <CategoryIcon category={item.category ?? 'other'} size={large ? 18 : 16} />
+                </button>
+              )}
               {onRemove && (
                 <button
                   type="button"
@@ -109,28 +189,67 @@ export function ChecklistSection({
       ) : null}
 
       {onAdd && (
-        <div className="mt-2 flex gap-2">
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitAdd();
-            }}
-            placeholder={addPlaceholder}
-            className="input-field flex-1"
-          />
-          <button
-            type="button"
-            onClick={submitAdd}
-            disabled={!draft.trim()}
-            aria-label={`Add ${title ? `to ${title}` : 'item'}`}
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
-          >
-            <Plus size={20} />
-          </button>
+        <div className="mt-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setDraftCategoryOverride(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitAdd();
+              }}
+              placeholder={addPlaceholder}
+              className="input-field flex-1"
+            />
+            <button
+              type="button"
+              onClick={submitAdd}
+              disabled={!draft.trim()}
+              aria-label={`Add ${title ? `to ${title}` : 'item'}`}
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+          {showCategoryPreview && draft.trim() && (
+            <div className="mt-1.5 flex items-center gap-1.5 px-1 text-xs text-ink-variant">
+              <CategoryIcon category={effectiveDraftCategory} size={14} />
+              <span>{GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}</span>
+              <button
+                type="button"
+                onClick={() => setCategoryPickerTarget({ type: 'draft' })}
+                className="font-semibold text-accent"
+              >
+                Change
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      <BottomSheet
+        isOpen={categoryPickerTarget !== null}
+        onClose={() => setCategoryPickerTarget(null)}
+        title="Category"
+      >
+        <ul className="divide-y divide-outline/60">
+          {GROCERY_CATEGORIES.map((category) => (
+            <li key={category}>
+              <button
+                type="button"
+                onClick={() => selectCategory(category)}
+                className="flex w-full items-center gap-3 py-3 text-left text-base font-medium"
+              >
+                <CategoryIcon category={category} size={18} />
+                {GROCERY_CATEGORY_LABELS[category]}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </BottomSheet>
     </section>
   );
 }

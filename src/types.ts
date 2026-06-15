@@ -19,12 +19,48 @@ export interface Recipe {
 
 export type WeekDay = 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
 
+export type GroceryCategory =
+  | 'produce'
+  | 'dairy'
+  | 'meat'
+  | 'fish'
+  | 'bakery'
+  | 'pantry'
+  | 'frozen'
+  | 'drinks'
+  | 'other';
+
+export const GROCERY_CATEGORIES: GroceryCategory[] = [
+  'produce',
+  'dairy',
+  'meat',
+  'fish',
+  'bakery',
+  'pantry',
+  'frozen',
+  'drinks',
+  'other',
+];
+
+export const GROCERY_CATEGORY_LABELS: Record<GroceryCategory, string> = {
+  produce: 'Produce',
+  dairy: 'Dairy & Eggs',
+  meat: 'Meat',
+  fish: 'Fish & Seafood',
+  bakery: 'Bakery',
+  pantry: 'Pantry',
+  frozen: 'Frozen',
+  drinks: 'Drinks',
+  other: 'Other',
+};
+
 export interface GroceryItem {
   id: string;
   text: string;
   checked: boolean;
   from_recipe_id?: string;
   from_day?: WeekDay;
+  category?: GroceryCategory;
 }
 
 export interface Staple {

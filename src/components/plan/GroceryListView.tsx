@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { GroceryItem, PantryItem, Staple } from '../../types';
+import type { GroceryCategory, GroceryItem, PantryItem, Staple } from '../../types';
+import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { ChecklistSection } from '../ui/ChecklistSection';
 import { ItemListSection } from '../ui/ItemListSection';
 
@@ -30,8 +31,21 @@ export function GroceryListView({
     setGroceryList((prev) => prev.filter((item) => item.id !== id));
   }
 
-  function addItem(text: string) {
-    setGroceryList((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
+  function addItem(text: string, category?: GroceryCategory) {
+    setGroceryList((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, checked: false, category: category ?? categoriseItem(text) },
+    ]);
+  }
+
+  function changeItemCategory(id: string, category: GroceryCategory) {
+    setGroceryList((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        learnCategory(item.text, category);
+        return { ...item, category };
+      }),
+    );
   }
 
   function toggleStaple(id: string) {
@@ -73,6 +87,8 @@ export function GroceryListView({
         onToggle={toggleItem}
         onRemove={removeItem}
         onAdd={addItem}
+        onCategoryChange={changeItemCategory}
+        showCategoryPreview
         addPlaceholder="Add an item"
         emptyText="Your grocery list is empty."
         pantryItems={pantry}
