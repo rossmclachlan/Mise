@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { GroceryItem, Mode, Recipe, Staple, WeekPlan } from './types';
+import type { GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
+import { SEED_PANTRY, SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
 import { BottomNav } from './components/ui/BottomNav';
 import { PillToggle } from './components/ui/PillToggle';
 import { RecipeGrid } from './components/plan/RecipeGrid';
@@ -20,6 +20,7 @@ function App() {
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', SEED_RECIPES);
   const [groceryList, setGroceryList] = useLocalStorage<GroceryItem[]>('grocery_list', []);
   const [staples, setStaples] = useLocalStorage<Staple[]>('staples', SEED_STAPLES);
+  const [pantry, setPantry] = useLocalStorage<PantryItem[]>('pantry', SEED_PANTRY);
   const [weekPlan, setWeekPlan] = useLocalStorage<WeekPlan>('week_plan', {});
 
   const [planView, setPlanView] = useState<PlanView>('week');
@@ -80,6 +81,9 @@ function App() {
               recipes={recipes}
               weekPlan={weekPlan}
               setWeekPlan={setWeekPlan}
+              groceryList={groceryList}
+              setGroceryList={setGroceryList}
+              pantry={pantry}
               onSelectRecipe={setSelectedRecipeId}
             />
           ) : planView === 'recipes' ? (
@@ -94,6 +98,8 @@ function App() {
               setGroceryList={setGroceryList}
               staples={staples}
               setStaples={setStaples}
+              pantry={pantry}
+              setPantry={setPantry}
             />
           )}
         </div>

@@ -1,4 +1,4 @@
-import type { Recipe, Staple } from '../types';
+import type { PantryItem, Recipe, Staple } from '../types';
 
 const now = new Date().toISOString();
 
@@ -90,4 +90,12 @@ export const SEED_STAPLES: Staple[] = [
   { id: crypto.randomUUID(), text: 'Olive oil', checked: false },
   { id: crypto.randomUUID(), text: 'Salt', checked: false },
   { id: crypto.randomUUID(), text: 'Garlic', checked: false },
+];
+
+export const SEED_PANTRY: PantryItem[] = [
+  { id: crypto.randomUUID(), text: 'Olive oil' },
+  { id: crypto.randomUUID(), text: 'Salt' },
+  { id: crypto.randomUUID(), text: 'Garlic' },
+  { id: crypto.randomUUID(), text: 'Black pepper' },
+  { id: crypto.randomUUID(), text: 'Rice' },
 ];

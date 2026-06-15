@@ -17,11 +17,14 @@ export interface Recipe {
   created_at: string;
 }
 
+export type WeekDay = 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+
 export interface GroceryItem {
   id: string;
   text: string;
   checked: boolean;
   from_recipe_id?: string;
+  from_day?: WeekDay;
 }
 
 export interface Staple {
@@ -30,7 +33,10 @@ export interface Staple {
   checked: boolean;
 }
 
-export type WeekDay = 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
+export interface PantryItem {
+  id: string;
+  text: string;
+}
 
 export const WEEK_DAYS: WeekDay[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
@@ -42,9 +48,11 @@ export const WEEK_DAY_LABELS: Record<WeekDay, string> = {
   fri: 'Friday',
 };
 
-export type MealPlanEntry =
-  | { type: 'recipe'; recipeId: string }
-  | { type: 'idea'; text: string }
-  | { type: 'skip' };
+export interface MealPlanEntry {
+  /** Reference to a recipe in the recipe box. */
+  recipeId?: string;
+  /** Free-text meal idea, used when no recipe is selected. */
+  label?: string;
+}
 
 export type WeekPlan = Partial<Record<WeekDay, MealPlanEntry>>;
