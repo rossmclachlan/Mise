@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Check, ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
 import type { GroceryItem, Recipe } from '../../types';
+import { categoriseItem } from '../../utils/categorise';
 import { scaleAmount } from '../../utils/scale';
 import { getDomain } from '../../utils/url';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -52,6 +53,7 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
         text: [scaleAmount(ing.amount, ratio), ing.unit, ing.name].filter(Boolean).join(' '),
         checked: false,
         from_recipe_id: recipe.id,
+        category: categoriseItem(ing.name),
       }));
     onAddToGroceryList(items);
     setConfirmOpen(false);

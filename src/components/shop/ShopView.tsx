@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { GroceryItem, Staple } from '../../types';
+import type { GroceryCategory, GroceryItem, Staple } from '../../types';
+import { learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { ChecklistSection } from '../ui/ChecklistSection';
 
@@ -33,6 +34,16 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
     setStaples((prev) => prev.map((staple) => ({ ...staple, checked: false })));
   }
 
+  function changeItemCategory(id: string, category: GroceryCategory) {
+    setGroceryList((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        learnCategory(item.text, category);
+        return { ...item, category };
+      }),
+    );
+  }
+
   const isEmpty = groceryList.length === 0 && staples.length === 0;
 
   return (
@@ -59,7 +70,13 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
             <ChecklistSection title="Staples" items={staples} onToggle={toggleStaple} large />
           )}
           {groceryList.length > 0 && (
-            <ChecklistSection title="Grocery List" items={groceryList} onToggle={toggleItem} large />
+            <ChecklistSection
+              title="Grocery List"
+              items={groceryList}
+              onToggle={toggleItem}
+              onCategoryChange={changeItemCategory}
+              large
+            />
           )}
         </div>
       )}
