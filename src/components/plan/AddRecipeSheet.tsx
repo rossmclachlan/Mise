@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { Ingredient, Recipe } from '../../types';
+import { ImportError, importRecipeFromUrl } from '../../utils/importRecipe';
 import { parseIngredientLine } from '../../utils/parseIngredient';
 import { normalizeUrl } from '../../utils/url';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -34,10 +36,19 @@ function stripStepNumbering(line: string): string {
   return line.replace(/^\s*\d+[.)]\s*/, '').trim();
 }
 
+function formatIngredientLine(ing: Ingredient): string {
+  return [ing.amount, ing.unit, ing.name].filter(Boolean).join(' ');
+}
+
+type ImportStatus = 'idle' | 'loading' | 'success' | 'error';
+
 export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [step, setStep] = useState<'form' | 'preview'>('form');
   const [parsedIngredients, setParsedIngredients] = useState<Ingredient[]>([]);
+  const [importUrl, setImportUrl] = useState('');
+  const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
+  const [importErrorMessage, setImportErrorMessage] = useState('');
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -47,7 +58,41 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
     setForm(EMPTY_FORM);
     setStep('form');
     setParsedIngredients([]);
+    setImportUrl('');
+    setImportStatus('idle');
+    setImportErrorMessage('');
     onClose();
+  }
+
+  async function handleImport() {
+    const url = importUrl.trim();
+    if (!url) return;
+
+    setImportStatus('loading');
+    setImportErrorMessage('');
+
+    try {
+      const imported = await importRecipeFromUrl(url);
+      setForm((f) => ({
+        ...f,
+        title: imported.title || f.title,
+        sourceUrl: imported.source_url,
+        servings: String(imported.servings),
+        ingredientsText: imported.ingredients.map(formatIngredientLine).join('\n'),
+        stepsText: imported.steps.join('\n'),
+        notes: imported.notes,
+      }));
+      setImportStatus('success');
+    } catch (err) {
+      setImportStatus('error');
+      if (err instanceof ImportError && err.code === 'NO_RECIPE') {
+        setImportErrorMessage('No recipe found on this page');
+      } else if (/nytimes/i.test(url)) {
+        setImportErrorMessage('Try pasting a gift link if this is a paywalled recipe');
+      } else {
+        setImportErrorMessage("Couldn't reach this page");
+      }
+    }
   }
 
   function handlePreview() {
@@ -92,6 +137,43 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
     >
       {step === 'form' ? (
         <div className="flex flex-col gap-4 pb-4">
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface-variant p-3">
+            <span className="text-sm font-medium text-ink-variant">Import from URL</span>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                className={`${inputClass} flex-1`}
+                value={importUrl}
+                onChange={(e) => {
+                  setImportUrl(e.target.value);
+                  setImportStatus('idle');
+                  setImportErrorMessage('');
+                }}
+                placeholder="Paste a recipe URL"
+              />
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={!importUrl.trim() || importStatus === 'loading'}
+                className="btn-tonal shrink-0 px-4"
+              >
+                {importStatus === 'loading' ? <Loader2 size={18} className="animate-spin" /> : 'Import'}
+              </button>
+            </div>
+            {importStatus === 'loading' && (
+              <p className="text-sm text-ink-variant">Fetching recipe…</p>
+            )}
+            {importStatus === 'success' && (
+              <p className="flex items-center gap-1.5 text-sm font-medium text-accent">
+                <CheckCircle2 size={16} />
+                Recipe imported — review and save below
+              </p>
+            )}
+            {importStatus === 'error' && (
+              <p className="text-sm font-medium text-error">{importErrorMessage}</p>
+            )}
+          </div>
+
           <Field label="Title">
             <input
               type="text"
