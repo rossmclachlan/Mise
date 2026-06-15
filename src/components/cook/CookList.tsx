@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Recipe } from '../../types';
 import { getDomain } from '../../utils/url';
+import { RecipeImage } from '../ui/RecipeImage';
 
 interface CookListProps {
   recipes: Recipe[];
@@ -41,12 +42,15 @@ export function CookList({ recipes, onSelect }: CookListProps) {
                 <button
                   type="button"
                   onClick={() => onSelect(recipe.id)}
-                  className="flex w-full flex-col items-start rounded-xl bg-white p-4 text-left shadow-sm active:shadow-none"
+                  className="flex w-full items-center gap-3 rounded-xl bg-white p-3 text-left shadow-sm active:shadow-none"
                 >
-                  <span className="font-semibold">{recipe.title}</span>
-                  <span className="mt-1 text-xs text-ink/50">
-                    {domain ?? `${recipe.steps.length} steps`}
-                  </span>
+                  <RecipeImage className="h-14 w-14 shrink-0 rounded-lg" iconSize={22} />
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold">{recipe.title}</span>
+                    <span className="mt-1 text-xs text-ink/50">
+                      {domain ?? `${recipe.steps.length} steps`}
+                    </span>
+                  </div>
                 </button>
               </li>
             );

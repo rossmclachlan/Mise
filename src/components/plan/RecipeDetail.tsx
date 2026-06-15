@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
 import type { GroceryItem, Recipe } from '../../types';
 import { scaleAmount } from '../../utils/scale';
-import { guessCategory } from '../../utils/categorize';
 import { getDomain } from '../../utils/url';
 import { BottomSheet } from '../ui/BottomSheet';
+import { RecipeImage } from '../ui/RecipeImage';
 
 interface RecipeDetailProps {
   recipe: Recipe;
@@ -49,10 +49,7 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
       .filter((_, i) => selected.has(i))
       .map((ing) => ({
         id: crypto.randomUUID(),
-        name: ing.name,
-        amount: scaleAmount(ing.amount, ratio),
-        unit: ing.unit,
-        category: guessCategory(ing.name),
+        text: [scaleAmount(ing.amount, ratio), ing.unit, ing.name].filter(Boolean).join(' '),
         checked: false,
         from_recipe_id: recipe.id,
       }));
@@ -75,6 +72,8 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
       >
         <ArrowLeft size={18} /> Back
       </button>
+
+      <RecipeImage className="mb-4 h-40 w-full rounded-xl" iconSize={40} />
 
       <h1 className="text-2xl font-bold">{recipe.title}</h1>
       {recipe.source_url && (
