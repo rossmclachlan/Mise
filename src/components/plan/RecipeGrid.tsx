@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { Recipe } from '../../types';
 import { getDomain } from '../../utils/url';
+import { RecipeImage } from '../ui/RecipeImage';
 
 interface RecipeGridProps {
   recipes: Recipe[];
@@ -24,12 +25,15 @@ export function RecipeGrid({ recipes, onSelect, onAdd }: RecipeGridProps) {
                 key={recipe.id}
                 type="button"
                 onClick={() => onSelect(recipe.id)}
-                className="flex min-h-[88px] flex-col items-start rounded-xl bg-white p-3 text-left shadow-sm active:shadow-none"
+                className="flex flex-col items-start overflow-hidden rounded-xl bg-white text-left shadow-sm active:shadow-none"
               >
-                <span className="font-semibold leading-snug">{recipe.title}</span>
-                {domain && (
-                  <span className="mt-1 text-xs text-ink/50">{domain}</span>
-                )}
+                <RecipeImage className="aspect-square w-full" />
+                <div className="flex flex-col items-start p-3">
+                  <span className="font-semibold leading-snug">{recipe.title}</span>
+                  {domain && (
+                    <span className="mt-1 text-xs text-ink/50">{domain}</span>
+                  )}
+                </div>
               </button>
             );
           })}

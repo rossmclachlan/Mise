@@ -84,10 +84,10 @@ export const SEED_RECIPES: Recipe[] = [
 ];
 
 export const SEED_STAPLES: Staple[] = [
-  { id: crypto.randomUUID(), name: 'Eggs', amount: '12', unit: '', category: 'dairy' },
-  { id: crypto.randomUUID(), name: 'Milk', amount: '1', unit: 'l', category: 'dairy' },
-  { id: crypto.randomUUID(), name: 'Butter', amount: '1', unit: '', category: 'dairy' },
-  { id: crypto.randomUUID(), name: 'Olive oil', amount: '1', unit: '', category: 'pantry' },
-  { id: crypto.randomUUID(), name: 'Salt', amount: '', unit: '', category: 'pantry' },
-  { id: crypto.randomUUID(), name: 'Garlic', amount: '1', unit: 'head', category: 'produce' },
+  { id: crypto.randomUUID(), text: 'Eggs', checked: false },
+  { id: crypto.randomUUID(), text: 'Milk', checked: false },
+  { id: crypto.randomUUID(), text: 'Butter', checked: false },
+  { id: crypto.randomUUID(), text: 'Olive oil', checked: false },
+  { id: crypto.randomUUID(), text: 'Salt', checked: false },
+  { id: crypto.randomUUID(), text: 'Garlic', checked: false },
 ];

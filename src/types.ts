@@ -1,16 +1,5 @@
 export type Mode = 'plan' | 'shop' | 'cook';
 
-export type GroceryCategory =
-  | 'produce'
-  | 'dairy'
-  | 'meat'
-  | 'fish'
-  | 'bakery'
-  | 'pantry'
-  | 'frozen'
-  | 'drinks'
-  | 'other';
-
 export interface Ingredient {
   amount: string;
   unit: string;
@@ -30,42 +19,32 @@ export interface Recipe {
 
 export interface GroceryItem {
   id: string;
-  name: string;
-  amount?: string;
-  unit?: string;
-  category: GroceryCategory;
+  text: string;
   checked: boolean;
   from_recipe_id?: string;
 }
 
 export interface Staple {
   id: string;
-  name: string;
-  amount?: string;
-  unit?: string;
-  category: GroceryCategory;
+  text: string;
+  checked: boolean;
 }
 
-export const GROCERY_CATEGORIES: GroceryCategory[] = [
-  'produce',
-  'dairy',
-  'meat',
-  'fish',
-  'bakery',
-  'pantry',
-  'frozen',
-  'drinks',
-  'other',
-];
+export type WeekDay = 'mon' | 'tue' | 'wed' | 'thu' | 'fri';
 
-export const CATEGORY_LABELS: Record<GroceryCategory, string> = {
-  produce: 'Produce',
-  dairy: 'Dairy',
-  meat: 'Meat',
-  fish: 'Fish',
-  bakery: 'Bakery',
-  pantry: 'Pantry',
-  frozen: 'Frozen',
-  drinks: 'Drinks',
-  other: 'Other',
+export const WEEK_DAYS: WeekDay[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+export const WEEK_DAY_LABELS: Record<WeekDay, string> = {
+  mon: 'Monday',
+  tue: 'Tuesday',
+  wed: 'Wednesday',
+  thu: 'Thursday',
+  fri: 'Friday',
 };
+
+export type MealPlanEntry =
+  | { type: 'recipe'; recipeId: string }
+  | { type: 'idea'; text: string }
+  | { type: 'skip' };
+
+export type WeekPlan = Partial<Record<WeekDay, MealPlanEntry>>;

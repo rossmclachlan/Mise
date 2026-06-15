@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GroceryItem, Mode, Recipe, Staple } from './types';
+import type { GroceryItem, Mode, Recipe, Staple, WeekPlan } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
 import { BottomNav } from './components/ui/BottomNav';
@@ -8,23 +8,23 @@ import { RecipeGrid } from './components/plan/RecipeGrid';
 import { RecipeDetail } from './components/plan/RecipeDetail';
 import { AddRecipeSheet } from './components/plan/AddRecipeSheet';
 import { GroceryListView } from './components/plan/GroceryListView';
-import { StaplesManager } from './components/plan/StaplesManager';
+import { WeekPlanView } from './components/plan/WeekPlanView';
 import { ShopView } from './components/shop/ShopView';
 import { CookList } from './components/cook/CookList';
 import { CookView } from './components/cook/CookView';
 
-type PlanView = 'recipes' | 'grocery';
+type PlanView = 'week' | 'recipes' | 'grocery';
 
 function App() {
   const [mode, setMode] = useState<Mode>('plan');
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', SEED_RECIPES);
   const [groceryList, setGroceryList] = useLocalStorage<GroceryItem[]>('grocery_list', []);
   const [staples, setStaples] = useLocalStorage<Staple[]>('staples', SEED_STAPLES);
+  const [weekPlan, setWeekPlan] = useLocalStorage<WeekPlan>('week_plan', {});
 
-  const [planView, setPlanView] = useState<PlanView>('recipes');
+  const [planView, setPlanView] = useState<PlanView>('week');
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [showAddRecipe, setShowAddRecipe] = useState(false);
-  const [showStaples, setShowStaples] = useState(false);
 
   const [cookRecipeId, setCookRecipeId] = useState<string | null>(null);
 
@@ -34,7 +34,6 @@ function App() {
   function handleModeChange(next: Mode) {
     setMode(next);
     setSelectedRecipeId(null);
-    setShowStaples(false);
     setCookRecipeId(null);
   }
 
@@ -62,28 +61,28 @@ function App() {
           onAddToGroceryList={handleAddToGroceryList}
         />
       );
-    } else if (showStaples) {
-      content = (
-        <StaplesManager
-          staples={staples}
-          setStaples={setStaples}
-          onBack={() => setShowStaples(false)}
-        />
-      );
     } else {
       content = (
         <div>
           <div className="flex justify-center px-4 pb-2 pt-4">
             <PillToggle
               options={[
+                { label: 'This Week', value: 'week' },
                 { label: 'Recipes', value: 'recipes' },
-                { label: 'Grocery List', value: 'grocery' },
+                { label: 'List', value: 'grocery' },
               ]}
               value={planView}
               onChange={(v) => setPlanView(v as PlanView)}
             />
           </div>
-          {planView === 'recipes' ? (
+          {planView === 'week' ? (
+            <WeekPlanView
+              recipes={recipes}
+              weekPlan={weekPlan}
+              setWeekPlan={setWeekPlan}
+              onSelectRecipe={setSelectedRecipeId}
+            />
+          ) : planView === 'recipes' ? (
             <RecipeGrid
               recipes={recipes}
               onSelect={setSelectedRecipeId}
@@ -94,14 +93,21 @@ function App() {
               groceryList={groceryList}
               setGroceryList={setGroceryList}
               staples={staples}
-              onManageStaples={() => setShowStaples(true)}
+              setStaples={setStaples}
             />
           )}
         </div>
       );
     }
   } else if (mode === 'shop') {
-    content = <ShopView groceryList={groceryList} setGroceryList={setGroceryList} />;
+    content = (
+      <ShopView
+        groceryList={groceryList}
+        setGroceryList={setGroceryList}
+        staples={staples}
+        setStaples={setStaples}
+      />
+    );
   } else {
     content = cookRecipe ? (
       <CookView recipe={cookRecipe} onBack={() => setCookRecipeId(null)} />
