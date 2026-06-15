@@ -14,8 +14,8 @@ const TABS: { mode: Mode; label: string; Icon: typeof Map }[] = [
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="z-40 shrink-0 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
-      <div className="flex items-stretch justify-around">
+    <nav className="z-40 shrink-0 border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-stretch justify-around py-2">
         {TABS.map(({ mode, label, Icon }) => {
           const isActive = active === mode;
           return (
@@ -23,15 +23,23 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               key={mode}
               type="button"
               onClick={() => onChange(mode)}
-              className="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium"
+              className="flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium"
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon
-                size={24}
-                strokeWidth={isActive ? 2.5 : 2}
-                className={isActive ? 'text-accent' : 'text-ink/40'}
-              />
-              <span className={isActive ? 'text-accent' : 'text-ink/40'}>
+              <span
+                className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
+                  isActive ? 'bg-accent-container' : ''
+                }`}
+              >
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={isActive ? 'text-on-accent-container' : 'text-ink-variant'}
+                />
+              </span>
+              <span
+                className={isActive ? 'font-semibold text-on-accent-container' : 'text-ink-variant'}
+              >
                 {label}
               </span>
             </button>

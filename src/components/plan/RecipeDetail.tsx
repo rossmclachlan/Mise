@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
 import type { GroceryItem, Recipe } from '../../types';
 import { scaleAmount } from '../../utils/scale';
 import { getDomain } from '../../utils/url';
@@ -68,12 +68,12 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
       <button
         type="button"
         onClick={onBack}
-        className="mb-3 flex items-center gap-1 text-sm font-medium text-ink/60"
+        className="mb-3 flex items-center gap-1 text-sm font-medium text-ink-variant"
       >
         <ArrowLeft size={18} /> Back
       </button>
 
-      <RecipeImage className="mb-4 h-40 w-full rounded-xl" iconSize={40} />
+      <RecipeImage className="mb-4 h-40 w-full rounded-2xl" iconSize={40} />
 
       <h1 className="text-2xl font-bold">{recipe.title}</h1>
       {recipe.source_url && (
@@ -88,14 +88,14 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
         </a>
       )}
 
-      <div className="mt-4 flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
+      <div className="card mt-4 flex items-center gap-3 p-3">
         <span className="font-medium">Servings</span>
         <div className="ml-auto flex items-center gap-3">
           <button
             type="button"
             onClick={() => setServings((s) => Math.max(1, s - 1))}
             aria-label="Decrease servings"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 active:bg-gray-200"
+            className="btn-icon"
           >
             <Minus size={16} />
           </button>
@@ -104,7 +104,7 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
             type="button"
             onClick={() => setServings((s) => s + 1)}
             aria-label="Increase servings"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 active:bg-gray-200"
+            className="btn-icon"
           >
             <Plus size={16} />
           </button>
@@ -113,16 +113,16 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
 
       <section className="mt-4">
         <h2 className="mb-2 text-lg font-semibold">Ingredients</h2>
-        <ul className="rounded-xl bg-white p-3 shadow-sm">
+        <ul className="card p-3">
           {recipe.ingredients.map((ing, i) => (
             <li
               key={i}
               className={`flex justify-between gap-3 py-1.5 text-sm ${
-                i > 0 ? 'border-t border-gray-100' : ''
+                i > 0 ? 'border-t border-outline/60' : ''
               }`}
             >
               <span>{ing.name}</span>
-              <span className="shrink-0 text-ink/60">
+              <span className="shrink-0 text-ink-variant">
                 {formatAmount(scaleAmount(ing.amount, ratio), ing.unit)}
               </span>
             </li>
@@ -134,7 +134,7 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
         <h2 className="mb-2 text-lg font-semibold">Steps</h2>
         <ol className="space-y-2">
           {recipe.steps.map((step, i) => (
-            <li key={i} className="rounded-xl bg-white p-3 text-sm shadow-sm">
+            <li key={i} className="card p-3 text-sm">
               <span className="mr-2 font-semibold text-accent">{i + 1}.</span>
               {step}
             </li>
@@ -145,23 +145,15 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
       {recipe.notes && (
         <section className="mt-4">
           <h2 className="mb-2 text-lg font-semibold">Notes</h2>
-          <p className="rounded-xl bg-white p-3 text-sm shadow-sm">{recipe.notes}</p>
+          <p className="card p-3 text-sm">{recipe.notes}</p>
         </section>
       )}
 
-      <button
-        type="button"
-        onClick={openConfirm}
-        className="mt-6 w-full rounded-xl bg-accent py-3 font-semibold text-white"
-      >
+      <button type="button" onClick={openConfirm} className="btn-filled mt-6 w-full">
         Add to Grocery List
       </button>
 
-      <button
-        type="button"
-        onClick={handleDelete}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 py-3 font-medium text-red-600"
-      >
+      <button type="button" onClick={handleDelete} className="btn-danger mt-3 w-full">
         <Trash2 size={18} /> Delete Recipe
       </button>
 
@@ -170,10 +162,10 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
         onClose={() => setConfirmOpen(false)}
         title="Add to Grocery List"
       >
-        <p className="mb-2 text-sm text-ink/60">
+        <p className="mb-2 text-sm text-ink-variant">
           Deselect anything you already have.
         </p>
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-outline/60">
           {recipe.ingredients.map((ing, i) => (
             <li key={i}>
               <label className="flex items-center gap-3 py-2.5">
@@ -181,21 +173,24 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
                   type="checkbox"
                   checked={selected.has(i)}
                   onChange={() => toggleIngredient(i)}
-                  className="h-5 w-5 accent-accent"
+                  className="sr-only"
                 />
+                <span
+                  className={`checkbox-indicator h-5 w-5 ${
+                    selected.has(i) ? 'border-accent bg-accent text-white' : 'border-outline'
+                  }`}
+                >
+                  {selected.has(i) && <Check size={14} strokeWidth={3} />}
+                </span>
                 <span className="flex-1 text-sm">{ing.name}</span>
-                <span className="shrink-0 text-sm text-ink/50">
+                <span className="shrink-0 text-sm text-ink-variant">
                   {formatAmount(scaleAmount(ing.amount, ratio), ing.unit)}
                 </span>
               </label>
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          onClick={handleConfirmAdd}
-          className="mb-2 mt-4 w-full rounded-xl bg-accent py-3 font-semibold text-white"
-        >
+        <button type="button" onClick={handleConfirmAdd} className="btn-filled mb-2 mt-4 w-full">
           Add {selected.size} {selected.size === 1 ? 'Item' : 'Items'}
         </button>
       </BottomSheet>

@@ -41,34 +41,34 @@ export function ChecklistSection({
 
   return (
     <section>
-      <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">{title}</h2>
+      <h2 className="label-section mb-2">{title}</h2>
 
       {sorted.length === 0 && emptyText ? (
-        <p className="rounded-xl bg-white px-4 py-3 text-sm text-ink/40 shadow-sm">{emptyText}</p>
+        <p className="card px-4 py-3 text-sm text-ink-variant">{emptyText}</p>
       ) : sorted.length > 0 ? (
-        <ul className="overflow-hidden rounded-xl bg-white shadow-sm">
+        <ul className="card overflow-hidden">
           {sorted.map((item) => (
             <li
               key={item.id}
-              className="flex items-center border-b border-gray-100 last:border-b-0"
+              className="flex items-center border-b border-outline/60 last:border-b-0"
             >
               <button
                 type="button"
                 onClick={() => onToggle(item.id)}
                 className={`flex flex-1 items-center gap-3 px-4 text-left ${
                   large ? 'min-h-[56px] py-3' : 'py-2.5'
-                } ${item.checked ? 'bg-gray-50' : ''}`}
+                } ${item.checked ? 'bg-surface-variant/60' : ''}`}
               >
                 <span
-                  className={`flex shrink-0 items-center justify-center rounded-full border-2 ${
-                    large ? 'h-7 w-7' : 'h-5 w-5'
-                  } ${item.checked ? 'border-accent bg-accent text-white' : 'border-gray-300'}`}
+                  className={`checkbox-indicator ${large ? 'h-7 w-7' : 'h-5 w-5'} ${
+                    item.checked ? 'border-accent bg-accent text-white' : 'border-outline'
+                  }`}
                 >
                   {item.checked && <Check size={large ? 18 : 14} strokeWidth={3} />}
                 </span>
                 <span
                   className={`flex-1 ${large ? 'text-lg' : 'text-sm'} ${
-                    item.checked ? 'text-ink/35 line-through' : 'text-ink'
+                    item.checked ? 'text-ink-variant line-through' : 'text-ink'
                   }`}
                 >
                   {item.text}
@@ -79,7 +79,7 @@ export function ChecklistSection({
                   type="button"
                   onClick={() => onRemove(item.id)}
                   aria-label={`Remove ${item.text}`}
-                  className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink/40"
+                  className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
                 >
                   <X size={18} />
                 </button>
@@ -99,14 +99,14 @@ export function ChecklistSection({
               if (e.key === 'Enter') submitAdd();
             }}
             placeholder={addPlaceholder}
-            className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-base focus:border-accent focus:outline-none"
+            className="input-field flex-1"
           />
           <button
             type="button"
             onClick={submitAdd}
             disabled={!draft.trim()}
             aria-label={`Add to ${title}`}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white disabled:opacity-40"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
           >
             <Plus size={20} />
           </button>
