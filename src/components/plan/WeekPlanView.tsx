@@ -3,6 +3,7 @@ import { BookOpen, ChevronDown } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
+  type GroceryCategory,
   type GroceryItem,
   type MealPlanEntry,
   type PantryItem,
@@ -10,6 +11,7 @@ import {
   type WeekDay,
   type WeekPlan,
 } from '../../types';
+import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { ChecklistSection } from '../ui/ChecklistSection';
 
 interface WeekPlanViewProps {
@@ -70,6 +72,7 @@ export function WeekPlanView({
         checked: false,
         from_recipe_id: recipe.id,
         from_day: day,
+        category: categoriseItem(ing.name),
       }));
     setGroceryList((prev) => [...prev, ...items]);
   }
@@ -110,8 +113,27 @@ export function WeekPlanView({
     setGroceryList((prev) => prev.filter((item) => item.id !== id));
   }
 
-  function addManualDayItem(day: WeekDay, text: string) {
-    setGroceryList((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false, from_day: day }]);
+  function changeItemCategory(id: string, category: GroceryCategory) {
+    setGroceryList((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        learnCategory(item.text, category);
+        return { ...item, category };
+      }),
+    );
+  }
+
+  function addManualDayItem(day: WeekDay, text: string, category?: GroceryCategory) {
+    setGroceryList((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        text,
+        checked: false,
+        from_day: day,
+        category: category ?? categoriseItem(text),
+      },
+    ]);
   }
 
   function toggleExpand(day: WeekDay) {
@@ -176,7 +198,9 @@ export function WeekPlanView({
                     items={dayItems}
                     onToggle={toggleGroceryItem}
                     onRemove={removeGroceryItem}
-                    onAdd={(text) => addManualDayItem(day, text)}
+                    onAdd={(text, category) => addManualDayItem(day, text, category)}
+                    onCategoryChange={changeItemCategory}
+                    showCategoryPreview
                     addPlaceholder="Add an item"
                     emptyText="No items yet for this meal."
                     pantryItems={pantry}
