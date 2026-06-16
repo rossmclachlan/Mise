@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import type { Recipe } from '../../types';
 import { getDomain } from '../../utils/url';
 import { RecipeImage } from '../ui/RecipeImage';
@@ -7,9 +7,10 @@ import { RecipeImage } from '../ui/RecipeImage';
 interface CookListProps {
   recipes: Recipe[];
   onSelect: (id: string) => void;
+  onAdd: () => void;
 }
 
-export function CookList({ recipes, onSelect }: CookListProps) {
+export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
   const [query, setQuery] = useState('');
 
   const filtered = recipes.filter((recipe) =>
@@ -18,7 +19,17 @@ export function CookList({ recipes, onSelect }: CookListProps) {
 
   return (
     <div className="px-4 pb-8 pt-4">
-      <h1 className="mb-4 text-2xl font-bold">Cook</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Cook</h1>
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label="Add recipe"
+          className="btn-icon"
+        >
+          <Plus size={20} />
+        </button>
+      </div>
 
       <div className="input-field mb-4 flex items-center gap-2">
         <Search size={18} className="text-ink-variant" />

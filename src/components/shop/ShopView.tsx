@@ -4,8 +4,13 @@ import {
   GROCERY_CATEGORY_LABELS,
   type GroceryCategory,
   type GroceryItem,
+  type PantryItem,
   type Staple,
 } from '../../types';
+import { categoriseItem, learnCategory } from '../../utils/categorise';
+import { useWakeLock } from '../../hooks/useWakeLock';
+import { ChecklistSection } from '../ui/ChecklistSection';
+import { ItemListSection } from '../ui/ItemListSection';
 
 const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
   produce: '#14532D',
@@ -18,18 +23,24 @@ const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
   drinks: '#831843',
   other: '#334155',
 };
-import { learnCategory } from '../../utils/categorise';
-import { useWakeLock } from '../../hooks/useWakeLock';
-import { ChecklistSection } from '../ui/ChecklistSection';
 
-interface ShopViewProps {
+interface GroceryViewProps {
   groceryList: GroceryItem[];
   setGroceryList: Dispatch<SetStateAction<GroceryItem[]>>;
   staples: Staple[];
   setStaples: Dispatch<SetStateAction<Staple[]>>;
+  pantry: PantryItem[];
+  setPantry: Dispatch<SetStateAction<PantryItem[]>>;
 }
 
-export function ShopView({ groceryList, setGroceryList, staples, setStaples }: ShopViewProps) {
+export function GroceryView({
+  groceryList,
+  setGroceryList,
+  staples,
+  setStaples,
+  pantry,
+  setPantry,
+}: GroceryViewProps) {
   useWakeLock(true);
 
   const hasChecked =
@@ -41,15 +52,15 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
     );
   }
 
-  function toggleStaple(id: string) {
-    setStaples((prev) =>
-      prev.map((staple) => (staple.id === id ? { ...staple, checked: !staple.checked } : staple)),
-    );
+  function removeItem(id: string) {
+    setGroceryList((prev) => prev.filter((item) => item.id !== id));
   }
 
-  function clearChecked() {
-    setGroceryList((prev) => prev.filter((item) => !item.checked));
-    setStaples((prev) => prev.map((staple) => ({ ...staple, checked: false })));
+  function addItem(text: string, category?: GroceryCategory) {
+    setGroceryList((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, checked: false, category: category ?? categoriseItem(text) },
+    ]);
   }
 
   function changeItemCategory(id: string, category: GroceryCategory) {
@@ -62,17 +73,42 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
     );
   }
 
+  function toggleStaple(id: string) {
+    setStaples((prev) =>
+      prev.map((staple) => (staple.id === id ? { ...staple, checked: !staple.checked } : staple)),
+    );
+  }
+
+  function removeStaple(id: string) {
+    setStaples((prev) => prev.filter((staple) => staple.id !== id));
+  }
+
+  function addStaple(text: string) {
+    setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
+  }
+
+  function clearChecked() {
+    setGroceryList((prev) => prev.filter((item) => !item.checked));
+    setStaples((prev) => prev.map((staple) => ({ ...staple, checked: false })));
+  }
+
+  function removePantryItem(id: string) {
+    setPantry((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function addPantryItem(text: string) {
+    setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+  }
+
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
     category,
     items: groceryList.filter((item) => (item.category ?? 'other') === category),
   })).filter((group) => group.items.length > 0);
 
-  const isEmpty = groceryList.length === 0 && staples.length === 0;
-
   return (
     <div className="px-4 pb-8 pt-4">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Shop</h1>
+        <h1 className="text-2xl font-bold">Grocery</h1>
         <button
           type="button"
           onClick={clearChecked}
@@ -83,28 +119,50 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
         </button>
       </div>
 
-      {isEmpty ? (
-        <p className="mt-16 text-center text-base text-ink-variant">
-          Your list is empty. Add items in Plan mode.
-        </p>
-      ) : (
-        <div className="space-y-5">
-          {staples.length > 0 && (
-            <ChecklistSection title="Staples" items={staples} onToggle={toggleStaple} large />
-          )}
-          {groceryByCategory.map(({ category, items }) => (
-            <ChecklistSection
-              key={category}
-              title={GROCERY_CATEGORY_LABELS[category]}
-              accent={CATEGORY_ACCENT[category]}
-              items={items}
-              onToggle={toggleItem}
-              onCategoryChange={changeItemCategory}
-              large
-            />
-          ))}
-        </div>
-      )}
+      <div className="space-y-5">
+        <ChecklistSection
+          title="Staples"
+          items={staples}
+          onToggle={toggleStaple}
+          onRemove={removeStaple}
+          onAdd={addStaple}
+          addPlaceholder="Add a staple"
+          emptyText="No staples yet."
+          large
+        />
+
+        {groceryByCategory.map(({ category, items }) => (
+          <ChecklistSection
+            key={category}
+            title={GROCERY_CATEGORY_LABELS[category]}
+            accent={CATEGORY_ACCENT[category]}
+            items={items}
+            onToggle={toggleItem}
+            onRemove={removeItem}
+            onCategoryChange={changeItemCategory}
+            large
+            pantryItems={pantry}
+          />
+        ))}
+
+        <ChecklistSection
+          items={[]}
+          onToggle={() => {}}
+          onAdd={addItem}
+          showCategoryPreview
+          addPlaceholder="Add grocery item"
+          large
+        />
+
+        <ItemListSection
+          title="Pantry"
+          items={pantry}
+          onRemove={removePantryItem}
+          onAdd={addPantryItem}
+          addPlaceholder="Add a pantry item"
+          emptyText="No pantry items yet."
+        />
+      </div>
     </div>
   );
 }
