@@ -1,4 +1,17 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
+import {
+  Archive,
+  Beef,
+  Carrot,
+  Croissant,
+  CupSoda,
+  Fish,
+  Milk,
+  Plus,
+  Snowflake,
+  Tag,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
@@ -9,6 +22,7 @@ import {
 } from '../../types';
 import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
+import { BottomSheet } from '../ui/BottomSheet';
 import { ChecklistSection } from '../ui/ChecklistSection';
 import { ItemListSection } from '../ui/ItemListSection';
 
@@ -22,6 +36,31 @@ const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
   frozen: '#0C4A6E',
   drinks: '#831843',
   other: '#334155',
+};
+
+const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
+  produce: Carrot,
+  dairy: Milk,
+  meat: Beef,
+  fish: Fish,
+  bakery: Croissant,
+  pantry: Archive,
+  frozen: Snowflake,
+  drinks: CupSoda,
+  other: Tag,
+};
+
+function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
+  const Icon = CATEGORY_ICONS[category];
+  return <Icon size={size} />;
+}
+
+type AddTarget = 'grocery' | 'staple' | 'pantry';
+
+const ADD_TARGET_LABELS: Record<AddTarget, string> = {
+  grocery: 'Grocery',
+  staple: 'Staple',
+  pantry: 'Pantry',
 };
 
 interface GroceryViewProps {
@@ -43,8 +82,41 @@ export function GroceryView({
 }: GroceryViewProps) {
   useWakeLock(true);
 
+  const [draft, setDraft] = useState('');
+  const [addTarget, setAddTarget] = useState<AddTarget>('grocery');
+  const [draftCategory, setDraftCategory] = useState<GroceryCategory | null>(null);
+  const [draftCategoryOverride, setDraftCategoryOverride] = useState<GroceryCategory | null>(null);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (addTarget !== 'grocery') return;
+    const text = draft.trim();
+    const handle = setTimeout(() => setDraftCategory(text ? categoriseItem(text) : null), 300);
+    return () => clearTimeout(handle);
+  }, [draft, addTarget]);
+
+  const effectiveDraftCategory = draftCategoryOverride ?? draftCategory ?? 'other';
+
   const hasChecked =
     groceryList.some((item) => item.checked) || staples.some((staple) => staple.checked);
+
+  function submitAdd() {
+    const text = draft.trim();
+    if (!text) return;
+    if (addTarget === 'grocery') {
+      setGroceryList((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), text, checked: false, category: effectiveDraftCategory },
+      ]);
+    } else if (addTarget === 'staple') {
+      setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
+    } else {
+      setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+    }
+    setDraft('');
+    setDraftCategory(null);
+    setDraftCategoryOverride(null);
+  }
 
   function toggleItem(id: string) {
     setGroceryList((prev) =>
@@ -54,13 +126,6 @@ export function GroceryView({
 
   function removeItem(id: string) {
     setGroceryList((prev) => prev.filter((item) => item.id !== id));
-  }
-
-  function addItem(text: string, category?: GroceryCategory) {
-    setGroceryList((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text, checked: false, category: category ?? categoriseItem(text) },
-    ]);
   }
 
   function changeItemCategory(id: string, category: GroceryCategory) {
@@ -83,10 +148,6 @@ export function GroceryView({
     setStaples((prev) => prev.filter((staple) => staple.id !== id));
   }
 
-  function addStaple(text: string) {
-    setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
-  }
-
   function clearChecked() {
     setGroceryList((prev) => prev.filter((item) => !item.checked));
     setStaples((prev) => prev.map((staple) => ({ ...staple, checked: false })));
@@ -94,10 +155,6 @@ export function GroceryView({
 
   function removePantryItem(id: string) {
     setPantry((prev) => prev.filter((item) => item.id !== id));
-  }
-
-  function addPantryItem(text: string) {
-    setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
   }
 
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
@@ -119,17 +176,79 @@ export function GroceryView({
         </button>
       </div>
 
+      {/* Unified add input */}
+      <div className="mb-5">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setDraftCategoryOverride(null);
+            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitAdd(); }}
+            placeholder={
+              addTarget === 'grocery'
+                ? 'Add grocery item'
+                : addTarget === 'staple'
+                  ? 'Add a staple'
+                  : 'Add a pantry item'
+            }
+            className="input-field flex-1"
+          />
+          <button
+            type="button"
+            onClick={submitAdd}
+            disabled={!draft.trim()}
+            aria-label="Add item"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        <div className="mt-2 flex gap-2">
+          {(['grocery', 'staple', 'pantry'] as const).map((target) => (
+            <button
+              key={target}
+              type="button"
+              onClick={() => setAddTarget(target)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                addTarget === target
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-variant text-ink-variant'
+              }`}
+            >
+              {ADD_TARGET_LABELS[target]}
+            </button>
+          ))}
+        </div>
+
+        {addTarget === 'grocery' && draft.trim() && (
+          <div className="mt-2 px-1">
+            <button
+              type="button"
+              onClick={() => setCategoryPickerOpen(true)}
+              className={`chip-${effectiveDraftCategory} inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold`}
+            >
+              <CategoryIcon category={effectiveDraftCategory} size={12} />
+              {GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-5">
-        <ChecklistSection
-          title="Staples"
-          items={staples}
-          onToggle={toggleStaple}
-          onRemove={removeStaple}
-          onAdd={addStaple}
-          addPlaceholder="Add a staple"
-          emptyText="No staples yet."
-          large
-        />
+        {staples.length > 0 && (
+          <ChecklistSection
+            title="Staples"
+            items={staples}
+            onToggle={toggleStaple}
+            onRemove={removeStaple}
+            emptyText="No staples yet."
+            large
+          />
+        )}
 
         {groceryByCategory.map(({ category, items }) => (
           <ChecklistSection
@@ -145,24 +264,43 @@ export function GroceryView({
           />
         ))}
 
-        <ChecklistSection
-          items={[]}
-          onToggle={() => {}}
-          onAdd={addItem}
-          showCategoryPreview
-          addPlaceholder="Add grocery item"
-          large
-        />
-
-        <ItemListSection
-          title="Pantry"
-          items={pantry}
-          onRemove={removePantryItem}
-          onAdd={addPantryItem}
-          addPlaceholder="Add a pantry item"
-          emptyText="No pantry items yet."
-        />
+        {pantry.length > 0 && (
+          <ItemListSection
+            title="Pantry"
+            items={pantry}
+            onRemove={removePantryItem}
+            emptyText="No pantry items yet."
+          />
+        )}
       </div>
+
+      <BottomSheet
+        isOpen={categoryPickerOpen}
+        onClose={() => setCategoryPickerOpen(false)}
+        title="Category"
+      >
+        <ul className="divide-y divide-outline/60">
+          {GROCERY_CATEGORIES.map((category) => (
+            <li key={category}>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftCategoryOverride(category);
+                  setCategoryPickerOpen(false);
+                }}
+                className="flex w-full items-center gap-3 py-3 text-left"
+              >
+                <span
+                  className={`chip-${category} flex h-9 w-9 shrink-0 items-center justify-center rounded-full`}
+                >
+                  <CategoryIcon category={category} size={18} />
+                </span>
+                <span className="text-base font-medium">{GROCERY_CATEGORY_LABELS[category]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </BottomSheet>
     </div>
   );
 }
