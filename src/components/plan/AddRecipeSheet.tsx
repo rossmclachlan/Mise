@@ -42,6 +42,14 @@ function formatIngredientLine(ing: Ingredient): string {
 
 type ImportStatus = 'idle' | 'loading' | 'success' | 'error';
 
+function isNYTCookingUrl(url: string) {
+  return /cooking\.nytimes\.com|nytimes\.com\/recipes/i.test(url);
+}
+
+function isNYTGiftLink(url: string) {
+  return isNYTCookingUrl(url) && /unlocked_article_code=/i.test(url);
+}
+
 export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [step, setStep] = useState<'form' | 'preview'>('form');
@@ -85,10 +93,12 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
       setImportStatus('success');
     } catch (err) {
       setImportStatus('error');
-      if (err instanceof ImportError && err.code === 'NO_RECIPE') {
+      if (isNYTCookingUrl(url) && !isNYTGiftLink(url)) {
+        setImportErrorMessage(
+          'NYT Cooking recipes are paywalled — paste a gift link instead (tap Share → Gift Recipe in the app)',
+        );
+      } else if (err instanceof ImportError && err.code === 'NO_RECIPE') {
         setImportErrorMessage('No recipe found on this page');
-      } else if (/nytimes/i.test(url)) {
-        setImportErrorMessage('Try pasting a gift link if this is a paywalled recipe');
       } else {
         setImportErrorMessage("Couldn't reach this page");
       }
@@ -160,6 +170,13 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
                 {importStatus === 'loading' ? <Loader2 size={18} className="animate-spin" /> : 'Import'}
               </button>
             </div>
+            {importStatus === 'idle' && isNYTCookingUrl(importUrl) && !isNYTGiftLink(importUrl) && (
+              <p className="text-sm text-ink-variant">
+                NYT Cooking requires a gift link.{' '}
+                <span className="font-medium text-ink">Tap Share → Gift Recipe</span> in the NYT
+                Cooking app, then paste that link here.
+              </p>
+            )}
             {importStatus === 'loading' && (
               <p className="text-sm text-ink-variant">Fetching recipe…</p>
             )}
