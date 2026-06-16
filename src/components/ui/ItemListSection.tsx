@@ -10,7 +10,7 @@ interface ItemListSectionProps {
   title: string;
   items: ListItem[];
   onRemove: (id: string) => void;
-  onAdd: (text: string) => void;
+  onAdd?: (text: string) => void;
   addPlaceholder?: string;
   emptyText?: string;
 }
@@ -28,7 +28,7 @@ export function ItemListSection({
   function submitAdd() {
     const text = draft.trim();
     if (!text) return;
-    onAdd(text);
+    onAdd?.(text);
     setDraft('');
   }
 
@@ -59,27 +59,29 @@ export function ItemListSection({
         </ul>
       ) : null}
 
-      <div className="mt-2 flex gap-2">
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submitAdd();
-          }}
-          placeholder={addPlaceholder}
-          className="input-field flex-1"
-        />
-        <button
-          type="button"
-          onClick={submitAdd}
-          disabled={!draft.trim()}
-          aria-label={`Add to ${title}`}
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
-        >
-          <Plus size={20} />
-        </button>
-      </div>
+      {onAdd && (
+        <div className="mt-2 flex gap-2">
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitAdd();
+            }}
+            placeholder={addPlaceholder}
+            className="input-field flex-1"
+          />
+          <button
+            type="button"
+            onClick={submitAdd}
+            disabled={!draft.trim()}
+            aria-label={`Add to ${title}`}
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      )}
     </section>
   );
 }
