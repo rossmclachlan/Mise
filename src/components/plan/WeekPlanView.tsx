@@ -110,6 +110,7 @@ export function WeekPlanView({
     setEntry(day, undefined);
     setDayInputs((prev) => ({ ...prev, [day]: '' }));
     setOpenDay(null);
+    setExpandedDay((prev) => (prev === day ? null : prev));
   }
 
   function selectInspiration(day: WeekDay, title: string) {
@@ -180,7 +181,7 @@ export function WeekPlanView({
                     value={dayInputs[day] ?? ''}
                     onChange={(e) => commitDayValue(day, e.target.value)}
                     onFocus={() => setOpenDay(day)}
-                    onBlur={() => setTimeout(() => setOpenDay(null), 150)}
+                    onBlur={() => setTimeout(() => setOpenDay((cur) => (cur === day ? null : cur)), 150)}
                     placeholder="Add a recipe or idea..."
                     className="input-field w-full"
                   />
@@ -205,15 +206,17 @@ export function WeekPlanView({
                     <BookOpen size={18} />
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(day)}
-                  aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
-                  aria-expanded={isExpanded}
-                  className="btn-icon"
-                >
-                  <ChevronDown size={18} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                {entry && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(day)}
+                    aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
+                    aria-expanded={isExpanded}
+                    className="btn-icon"
+                  >
+                    <ChevronDown size={18} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
               </div>
 
               {isOpen && (
