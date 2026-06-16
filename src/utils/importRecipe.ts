@@ -26,21 +26,31 @@ interface JsonLdNode {
   [key: string]: unknown;
 }
 
-const PROXY_URL = 'https://api.allorigins.win/get?url=';
+async function fetchViaProxy(url: string): Promise<string> {
+  // Try allorigins first; fall back to corsproxy.io if it fails or returns empty.
+  try {
+    const res = await fetch(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    );
+    if (res.ok) {
+      const data = (await res.json()) as { contents?: string | null };
+      if (data.contents) return data.contents;
+    }
+  } catch {
+    // fall through
+  }
 
-/**
- * Fetches a recipe page through a CORS proxy and extracts its schema.org
- * Recipe data from JSON-LD. Temporary client-side approach for feature
- * testing; a real backend fetch should replace the proxy later.
- */
+  const res2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+  if (!res2.ok) throw new Error(`Proxy responded with ${res2.status}`);
+  const text = await res2.text();
+  if (!text) throw new Error('Empty response from proxy');
+  return text;
+}
+
 export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> {
   let html: string;
   try {
-    const res = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error(`Proxy responded with ${res.status}`);
-    const data = (await res.json()) as { contents?: string | null };
-    if (!data.contents) throw new Error('Empty response from proxy');
-    html = data.contents;
+    html = await fetchViaProxy(url);
   } catch {
     throw new ImportError('NETWORK', "Couldn't reach this page");
   }
