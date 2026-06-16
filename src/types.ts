@@ -1,4 +1,4 @@
-export type Mode = 'plan' | 'shop' | 'cook';
+export type Mode = 'plan' | 'grocery' | 'cook';
 
 export interface Ingredient {
   amount: string;

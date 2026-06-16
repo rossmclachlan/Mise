@@ -7,9 +7,9 @@ interface BottomNavProps {
 }
 
 const TABS: { mode: Mode; label: string; Icon: typeof Map; bg: string; fg: string }[] = [
-  { mode: 'plan',  label: 'Plan',  Icon: Map,          bg: '#DCFCE7', fg: '#14532D' },
-  { mode: 'shop',  label: 'Shop',  Icon: ShoppingCart, bg: '#FFEDD5', fg: '#C2410C' },
-  { mode: 'cook',  label: 'Cook',  Icon: ChefHat,      bg: '#FEE2E2', fg: '#7F1D1D' },
+  { mode: 'plan',    label: 'Plan',    Icon: Map,          bg: '#DCFCE7', fg: '#14532D' },
+  { mode: 'grocery', label: 'Grocery', Icon: ShoppingCart, bg: '#FFEDD5', fg: '#C2410C' },
+  { mode: 'cook',    label: 'Cook',    Icon: ChefHat,      bg: '#FEE2E2', fg: '#7F1D1D' },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
