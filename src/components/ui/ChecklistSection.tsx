@@ -33,6 +33,7 @@ export interface ChecklistItem {
 
 interface ChecklistSectionProps {
   title?: string;
+  accent?: string;
   items: ChecklistItem[];
   onToggle: (id: string) => void;
   onRemove?: (id: string) => void;
@@ -66,6 +67,7 @@ type CategoryPickerTarget = { type: 'item'; id: string } | { type: 'draft' };
 
 export function ChecklistSection({
   title,
+  accent,
   items,
   onToggle,
   onRemove,
@@ -120,7 +122,11 @@ export function ChecklistSection({
 
   return (
     <section>
-      {title && <h2 className="label-section mb-2">{title}</h2>}
+      {title && (
+        <h2 className="label-section mb-2" style={accent ? { color: accent } : undefined}>
+          {title}
+        </h2>
+      )}
 
       {sorted.length === 0 && emptyText ? (
         <p className="card px-4 py-3 text-sm text-ink-variant">{emptyText}</p>
@@ -168,9 +174,9 @@ export function ChecklistSection({
                   type="button"
                   onClick={() => setCategoryPickerTarget({ type: 'item', id: item.id })}
                   aria-label={`Category: ${GROCERY_CATEGORY_LABELS[item.category ?? 'other']}`}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
+                  className={`chip-${item.category ?? 'other'} mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:opacity-70`}
                 >
-                  <CategoryIcon category={item.category ?? 'other'} size={large ? 18 : 16} />
+                  <CategoryIcon category={item.category ?? 'other'} size={large ? 16 : 14} />
                 </button>
               )}
               {onRemove && (
@@ -215,15 +221,14 @@ export function ChecklistSection({
             </button>
           </div>
           {showCategoryPreview && draft.trim() && (
-            <div className="mt-1.5 flex items-center gap-1.5 px-1 text-xs text-ink-variant">
-              <CategoryIcon category={effectiveDraftCategory} size={14} />
-              <span>{GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}</span>
+            <div className="mt-2 px-1">
               <button
                 type="button"
                 onClick={() => setCategoryPickerTarget({ type: 'draft' })}
-                className="font-semibold text-accent"
+                className={`chip-${effectiveDraftCategory} inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold`}
               >
-                Change
+                <CategoryIcon category={effectiveDraftCategory} size={12} />
+                {GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}
               </button>
             </div>
           )}
@@ -241,10 +246,14 @@ export function ChecklistSection({
               <button
                 type="button"
                 onClick={() => selectCategory(category)}
-                className="flex w-full items-center gap-3 py-3 text-left text-base font-medium"
+                className="flex w-full items-center gap-3 py-3 text-left"
               >
-                <CategoryIcon category={category} size={18} />
-                {GROCERY_CATEGORY_LABELS[category]}
+                <span
+                  className={`chip-${category} flex h-9 w-9 shrink-0 items-center justify-center rounded-full`}
+                >
+                  <CategoryIcon category={category} size={18} />
+                </span>
+                <span className="text-base font-medium">{GROCERY_CATEGORY_LABELS[category]}</span>
               </button>
             </li>
           ))}

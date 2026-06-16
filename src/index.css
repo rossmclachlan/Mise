@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #FAFAF8;
+  --color-bg: #FFFCF5;
   --color-surface: #FFFFFF;
-  --color-surface-variant: #EFEDE6;
-  --color-accent: #4A6741;
-  --color-accent-container: #DDEAD2;
-  --color-on-accent-container: #16280F;
-  --color-ink: #1C1C1A;
-  --color-ink-variant: #6E7568;
-  --color-outline: #DDDBD3;
-  --color-error: #BA1A1A;
-  --color-error-container: #FFDAD6;
-  --color-on-error-container: #410002;
+  --color-surface-variant: #FFF5EA;
+  --color-accent: #C2410C;
+  --color-accent-container: #FFEDD5;
+  --color-on-accent-container: #7C2D12;
+  --color-ink: #1C1915;
+  --color-ink-variant: #78706A;
+  --color-outline: #E5DDD4;
+  --color-error: #DC2626;
+  --color-error-container: #FEE2E2;
+  --color-on-error-container: #7F1D1D;
 }
 
 @layer base {
@@ -36,22 +36,23 @@
   }
 
   h1 {
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    font-weight: 800;
   }
 }
 
 @layer components {
   /* Surfaces */
   .card {
-    @apply rounded-2xl bg-surface shadow-[0_1px_2px_rgba(28,28,26,0.06),0_1px_8px_rgba(28,28,26,0.04)];
+    @apply rounded-2xl bg-surface shadow-[0_1px_3px_rgba(28,20,5,0.08),0_2px_12px_rgba(28,20,5,0.05)];
   }
 
-  /* Section / group labels (M3 "label" style) */
+  /* Section / group labels */
   .label-section {
-    @apply text-xs font-bold uppercase tracking-wider text-ink-variant;
+    @apply text-[11px] font-extrabold uppercase tracking-[0.1em] text-ink-variant;
   }
 
-  /* Buttons (M3: fully-rounded filled / tonal / outlined / text) */
+  /* Buttons */
   .btn-filled {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition active:opacity-90 disabled:opacity-40 disabled:shadow-none;
   }
@@ -68,17 +69,17 @@
     @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-error-container bg-transparent px-6 py-3 text-sm font-semibold text-error transition active:bg-error-container disabled:opacity-40;
   }
 
-  /* Small round icon buttons (steppers, close, remove) */
+  /* Small round icon buttons */
   .btn-icon {
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-variant text-ink transition active:bg-outline/50;
   }
 
-  /* Text inputs / textareas (M3 outlined field, app shape language) */
+  /* Text inputs / textareas */
   .input-field {
     @apply rounded-xl border border-outline bg-surface px-3 py-2.5 text-base text-ink placeholder:text-ink-variant focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15;
   }
 
-  /* Floating action button (M3 large-shape FAB) */
+  /* Floating action button */
   .fab {
     @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg active:shadow-md;
   }
@@ -87,4 +88,15 @@
   .checkbox-indicator {
     @apply flex shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors;
   }
+
+  /* Grocery category color chips */
+  .chip-produce { background-color: #DCFCE7; color: #14532D; }
+  .chip-dairy   { background-color: #DBEAFE; color: #1E3A8A; }
+  .chip-meat    { background-color: #FEE2E2; color: #7F1D1D; }
+  .chip-fish    { background-color: #CCFBF1; color: #134E4A; }
+  .chip-bakery  { background-color: #FEF3C7; color: #78350F; }
+  .chip-pantry  { background-color: #EDE9FE; color: #4C1D95; }
+  .chip-frozen  { background-color: #E0F2FE; color: #0C4A6E; }
+  .chip-drinks  { background-color: #FCE7F3; color: #831843; }
+  .chip-other   { background-color: #F1F5F9; color: #334155; }
 }

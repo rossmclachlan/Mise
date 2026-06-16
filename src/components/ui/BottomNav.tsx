@@ -6,17 +6,17 @@ interface BottomNavProps {
   onChange: (mode: Mode) => void;
 }
 
-const TABS: { mode: Mode; label: string; Icon: typeof Map }[] = [
-  { mode: 'plan', label: 'Plan', Icon: Map },
-  { mode: 'shop', label: 'Shop', Icon: ShoppingCart },
-  { mode: 'cook', label: 'Cook', Icon: ChefHat },
+const TABS: { mode: Mode; label: string; Icon: typeof Map; bg: string; fg: string }[] = [
+  { mode: 'plan',  label: 'Plan',  Icon: Map,          bg: '#DCFCE7', fg: '#14532D' },
+  { mode: 'shop',  label: 'Shop',  Icon: ShoppingCart, bg: '#FFEDD5', fg: '#C2410C' },
+  { mode: 'cook',  label: 'Cook',  Icon: ChefHat,      bg: '#FEE2E2', fg: '#7F1D1D' },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
     <nav className="z-40 shrink-0 border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-stretch justify-around py-2">
-        {TABS.map(({ mode, label, Icon }) => {
+        {TABS.map(({ mode, label, Icon, bg, fg }) => {
           const isActive = active === mode;
           return (
             <button
@@ -27,18 +27,19 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               aria-current={isActive ? 'page' : undefined}
             >
               <span
-                className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
-                  isActive ? 'bg-accent-container' : ''
-                }`}
+                style={isActive ? { backgroundColor: bg } : undefined}
+                className="flex h-8 w-14 items-center justify-center rounded-full transition-colors"
               >
                 <Icon
                   size={22}
                   strokeWidth={isActive ? 2.5 : 2}
-                  className={isActive ? 'text-on-accent-container' : 'text-ink-variant'}
+                  style={isActive ? { color: fg } : undefined}
+                  className={isActive ? '' : 'text-ink-variant'}
                 />
               </span>
               <span
-                className={isActive ? 'font-semibold text-on-accent-container' : 'text-ink-variant'}
+                style={isActive ? { color: fg } : undefined}
+                className={isActive ? 'font-semibold' : 'text-ink-variant'}
               >
                 {label}
               </span>

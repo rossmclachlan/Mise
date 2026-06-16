@@ -6,6 +6,18 @@ import {
   type GroceryItem,
   type Staple,
 } from '../../types';
+
+const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
+  produce: '#14532D',
+  dairy: '#1E3A8A',
+  meat: '#7F1D1D',
+  fish: '#134E4A',
+  bakery: '#78350F',
+  pantry: '#4C1D95',
+  frozen: '#0C4A6E',
+  drinks: '#831843',
+  other: '#334155',
+};
 import { learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { ChecklistSection } from '../ui/ChecklistSection';
@@ -84,6 +96,7 @@ export function ShopView({ groceryList, setGroceryList, staples, setStaples }: S
             <ChecklistSection
               key={category}
               title={GROCERY_CATEGORY_LABELS[category]}
+              accent={CATEGORY_ACCENT[category]}
               items={items}
               onToggle={toggleItem}
               onCategoryChange={changeItemCategory}
