@@ -5,30 +5,35 @@
 | Branch | Deployment | URL |
 |--------|-----------|-----|
 | `main` | GitHub Pages (existing CI workflow) | https://rossmclachlan.github.io/Mise/ |
-| `firebase` | Cloudflare Pages (preview) | Assigned by Cloudflare after setup |
+| `firebase` | Cloudflare Pages via GitHub Actions (`.github/workflows/deploy-cloudflare.yml`) | Assigned by Cloudflare after setup |
 
 ---
 
-## Cloudflare Pages — `firebase` branch
+## Cloudflare Pages — GitHub Actions deploy (`firebase` branch)
 
-### 1. Connect the repository
+Pushing to `firebase` triggers `.github/workflows/deploy-cloudflare.yml`, which builds the app in CI (baking in the `VITE_FIREBASE_*` vars from GitHub secrets) and uploads the result to Cloudflare Pages with the official `cloudflare/pages-action`.
+
+### 1. Create a Cloudflare Pages project (Direct Upload)
 
 1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/) and open **Workers & Pages**.
-2. Click **Create application → Pages → Connect to Git**.
-3. Select the **rossmclachlan/Mise** repository and authorise Cloudflare.
-4. Under **Set up builds and deployments**:
-   - **Production branch**: `firebase`
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-   - **Root directory**: *(leave blank)*
-5. Click **Save and Deploy** — this first build will fail (missing env vars); that is expected.
+2. Click **Create application → Pages → Upload assets** (Direct Upload — do **not** connect the Git repo, since the GitHub Action handles builds and uploads instead).
+3. Name the project `mise` (or update `projectName` in the workflow to match whatever you choose).
+4. Upload any placeholder file to finish creating the project — the first real deployment will come from the GitHub Action.
 
-### 2. Add environment variables
+### 2. Get an API token and account ID
 
-In the Cloudflare Pages project → **Settings → Environment variables**, add the following for **both** Production and Preview environments:
+1. In the Cloudflare dashboard, go to **My Profile → API Tokens → Create Token** and use the **"Edit Cloudflare Workers"** template (or a custom token with `Account.Cloudflare Pages: Edit` permission).
+2. Copy the generated token.
+3. Find your **Account ID** on the Workers & Pages overview page (right-hand sidebar).
 
-| Variable name | Value |
+### 3. Add GitHub Actions secrets
+
+In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
+
+| Secret name | Value |
 |---|---|
+| `CLOUDFLARE_API_TOKEN` | The API token from step 2 |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
 | `VITE_FIREBASE_API_KEY` | Your Firebase API key |
 | `VITE_FIREBASE_AUTH_DOMAIN` | e.g. `your-project.firebaseapp.com` |
 | `VITE_FIREBASE_PROJECT_ID` | e.g. `your-project-id` |
@@ -36,11 +41,17 @@ In the Cloudflare Pages project → **Settings → Environment variables**, add 
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Your sender ID |
 | `VITE_FIREBASE_APP_ID` | Your app ID |
 
-These values are found in the Firebase console under **Project settings → Your apps → SDK setup and configuration**.
+These Firebase values are found in the Firebase console under **Project settings → Your apps → SDK setup and configuration**.
 
-### 3. Trigger a redeploy
+### 4. Trigger the deploy
 
-After saving the env vars, go to **Deployments** and click **Retry deployment** on the failed build. The site will be available at the Cloudflare Pages URL once the build succeeds.
+Push to `firebase` (or run the workflow manually from the **Actions** tab via `workflow_dispatch`). The site will be available at the Cloudflare Pages URL shown in the workflow's deploy step output.
+
+---
+
+## Alternative: Cloudflare's own Git integration
+
+If you'd rather let Cloudflare build the project itself instead of using the GitHub Action above, connect the repo directly in the Cloudflare dashboard (**Create application → Pages → Connect to Git**, production branch `firebase`, build command `npm run build`, output directory `dist`) and set the same `VITE_FIREBASE_*` variables under **Settings → Environment variables**. Don't enable this **and** the GitHub Action on the same Cloudflare project — pick one, since both would deploy on every push to `firebase`.
 
 ---
 
