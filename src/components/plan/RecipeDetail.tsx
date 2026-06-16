@@ -12,13 +12,14 @@ interface RecipeDetailProps {
   onBack: () => void;
   onDelete: () => void;
   onAddToGroceryList: (items: GroceryItem[]) => void;
+  onCook?: () => void;
 }
 
 function formatAmount(amount: string, unit: string): string {
   return [amount, unit].filter(Boolean).join(' ');
 }
 
-export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: RecipeDetailProps) {
+export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onCook }: RecipeDetailProps) {
   const [servings, setServings] = useState(recipe.servings);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(
@@ -151,7 +152,17 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList }: R
         </section>
       )}
 
-      <button type="button" onClick={openConfirm} className="btn-filled mt-6 w-full">
+      {onCook && (
+        <button type="button" onClick={onCook} className="btn-filled mt-6 w-full">
+          Start Cooking
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={openConfirm}
+        className={`w-full ${onCook ? 'btn-tonal mt-3' : 'btn-filled mt-6'}`}
+      >
         Add to Grocery List
       </button>
 

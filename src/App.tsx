@@ -5,17 +5,12 @@ import { usePWAUpdate } from './hooks/usePWAUpdate';
 import { categoriseItem } from './utils/categorise';
 import { SEED_PANTRY, SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
 import { BottomNav } from './components/ui/BottomNav';
-import { PillToggle } from './components/ui/PillToggle';
-import { RecipeGrid } from './components/plan/RecipeGrid';
 import { RecipeDetail } from './components/plan/RecipeDetail';
 import { AddRecipeSheet } from './components/plan/AddRecipeSheet';
-import { GroceryListView } from './components/plan/GroceryListView';
 import { WeekPlanView } from './components/plan/WeekPlanView';
-import { ShopView } from './components/shop/ShopView';
+import { GroceryView } from './components/shop/ShopView';
 import { CookList } from './components/cook/CookList';
 import { CookView } from './components/cook/CookView';
-
-type PlanView = 'week' | 'recipes' | 'grocery';
 
 function App() {
   const [mode, setMode] = useState<Mode>('plan');
@@ -37,18 +32,16 @@ function App() {
     });
   }, [setGroceryList]);
 
-  const [planView, setPlanView] = useState<PlanView>('week');
-  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
+  const [cookDetailId, setCookDetailId] = useState<string | null>(null);
+  const [cookRecipeId, setCookRecipeId] = useState<string | null>(null);
   const [showAddRecipe, setShowAddRecipe] = useState(false);
 
-  const [cookRecipeId, setCookRecipeId] = useState<string | null>(null);
-
-  const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId) ?? null;
+  const cookDetailRecipe = recipes.find((r) => r.id === cookDetailId) ?? null;
   const cookRecipe = recipes.find((r) => r.id === cookRecipeId) ?? null;
 
   function handleModeChange(next: Mode) {
     setMode(next);
-    setSelectedRecipeId(null);
+    setCookDetailId(null);
     setCookRecipeId(null);
   }
 
@@ -58,7 +51,7 @@ function App() {
 
   function handleDeleteRecipe(id: string) {
     setRecipes((prev) => prev.filter((r) => r.id !== id));
-    setSelectedRecipeId(null);
+    setCookDetailId(null);
   }
 
   function handleAddToGroceryList(items: GroceryItem[]) {
@@ -67,73 +60,53 @@ function App() {
 
   let content;
   if (mode === 'plan') {
-    if (selectedRecipe) {
-      content = (
-        <RecipeDetail
-          recipe={selectedRecipe}
-          onBack={() => setSelectedRecipeId(null)}
-          onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
-          onAddToGroceryList={handleAddToGroceryList}
-        />
-      );
-    } else {
-      content = (
-        <div>
-          <div className="flex justify-center px-4 pb-2 pt-4">
-            <PillToggle
-              options={[
-                { label: 'This Week', value: 'week' },
-                { label: 'Recipes', value: 'recipes' },
-                { label: 'List', value: 'grocery' },
-              ]}
-              value={planView}
-              onChange={(v) => setPlanView(v as PlanView)}
-            />
-          </div>
-          {planView === 'week' ? (
-            <WeekPlanView
-              recipes={recipes}
-              weekPlan={weekPlan}
-              setWeekPlan={setWeekPlan}
-              groceryList={groceryList}
-              setGroceryList={setGroceryList}
-              pantry={pantry}
-              onSelectRecipe={setSelectedRecipeId}
-            />
-          ) : planView === 'recipes' ? (
-            <RecipeGrid
-              recipes={recipes}
-              onSelect={setSelectedRecipeId}
-              onAdd={() => setShowAddRecipe(true)}
-            />
-          ) : (
-            <GroceryListView
-              groceryList={groceryList}
-              setGroceryList={setGroceryList}
-              staples={staples}
-              setStaples={setStaples}
-              pantry={pantry}
-              setPantry={setPantry}
-            />
-          )}
-        </div>
-      );
-    }
-  } else if (mode === 'shop') {
     content = (
-      <ShopView
+      <WeekPlanView
+        recipes={recipes}
+        weekPlan={weekPlan}
+        setWeekPlan={setWeekPlan}
+        groceryList={groceryList}
+        setGroceryList={setGroceryList}
+        pantry={pantry}
+        onSelectRecipe={(id) => {
+          setCookDetailId(id);
+          setMode('cook');
+        }}
+      />
+    );
+  } else if (mode === 'grocery') {
+    content = (
+      <GroceryView
         groceryList={groceryList}
         setGroceryList={setGroceryList}
         staples={staples}
         setStaples={setStaples}
+        pantry={pantry}
+        setPantry={setPantry}
       />
     );
   } else {
-    content = cookRecipe ? (
-      <CookView recipe={cookRecipe} onBack={() => setCookRecipeId(null)} />
-    ) : (
-      <CookList recipes={recipes} onSelect={setCookRecipeId} />
-    );
+    if (cookRecipe) {
+      content = <CookView recipe={cookRecipe} onBack={() => setCookRecipeId(null)} />;
+    } else if (cookDetailRecipe) {
+      content = (
+        <RecipeDetail
+          recipe={cookDetailRecipe}
+          onBack={() => setCookDetailId(null)}
+          onDelete={() => handleDeleteRecipe(cookDetailRecipe.id)}
+          onAddToGroceryList={handleAddToGroceryList}
+          onCook={() => setCookRecipeId(cookDetailRecipe.id)}
+        />
+      );
+    } else {
+      content = (
+        <CookList
+          recipes={recipes}
+          onSelect={setCookDetailId}
+          onAdd={() => setShowAddRecipe(true)}
+        />
+      );
+    }
   }
 
   return (

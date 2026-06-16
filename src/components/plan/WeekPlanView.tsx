@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { BookOpen, ChevronDown } from 'lucide-react';
+import { BookOpen, ChevronDown, X } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
@@ -34,6 +34,7 @@ export function WeekPlanView({
   onSelectRecipe,
 }: WeekPlanViewProps) {
   const [expandedDay, setExpandedDay] = useState<WeekDay | null>(null);
+  const [openDay, setOpenDay] = useState<WeekDay | null>(null);
   const [dayInputs, setDayInputs] = useState<Partial<Record<WeekDay, string>>>(() => {
     const initial: Partial<Record<WeekDay, string>> = {};
     for (const day of WEEK_DAYS) {
@@ -103,6 +104,20 @@ export function WeekPlanView({
     }
   }
 
+  function clearDay(day: WeekDay) {
+    const entry = weekPlan[day];
+    if (entry?.recipeId) removeDayRecipeItems(day);
+    setEntry(day, undefined);
+    setDayInputs((prev) => ({ ...prev, [day]: '' }));
+    setOpenDay(null);
+    setExpandedDay((prev) => (prev === day ? null : prev));
+  }
+
+  function selectInspiration(day: WeekDay, title: string) {
+    setOpenDay(null);
+    commitDayValue(day, title);
+  }
+
   function toggleGroceryItem(id: string) {
     setGroceryList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, checked: !item.checked } : item)),
@@ -144,18 +159,17 @@ export function WeekPlanView({
     <div className="px-4 pb-8 pt-4">
       <h1 className="mb-4 text-2xl font-bold">This Week</h1>
 
-      <datalist id="recipe-options">
-        {recipes.map((recipe) => (
-          <option key={recipe.id} value={recipe.title} />
-        ))}
-      </datalist>
-
       <div className="space-y-3">
         {WEEK_DAYS.map((day) => {
           const entry = weekPlan[day];
           const recipe = entry?.recipeId ? recipes.find((r) => r.id === entry.recipeId) : undefined;
           const isExpanded = expandedDay === day;
+          const isOpen = openDay === day;
           const dayItems = groceryList.filter((item) => item.from_day === day);
+          const query = dayInputs[day]?.trim() ?? '';
+          const suggestedRecipes = query
+            ? recipes.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()))
+            : recipes;
 
           return (
             <div key={day} className="card overflow-hidden">
@@ -164,13 +178,24 @@ export function WeekPlanView({
                   <div className="label-section mb-1.5">{WEEK_DAY_LABELS[day]}</div>
                   <input
                     type="text"
-                    list="recipe-options"
                     value={dayInputs[day] ?? ''}
                     onChange={(e) => commitDayValue(day, e.target.value)}
+                    onFocus={() => setOpenDay(day)}
+                    onBlur={() => setTimeout(() => setOpenDay((cur) => (cur === day ? null : cur)), 150)}
                     placeholder="Add a recipe or idea..."
                     className="input-field w-full"
                   />
                 </div>
+                {entry && (
+                  <button
+                    type="button"
+                    onClick={() => clearDay(day)}
+                    aria-label={`Clear ${WEEK_DAY_LABELS[day]}`}
+                    className="btn-icon"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
                 {recipe && (
                   <button
                     type="button"
@@ -181,16 +206,66 @@ export function WeekPlanView({
                     <BookOpen size={18} />
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(day)}
-                  aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
-                  aria-expanded={isExpanded}
-                  className="btn-icon"
-                >
-                  <ChevronDown size={18} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                {entry && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(day)}
+                    aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
+                    aria-expanded={isExpanded}
+                    className="btn-icon"
+                  >
+                    <ChevronDown size={18} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
               </div>
+
+              {isOpen && (
+                <div className="border-t border-outline/60 px-3 pb-3 pt-3">
+                  {suggestedRecipes.length > 0 ? (
+                    <div className={pantry.length > 0 && !query ? 'mb-3' : ''}>
+                      <p className="label-section mb-2">Recipes</p>
+                      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+                        {suggestedRecipes.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectInspiration(day, r.title);
+                            }}
+                            className="card shrink-0 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap active:shadow-none"
+                          >
+                            {r.title}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-ink-variant">No matching recipes.</p>
+                  )}
+
+                  {!query && pantry.length > 0 && (
+                    <div>
+                      <p className="label-section mb-2">From Pantry</p>
+                      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+                        {pantry.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectInspiration(day, item.text);
+                            }}
+                            className="chip-pantry shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap"
+                          >
+                            {item.text}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {isExpanded && (
                 <div className="border-t border-outline/60 px-3 pb-3 pt-3">
