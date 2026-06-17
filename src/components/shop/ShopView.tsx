@@ -170,8 +170,8 @@ export function GroceryView({
   })).filter((group) => group.items.length > 0);
 
   return (
-    <>
-      <div className="px-4 pb-40 pt-4">
+    <div className="relative h-full overflow-hidden">
+      <div className="h-full overflow-y-auto px-4 pb-40 pt-4">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Grocery</h1>
           <button
@@ -333,6 +333,6 @@ export function GroceryView({
           ))}
         </ul>
       </BottomSheet>
-    </>
+    </div>
   );
 }
