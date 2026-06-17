@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Check, ExternalLink, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, Minus, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { GroceryItem, Recipe } from '../../types';
 import { categoriseItem } from '../../utils/categorise';
 import { scaleAmount } from '../../utils/scale';
@@ -13,13 +13,14 @@ interface RecipeDetailProps {
   onDelete: () => void;
   onAddToGroceryList: (items: GroceryItem[]) => void;
   onCook?: () => void;
+  onEdit: () => void;
 }
 
 function formatAmount(amount: string, unit: string): string {
   return [amount, unit].filter(Boolean).join(' ');
 }
 
-export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onCook }: RecipeDetailProps) {
+export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onCook, onEdit }: RecipeDetailProps) {
   const [servings, setServings] = useState(recipe.servings);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(
@@ -68,13 +69,18 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
 
   return (
     <div className="px-4 pb-8 pt-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 flex items-center gap-1 text-sm font-medium text-ink-variant"
-      >
-        <ArrowLeft size={18} /> Back
-      </button>
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 text-sm font-medium text-ink-variant"
+        >
+          <ArrowLeft size={18} /> Back
+        </button>
+        <button type="button" onClick={onEdit} aria-label="Edit recipe" className="btn-icon">
+          <Pencil size={16} />
+        </button>
+      </div>
 
       <RecipeImage
         src={recipe.image}

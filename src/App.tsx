@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
+import { usePWAUpdate } from './hooks/usePWAUpdate';
 import {
   useGroceryList,
   useLearnedCategories,
@@ -70,6 +71,7 @@ function AuthenticatedApp({ uid }: { uid: string }) {
   const [cookDetailId, setCookDetailId] = useState<string | null>(null);
   const [cookRecipeId, setCookRecipeId] = useState<string | null>(null);
   const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   // ── Firestore hooks ──
   const { recipes, loading: rl, addRecipe, updateRecipe, deleteRecipe } = useRecipes(uid);
@@ -156,7 +158,16 @@ function AuthenticatedApp({ uid }: { uid: string }) {
   }
 
   function handleSaveRecipe(recipe: Recipe) {
-    setRecipes((prev) => [recipe, ...prev]);
+    setRecipes((prev) =>
+      prev.some((r) => r.id === recipe.id)
+        ? prev.map((r) => (r.id === recipe.id ? recipe : r))
+        : [recipe, ...prev],
+    );
+  }
+
+  function handleEditRecipe(recipe: Recipe) {
+    setEditingRecipe(recipe);
+    setShowAddRecipe(true);
   }
 
   function handleDeleteRecipe(id: string) {
@@ -210,6 +221,7 @@ function AuthenticatedApp({ uid }: { uid: string }) {
         onDelete={() => handleDeleteRecipe(cookDetailRecipe.id)}
         onAddToGroceryList={handleAddToGroceryList}
         onCook={() => setCookRecipeId(cookDetailRecipe.id)}
+        onEdit={() => handleEditRecipe(cookDetailRecipe)}
       />
     );
   } else {
@@ -228,8 +240,12 @@ function AuthenticatedApp({ uid }: { uid: string }) {
       <BottomNav active={mode} onChange={handleModeChange} />
       <AddRecipeSheet
         isOpen={showAddRecipe}
-        onClose={() => setShowAddRecipe(false)}
+        onClose={() => {
+          setShowAddRecipe(false);
+          setEditingRecipe(null);
+        }}
         onSave={handleSaveRecipe}
+        editingRecipe={editingRecipe}
       />
     </>
   );
@@ -239,6 +255,7 @@ function AuthenticatedApp({ uid }: { uid: string }) {
 
 function App() {
   const { user, loading: authLoading } = useAuth();
+  const { needsRefresh, installUpdate } = usePWAUpdate();
 
   return (
     <div className="fixed inset-0 mx-auto flex max-w-[480px] flex-col bg-bg text-ink">
@@ -248,6 +265,20 @@ function App() {
         <AuthenticatedApp uid={user.uid} />
       ) : (
         <LoginScreen />
+      )}
+      {needsRefresh && (
+        <div className="flex items-center justify-between bg-accent-container px-4 py-2.5">
+          <span className="text-sm font-medium text-on-accent-container">
+            Update available
+          </span>
+          <button
+            type="button"
+            onClick={installUpdate}
+            className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-white"
+          >
+            Install
+          </button>
+        </div>
       )}
     </div>
   );

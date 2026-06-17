@@ -10,6 +10,7 @@ interface AddRecipeSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (recipe: Recipe) => void;
+  editingRecipe?: Recipe | null;
 }
 
 interface FormState {
@@ -52,13 +53,40 @@ function isNYTGiftLink(url: string) {
   return isNYTCookingUrl(url) && /unlocked_article_code=/i.test(url);
 }
 
-export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps) {
+function recipeToForm(recipe: Recipe): FormState {
+  return {
+    title: recipe.title,
+    sourceUrl: recipe.source_url ?? '',
+    image: recipe.image ?? '',
+    servings: String(recipe.servings),
+    ingredientsText: recipe.ingredients.map(formatIngredientLine).join('\n'),
+    stepsText: recipe.steps.join('\n'),
+    notes: recipe.notes ?? '',
+  };
+}
+
+export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRecipeSheetProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [step, setStep] = useState<'form' | 'preview'>('form');
   const [parsedIngredients, setParsedIngredients] = useState<Ingredient[]>([]);
   const [importUrl, setImportUrl] = useState('');
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
   const [importErrorMessage, setImportErrorMessage] = useState('');
+
+  // Reset the form when the sheet transitions from closed to open, pre-filling
+  // it from editingRecipe if we're editing rather than adding.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setForm(editingRecipe ? recipeToForm(editingRecipe) : EMPTY_FORM);
+      setStep('form');
+      setParsedIngredients([]);
+      setImportUrl('');
+      setImportStatus('idle');
+      setImportErrorMessage('');
+    }
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -125,7 +153,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
       .filter(Boolean);
 
     const recipe: Recipe = {
-      id: crypto.randomUUID(),
+      id: editingRecipe?.id ?? crypto.randomUUID(),
       title: form.title.trim(),
       source_url: form.sourceUrl.trim()
         ? normalizeUrl(form.sourceUrl.trim())
@@ -135,7 +163,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
       ingredients: parsedIngredients,
       steps,
       notes: form.notes.trim() || undefined,
-      created_at: new Date().toISOString(),
+      created_at: editingRecipe?.created_at ?? new Date().toISOString(),
     };
 
     onSave(recipe);
@@ -146,7 +174,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
     <BottomSheet
       isOpen={isOpen}
       onClose={resetAndClose}
-      title={step === 'form' ? 'Add Recipe' : 'Confirm Ingredients'}
+      title={step === 'form' ? (editingRecipe ? 'Edit Recipe' : 'Add Recipe') : 'Confirm Ingredients'}
       tall
     >
       {step === 'form' ? (
@@ -304,7 +332,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
               Back
             </button>
             <button type="button" onClick={handleSave} className="btn-filled flex-1">
-              Save Recipe
+              {editingRecipe ? 'Save Changes' : 'Save Recipe'}
             </button>
           </div>
         </div>
