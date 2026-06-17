@@ -228,6 +228,10 @@ export function GroceryView({
             />
           ))}
 
+          {(pantry.length > 0 || freezer.length > 0) && (
+            <h1 className="text-2xl font-bold">Supplies</h1>
+          )}
+
           {pantry.length > 0 && (
             <ItemListSection
               title="Pantry"
