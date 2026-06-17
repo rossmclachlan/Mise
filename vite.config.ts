@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Mise',
-        short_name: 'Mise',
+        name: 'Mis En Pizza',
+        short_name: 'Mis En Pizza',
         description: 'Personal meal planning and grocery app',
         theme_color: '#4A6741',
         background_color: '#FAFAF8',

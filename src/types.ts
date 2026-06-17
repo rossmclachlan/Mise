@@ -10,6 +10,7 @@ export interface Recipe {
   id: string;
   title: string;
   source_url?: string;
+  image?: string;
   servings: number;
   ingredients: Ingredient[];
   steps: string[];

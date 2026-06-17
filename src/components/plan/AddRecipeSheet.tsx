@@ -15,6 +15,7 @@ interface AddRecipeSheetProps {
 interface FormState {
   title: string;
   sourceUrl: string;
+  image: string;
   servings: string;
   ingredientsText: string;
   stepsText: string;
@@ -24,6 +25,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   title: '',
   sourceUrl: '',
+  image: '',
   servings: '4',
   ingredientsText: '',
   stepsText: '',
@@ -85,6 +87,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
         ...f,
         title: imported.title || f.title,
         sourceUrl: imported.source_url,
+        image: imported.image ?? f.image,
         servings: String(imported.servings),
         ingredientsText: imported.ingredients.map(formatIngredientLine).join('\n'),
         stepsText: imported.steps.join('\n'),
@@ -127,6 +130,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
       source_url: form.sourceUrl.trim()
         ? normalizeUrl(form.sourceUrl.trim())
         : undefined,
+      image: form.image.trim() || undefined,
       servings: Math.max(1, Number(form.servings) || 1),
       ingredients: parsedIngredients,
       steps,
@@ -188,6 +192,9 @@ export function AddRecipeSheet({ isOpen, onClose, onSave }: AddRecipeSheetProps)
             )}
             {importStatus === 'error' && (
               <p className="text-sm font-medium text-error">{importErrorMessage}</p>
+            )}
+            {form.image && (
+              <img src={form.image} alt="" className="h-32 w-full rounded-xl object-cover" />
             )}
           </div>
 

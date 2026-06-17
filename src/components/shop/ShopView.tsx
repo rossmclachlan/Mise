@@ -163,21 +163,59 @@ export function GroceryView({
   })).filter((group) => group.items.length > 0);
 
   return (
-    <div className="px-4 pb-8 pt-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Grocery</h1>
-        <button
-          type="button"
-          onClick={clearChecked}
-          disabled={!hasChecked}
-          className="btn-tonal px-4 py-2.5 text-sm"
-        >
-          Clear checked
-        </button>
+    <>
+      <div className="px-4 pb-40 pt-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Grocery</h1>
+          <button
+            type="button"
+            onClick={clearChecked}
+            disabled={!hasChecked}
+            className="btn-tonal px-4 py-2.5 text-sm"
+          >
+            Clear checked
+          </button>
+        </div>
+
+        <div className="space-y-5">
+          {staples.length > 0 && (
+            <ChecklistSection
+              title="Staples"
+              items={staples}
+              onToggle={toggleStaple}
+              onRemove={removeStaple}
+              emptyText="No staples yet."
+              large
+            />
+          )}
+
+          {groceryByCategory.map(({ category, items }) => (
+            <ChecklistSection
+              key={category}
+              title={GROCERY_CATEGORY_LABELS[category]}
+              accent={CATEGORY_ACCENT[category]}
+              items={items}
+              onToggle={toggleItem}
+              onRemove={removeItem}
+              onCategoryChange={changeItemCategory}
+              large
+              pantryItems={pantry}
+            />
+          ))}
+
+          {pantry.length > 0 && (
+            <ItemListSection
+              title="Pantry"
+              items={pantry}
+              onRemove={removePantryItem}
+              emptyText="No pantry items yet."
+            />
+          )}
+        </div>
       </div>
 
-      {/* Unified add input */}
-      <div className="mb-5">
+      {/* Floating unified add bar */}
+      <div className="absolute inset-x-0 bottom-0 z-30 border-t border-outline bg-surface px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-2px_12px_rgba(28,20,5,0.06)]">
         <div className="flex gap-2">
           <input
             type="text"
@@ -238,42 +276,6 @@ export function GroceryView({
         )}
       </div>
 
-      <div className="space-y-5">
-        {staples.length > 0 && (
-          <ChecklistSection
-            title="Staples"
-            items={staples}
-            onToggle={toggleStaple}
-            onRemove={removeStaple}
-            emptyText="No staples yet."
-            large
-          />
-        )}
-
-        {groceryByCategory.map(({ category, items }) => (
-          <ChecklistSection
-            key={category}
-            title={GROCERY_CATEGORY_LABELS[category]}
-            accent={CATEGORY_ACCENT[category]}
-            items={items}
-            onToggle={toggleItem}
-            onRemove={removeItem}
-            onCategoryChange={changeItemCategory}
-            large
-            pantryItems={pantry}
-          />
-        ))}
-
-        {pantry.length > 0 && (
-          <ItemListSection
-            title="Pantry"
-            items={pantry}
-            onRemove={removePantryItem}
-            emptyText="No pantry items yet."
-          />
-        )}
-      </div>
-
       <BottomSheet
         isOpen={categoryPickerOpen}
         onClose={() => setCategoryPickerOpen(false)}
@@ -301,6 +303,6 @@ export function GroceryView({
           ))}
         </ul>
       </BottomSheet>
-    </div>
+    </>
   );
 }

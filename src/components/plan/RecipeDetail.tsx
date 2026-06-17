@@ -76,7 +76,12 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
         <ArrowLeft size={18} /> Back
       </button>
 
-      <RecipeImage className="mb-4 h-40 w-full rounded-2xl" iconSize={40} />
+      <RecipeImage
+        src={recipe.image}
+        alt={recipe.title}
+        className="mb-4 h-40 w-full rounded-2xl"
+        iconSize={40}
+      />
 
       <h1 className="text-2xl font-bold">{recipe.title}</h1>
       {recipe.source_url && (

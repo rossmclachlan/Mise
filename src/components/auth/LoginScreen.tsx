@@ -28,7 +28,7 @@ export function LoginScreen() {
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-container">
           <ChefHat size={32} className="text-on-accent-container" />
         </div>
-        <h1 className="text-3xl font-bold">Mise</h1>
+        <h1 className="font-display text-4xl text-accent">mis en pizza 🍕</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-3">

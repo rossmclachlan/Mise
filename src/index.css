@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Lobster";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/lobster-latin.woff2") format("woff2");
+}
+
 @theme {
+  --font-display: "Lobster", system-ui, sans-serif;
   --color-bg: #FFFCF5;
   --color-surface: #FFFFFF;
   --color-surface-variant: #FFF5EA;

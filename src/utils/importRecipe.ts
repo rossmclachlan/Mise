@@ -4,6 +4,7 @@ import { parseIngredientLine } from './parseIngredient';
 export interface ImportedRecipe {
   title: string;
   source_url: string;
+  image?: string;
   servings: number;
   ingredients: Ingredient[];
   steps: string[];
@@ -63,11 +64,28 @@ export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> 
   return {
     title: typeof recipe.name === 'string' ? recipe.name.trim() : '',
     source_url: url,
+    image: parseImage(recipe.image),
     servings: parseServings(recipe.recipeYield),
     ingredients: parseIngredients(recipe.recipeIngredient),
     steps: parseSteps(recipe.recipeInstructions),
     notes: typeof recipe.description === 'string' ? recipe.description.trim() : '',
   };
+}
+
+// recipe.image can be a URL string, an array of URL strings, an
+// ImageObject ({ url } or { contentUrl }), or an array of those.
+function parseImage(value: unknown): string | undefined {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  if (typeof candidate === 'string') return candidate;
+
+  if (candidate && typeof candidate === 'object') {
+    const node = candidate as JsonLdNode;
+    if (typeof node.url === 'string') return node.url;
+    if (typeof node.contentUrl === 'string') return node.contentUrl;
+  }
+
+  return undefined;
 }
 
 function findRecipeData(doc: Document): JsonLdNode | null {

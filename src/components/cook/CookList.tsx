@@ -18,18 +18,8 @@ export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
   );
 
   return (
-    <div className="px-4 pb-8 pt-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Cook</h1>
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-label="Add recipe"
-          className="btn-icon"
-        >
-          <Plus size={20} />
-        </button>
-      </div>
+    <div className="px-4 pb-24 pt-4">
+      <h1 className="mb-4 text-2xl font-bold">Cook</h1>
 
       <div className="input-field mb-4 flex items-center gap-2">
         <Search size={18} className="text-ink-variant" />
@@ -55,7 +45,12 @@ export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
                   onClick={() => onSelect(recipe.id)}
                   className="card flex w-full items-center gap-3 p-3 text-left active:shadow-none"
                 >
-                  <RecipeImage className="h-14 w-14 shrink-0 rounded-xl" iconSize={22} />
+                  <RecipeImage
+                    src={recipe.image}
+                    alt={recipe.title}
+                    className="h-14 w-14 shrink-0 rounded-xl"
+                    iconSize={22}
+                  />
                   <div className="flex flex-col items-start">
                     <span className="font-semibold">{recipe.title}</span>
                     <span className="mt-1 text-xs text-ink-variant">
@@ -68,6 +63,15 @@ export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
           })}
         </ul>
       )}
+
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label="Add recipe"
+        className="fab absolute bottom-4 right-4 z-30"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }
