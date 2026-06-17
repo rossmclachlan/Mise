@@ -1,4 +1,4 @@
-import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   Archive,
   Beef,
@@ -10,6 +10,7 @@ import {
   Plus,
   Snowflake,
   Tag,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -82,11 +83,17 @@ export function GroceryView({
 }: GroceryViewProps) {
   useWakeLock(true);
 
+  const [addBarOpen, setAddBarOpen] = useState(false);
+  const draftInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
   const [addTarget, setAddTarget] = useState<AddTarget>('grocery');
   const [draftCategory, setDraftCategory] = useState<GroceryCategory | null>(null);
   const [draftCategoryOverride, setDraftCategoryOverride] = useState<GroceryCategory | null>(null);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (addBarOpen) draftInputRef.current?.focus();
+  }, [addBarOpen]);
 
   useEffect(() => {
     if (addTarget !== 'grocery') return;
@@ -214,67 +221,90 @@ export function GroceryView({
         </div>
       </div>
 
-      {/* Floating unified add bar */}
-      <div className="absolute inset-x-0 bottom-0 z-30 border-t border-outline bg-surface px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-2px_12px_rgba(28,20,5,0.06)]">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              setDraftCategoryOverride(null);
-            }}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitAdd(); }}
-            placeholder={
-              addTarget === 'grocery'
-                ? 'Add grocery item'
-                : addTarget === 'staple'
-                  ? 'Add a staple'
-                  : 'Add a pantry item'
-            }
-            className="input-field flex-1"
-          />
-          <button
-            type="button"
-            onClick={submitAdd}
-            disabled={!draft.trim()}
-            aria-label="Add item"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
-          >
-            <Plus size={20} />
-          </button>
-        </div>
-
-        <div className="mt-2 flex gap-2">
-          {(['grocery', 'staple', 'pantry'] as const).map((target) => (
-            <button
-              key={target}
-              type="button"
-              onClick={() => setAddTarget(target)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                addTarget === target
-                  ? 'bg-accent text-white'
-                  : 'bg-surface-variant text-ink-variant'
-              }`}
-            >
-              {ADD_TARGET_LABELS[target]}
-            </button>
-          ))}
-        </div>
-
-        {addTarget === 'grocery' && draft.trim() && (
-          <div className="mt-2 px-1">
+      {addBarOpen ? (
+        <div className="absolute inset-x-0 bottom-0 z-30 border-t border-outline bg-surface px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-2px_12px_rgba(28,20,5,0.06)]">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="label-section">Add item</span>
             <button
               type="button"
-              onClick={() => setCategoryPickerOpen(true)}
-              className={`chip-${effectiveDraftCategory} inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold`}
+              onClick={() => setAddBarOpen(false)}
+              aria-label="Close"
+              className="rounded-full p-1 text-ink-variant active:bg-surface-variant"
             >
-              <CategoryIcon category={effectiveDraftCategory} size={12} />
-              {GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}
+              <X size={18} />
             </button>
           </div>
-        )}
-      </div>
+
+          <div className="flex gap-2">
+            <input
+              ref={draftInputRef}
+              type="text"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setDraftCategoryOverride(null);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitAdd(); }}
+              placeholder={
+                addTarget === 'grocery'
+                  ? 'Add grocery item'
+                  : addTarget === 'staple'
+                    ? 'Add a staple'
+                    : 'Add a pantry item'
+              }
+              className="input-field flex-1"
+            />
+            <button
+              type="button"
+              onClick={submitAdd}
+              disabled={!draft.trim()}
+              aria-label="Add item"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent text-white transition active:opacity-90 disabled:opacity-40"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+
+          <div className="mt-2 flex gap-2">
+            {(['grocery', 'staple', 'pantry'] as const).map((target) => (
+              <button
+                key={target}
+                type="button"
+                onClick={() => setAddTarget(target)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  addTarget === target
+                    ? 'bg-accent text-white'
+                    : 'bg-surface-variant text-ink-variant'
+                }`}
+              >
+                {ADD_TARGET_LABELS[target]}
+              </button>
+            ))}
+          </div>
+
+          {addTarget === 'grocery' && draft.trim() && (
+            <div className="mt-2 px-1">
+              <button
+                type="button"
+                onClick={() => setCategoryPickerOpen(true)}
+                className={`chip-${effectiveDraftCategory} inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold`}
+              >
+                <CategoryIcon category={effectiveDraftCategory} size={12} />
+                {GROCERY_CATEGORY_LABELS[effectiveDraftCategory]}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAddBarOpen(true)}
+          aria-label="Add item"
+          className="fab absolute bottom-4 right-4 z-30"
+        >
+          <Plus size={28} />
+        </button>
+      )}
 
       <BottomSheet
         isOpen={categoryPickerOpen}
