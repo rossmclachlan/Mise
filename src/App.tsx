@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import type { User } from 'firebase/auth';
 import type { GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
@@ -14,6 +15,7 @@ import {
 import { categoriseItem } from './utils/categorise';
 import { SEED_PANTRY, SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
 import { BottomNav } from './components/ui/BottomNav';
+import { TopAppBar } from './components/ui/TopAppBar';
 import { RecipeDetail } from './components/plan/RecipeDetail';
 import { AddRecipeSheet } from './components/plan/AddRecipeSheet';
 import { WeekPlanView } from './components/plan/WeekPlanView';
@@ -66,7 +68,8 @@ function makeProxySetter<T extends { id: string }>(
 
 // ─── Authenticated app ─────────────────────────────────────────────────────
 
-function AuthenticatedApp({ uid }: { uid: string }) {
+function AuthenticatedApp({ user }: { user: User }) {
+  const uid = user.uid;
   const [mode, setMode] = useState<Mode>('plan');
   const [cookDetailId, setCookDetailId] = useState<string | null>(null);
   const [cookRecipeId, setCookRecipeId] = useState<string | null>(null);
@@ -236,6 +239,7 @@ function AuthenticatedApp({ uid }: { uid: string }) {
 
   return (
     <>
+      <TopAppBar user={user} />
       <div className="relative flex-1 overflow-y-auto">{content}</div>
       <BottomNav active={mode} onChange={handleModeChange} />
       <AddRecipeSheet
@@ -262,7 +266,7 @@ function App() {
       {authLoading ? (
         <Spinner />
       ) : user ? (
-        <AuthenticatedApp uid={user.uid} />
+        <AuthenticatedApp user={user} />
       ) : (
         <LoginScreen />
       )}
