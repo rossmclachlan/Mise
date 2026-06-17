@@ -18,6 +18,7 @@ import {
 import {
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
+  type FreezerItem,
   type GroceryCategory,
   type PantryItem,
 } from '../../types';
@@ -44,6 +45,7 @@ interface ChecklistSectionProps {
   emptyText?: string;
   large?: boolean;
   pantryItems?: PantryItem[];
+  freezerItems?: FreezerItem[];
 }
 
 const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
@@ -78,6 +80,7 @@ export function ChecklistSection({
   emptyText,
   large,
   pantryItems,
+  freezerItems,
 }: ChecklistSectionProps) {
   const [draft, setDraft] = useState('');
   const [draftCategory, setDraftCategory] = useState<GroceryCategory | null>(null);
@@ -109,6 +112,12 @@ export function ChecklistSection({
     if (!pantryItems?.length) return false;
     const text = item.text.toLowerCase();
     return pantryItems.some((p) => p.text.trim() && text.includes(p.text.toLowerCase()));
+  }
+
+  function isInFreezer(item: ChecklistItem): boolean {
+    if (!freezerItems?.length) return false;
+    const text = item.text.toLowerCase();
+    return freezerItems.some((f) => f.text.trim() && text.includes(f.text.toLowerCase()));
   }
 
   function selectCategory(category: GroceryCategory) {
@@ -161,10 +170,18 @@ export function ChecklistSection({
                   </span>
                   {isInPantry(item) && (
                     <span
-                      aria-label="In pantry"
-                      className="inline-flex shrink-0 items-center justify-center rounded-full bg-accent-container p-1 text-on-accent-container"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      style={{ backgroundColor: '#EDE9FE', color: '#4C1D95' }}
                     >
-                      <Package size={large ? 14 : 12} />
+                      <Package size={10} /> In Pantry
+                    </span>
+                  )}
+                  {isInFreezer(item) && (
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      style={{ backgroundColor: '#E0F2FE', color: '#0C4A6E' }}
+                    >
+                      <Snowflake size={10} /> In Freezer
                     </span>
                   )}
                 </span>

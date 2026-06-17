@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, type LucideIcon } from 'lucide-react';
 
 export interface ListItem {
   id: string;
@@ -13,6 +13,11 @@ interface ItemListSectionProps {
   onAdd?: (text: string) => void;
   addPlaceholder?: string;
   emptyText?: string;
+  /** Title + icon color, to visually set this section apart from the buy-list. */
+  accent?: string;
+  /** Card background tint, to visually set this section apart from the buy-list. */
+  tint?: string;
+  icon?: LucideIcon;
 }
 
 export function ItemListSection({
@@ -22,6 +27,9 @@ export function ItemListSection({
   onAdd,
   addPlaceholder = 'Add item',
   emptyText,
+  accent,
+  tint,
+  icon: Icon,
 }: ItemListSectionProps) {
   const [draft, setDraft] = useState('');
 
@@ -34,18 +42,26 @@ export function ItemListSection({
 
   return (
     <section>
-      <h2 className="label-section mb-2">{title}</h2>
+      <h2 className="label-section mb-2" style={accent ? { color: accent } : undefined}>
+        {title}
+      </h2>
 
       {items.length === 0 && emptyText ? (
         <p className="card px-4 py-3 text-sm text-ink-variant">{emptyText}</p>
       ) : items.length > 0 ? (
-        <ul className="card overflow-hidden">
+        <ul
+          className="overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(28,20,5,0.08),0_2px_12px_rgba(28,20,5,0.05)]"
+          style={{ backgroundColor: tint ?? 'var(--color-surface)' }}
+        >
           {items.map((item) => (
             <li
               key={item.id}
               className="flex items-center justify-between gap-3 border-b border-outline/60 px-4 py-2.5 last:border-b-0"
             >
-              <span className="flex-1 text-sm text-ink">{item.text}</span>
+              <span className="flex flex-1 items-center gap-2 text-sm text-ink">
+                {Icon && <Icon size={14} className="shrink-0" style={accent ? { color: accent } : undefined} />}
+                {item.text}
+              </span>
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}

@@ -52,6 +52,11 @@ const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
   other: Tag,
 };
 
+// "Already have it" inventory sections borrow the Pantry/Frozen chip colors
+// so they read as visually distinct from the buy-list above them.
+const PANTRY_TINT = '#EDE9FE';
+const FREEZER_TINT = '#E0F2FE';
+
 function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
   const Icon = CATEGORY_ICONS[category];
   return <Icon size={size} />;
@@ -219,6 +224,7 @@ export function GroceryView({
               onCategoryChange={changeItemCategory}
               large
               pantryItems={pantry}
+              freezerItems={freezer}
             />
           ))}
 
@@ -228,6 +234,9 @@ export function GroceryView({
               items={pantry}
               onRemove={removePantryItem}
               emptyText="No pantry items yet."
+              accent={CATEGORY_ACCENT.pantry}
+              tint={PANTRY_TINT}
+              icon={CATEGORY_ICONS.pantry}
             />
           )}
 
@@ -237,6 +246,9 @@ export function GroceryView({
               items={freezer}
               onRemove={removeFreezerItem}
               emptyText="No freezer items yet."
+              accent={CATEGORY_ACCENT.frozen}
+              tint={FREEZER_TINT}
+              icon={CATEGORY_ICONS.frozen}
             />
           )}
         </div>
@@ -294,6 +306,13 @@ export function GroceryView({
                 key={target}
                 type="button"
                 onClick={() => setAddTarget(target)}
+                style={
+                  addTarget === target && target === 'pantry'
+                    ? { backgroundColor: CATEGORY_ACCENT.pantry }
+                    : addTarget === target && target === 'freezer'
+                      ? { backgroundColor: CATEGORY_ACCENT.frozen }
+                      : undefined
+                }
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                   addTarget === target
                     ? 'bg-accent text-white'
