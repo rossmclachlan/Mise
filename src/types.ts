@@ -75,6 +75,11 @@ export interface PantryItem {
   text: string;
 }
 
+export interface FreezerItem {
+  id: string;
+  text: string;
+}
+
 export const WEEK_DAYS: WeekDay[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
 export const WEEK_DAY_LABELS: Record<WeekDay, string> = {

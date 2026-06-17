@@ -12,6 +12,7 @@ import {
 import { db } from '../lib/firebase';
 import { learnCategory } from '../utils/categorise';
 import type {
+  FreezerItem,
   GroceryCategory,
   GroceryItem,
   PantryItem,
@@ -132,6 +133,22 @@ export function usePantry(uid: string | null) {
   }
 
   return { pantry, loading, addPantryItem, removePantryItem };
+}
+
+// ─── Freezer ───────────────────────────────────────────────────────────────
+
+export function useFreezer(uid: string | null) {
+  const { items: freezer, loading, itemDoc } = useCollection<FreezerItem>(uid, 'freezer');
+
+  function addFreezerItem(item: FreezerItem) {
+    setDoc(itemDoc(item.id), { ...item, created_at: item.id });
+  }
+
+  function removeFreezerItem(id: string) {
+    deleteDoc(itemDoc(id));
+  }
+
+  return { freezer, loading, addFreezerItem, removeFreezerItem };
 }
 
 // ─── Week plan (single document) ───────────────────────────────────────────

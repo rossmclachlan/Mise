@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { User } from 'firebase/auth';
-import type { GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
+import type { FreezerItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
 import {
+  useFreezer,
   useGroceryList,
   useLearnedCategories,
   usePantry,
@@ -94,10 +95,12 @@ function AuthenticatedApp({ user }: { user: User }) {
   } = useStaples(uid);
   const { pantry, loading: pl, addPantryItem: fsAddPantryItem, removePantryItem: fsRemovePantryItem } =
     usePantry(uid);
+  const { freezer, loading: fzl, addFreezerItem: fsAddFreezerItem, removeFreezerItem: fsRemoveFreezerItem } =
+    useFreezer(uid);
   const { weekPlan, loading: wl, saveWeekPlan } = useWeekPlan(uid);
   const { saveLearnedCategory } = useLearnedCategories(uid);
 
-  const isLoading = rl || gl || sl || pl || wl;
+  const isLoading = rl || gl || sl || pl || fzl || wl;
 
   // ── Seed on first login (runs once after data loads) ──
   const seeded = useRef(false);
@@ -143,6 +146,12 @@ function AuthenticatedApp({ user }: { user: User }) {
     add: fsAddPantryItem,
     update: () => {},
     remove: fsRemovePantryItem,
+  });
+
+  const setFreezer = makeProxySetter<FreezerItem>(freezer, {
+    add: fsAddFreezerItem,
+    update: () => {},
+    remove: fsRemoveFreezerItem,
   });
 
   const setWeekPlan = useCallback<Dispatch<SetStateAction<WeekPlan>>>(
@@ -212,6 +221,8 @@ function AuthenticatedApp({ user }: { user: User }) {
         setStaples={setStaples}
         pantry={pantry}
         setPantry={setPantry}
+        freezer={freezer}
+        setFreezer={setFreezer}
       />
     );
   } else if (cookRecipe) {

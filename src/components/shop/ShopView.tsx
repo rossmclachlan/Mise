@@ -16,6 +16,7 @@ import {
 import {
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
+  type FreezerItem,
   type GroceryCategory,
   type GroceryItem,
   type PantryItem,
@@ -56,12 +57,13 @@ function CategoryIcon({ category, size }: { category: GroceryCategory; size: num
   return <Icon size={size} />;
 }
 
-type AddTarget = 'grocery' | 'staple' | 'pantry';
+type AddTarget = 'grocery' | 'staple' | 'pantry' | 'freezer';
 
 const ADD_TARGET_LABELS: Record<AddTarget, string> = {
   grocery: 'Grocery',
   staple: 'Staple',
   pantry: 'Pantry',
+  freezer: 'Freezer',
 };
 
 interface GroceryViewProps {
@@ -71,6 +73,8 @@ interface GroceryViewProps {
   setStaples: Dispatch<SetStateAction<Staple[]>>;
   pantry: PantryItem[];
   setPantry: Dispatch<SetStateAction<PantryItem[]>>;
+  freezer: FreezerItem[];
+  setFreezer: Dispatch<SetStateAction<FreezerItem[]>>;
 }
 
 export function GroceryView({
@@ -80,6 +84,8 @@ export function GroceryView({
   setStaples,
   pantry,
   setPantry,
+  freezer,
+  setFreezer,
 }: GroceryViewProps) {
   useWakeLock(true);
 
@@ -117,8 +123,10 @@ export function GroceryView({
       ]);
     } else if (addTarget === 'staple') {
       setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
-    } else {
+    } else if (addTarget === 'pantry') {
       setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+    } else {
+      setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text }]);
     }
     setDraft('');
     setDraftCategory(null);
@@ -162,6 +170,10 @@ export function GroceryView({
 
   function removePantryItem(id: string) {
     setPantry((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function removeFreezerItem(id: string) {
+    setFreezer((prev) => prev.filter((item) => item.id !== id));
   }
 
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
@@ -218,6 +230,15 @@ export function GroceryView({
               emptyText="No pantry items yet."
             />
           )}
+
+          {freezer.length > 0 && (
+            <ItemListSection
+              title="Freezer"
+              items={freezer}
+              onRemove={removeFreezerItem}
+              emptyText="No freezer items yet."
+            />
+          )}
         </div>
       </div>
 
@@ -250,7 +271,9 @@ export function GroceryView({
                   ? 'Add grocery item'
                   : addTarget === 'staple'
                     ? 'Add a staple'
-                    : 'Add a pantry item'
+                    : addTarget === 'pantry'
+                      ? 'Add a pantry item'
+                      : 'Add a freezer item'
               }
               className="input-field flex-1"
             />
@@ -266,7 +289,7 @@ export function GroceryView({
           </div>
 
           <div className="mt-2 flex gap-2">
-            {(['grocery', 'staple', 'pantry'] as const).map((target) => (
+            {(['grocery', 'staple', 'pantry', 'freezer'] as const).map((target) => (
               <button
                 key={target}
                 type="button"
