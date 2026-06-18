@@ -220,11 +220,11 @@ export function WeekPlanView({
               </div>
 
               {isOpen && (
-                <div className="border-t border-outline/60 px-3 pb-3 pt-3">
+                <div className="border-t border-outline/60 px-4 pb-4 pt-4">
                   {suggestedRecipes.length > 0 ? (
-                    <div className={pantry.length > 0 && !query ? 'mb-3' : ''}>
-                      <p className="label-section mb-2">Recipes</p>
-                      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+                    <div className={pantry.length > 0 && !query ? 'mb-4' : ''}>
+                      <p className="label-section mb-2.5">Recipes</p>
+                      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
                         {suggestedRecipes.map((r) => (
                           <button
                             key={r.id}
@@ -233,7 +233,7 @@ export function WeekPlanView({
                               e.preventDefault();
                               selectInspiration(day, r.title);
                             }}
-                            className="card shrink-0 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap active:shadow-none"
+                            className="card shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium whitespace-nowrap active:shadow-none"
                           >
                             {r.title}
                           </button>
@@ -246,8 +246,8 @@ export function WeekPlanView({
 
                   {!query && pantry.length > 0 && (
                     <div>
-                      <p className="label-section mb-2">From Pantry</p>
-                      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+                      <p className="label-section mb-2.5">From Pantry</p>
+                      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
                         {pantry.map((item) => (
                           <button
                             key={item.id}
@@ -256,7 +256,7 @@ export function WeekPlanView({
                               e.preventDefault();
                               selectInspiration(day, item.text);
                             }}
-                            className="chip-pantry shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap"
+                            className="chip-pantry shrink-0 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap"
                           >
                             {item.text}
                           </button>
