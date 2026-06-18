@@ -206,6 +206,7 @@ function AuthenticatedApp({ user }: { user: User }) {
         groceryList={groceryItems}
         setGroceryList={setGroceryList}
         pantry={pantry}
+        freezer={freezer}
         onSelectRecipe={(id) => {
           setCookDetailId(id);
           setMode('cook');
