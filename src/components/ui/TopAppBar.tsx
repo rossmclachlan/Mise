@@ -4,6 +4,15 @@ import { signOut, type User } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { BottomSheet } from './BottomSheet';
 
+const FOOD_EMOJI = [
+  '🍕', '🍔', '🌮', '🍣', '🍜', '🥐', '🍩', '🍰', '🧀', '🥑',
+  '🍓', '🍦', '🍿', '🍳', '🥗', '🍇', '🥨', '🍫', '🍪', '🌭',
+];
+
+function randomFoodEmoji(): string {
+  return FOOD_EMOJI[Math.floor(Math.random() * FOOD_EMOJI.length)];
+}
+
 interface TopAppBarProps {
   user: User;
 }
@@ -37,11 +46,14 @@ function Avatar({ user, size }: { user: User; size: number }) {
 
 export function TopAppBar({ user }: TopAppBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoEmoji] = useState(randomFoodEmoji);
 
   return (
     <>
       <header className="z-40 flex shrink-0 items-center justify-between border-b border-outline bg-surface px-4 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.625rem)]">
-        <span className="font-display text-2xl text-accent">mis en pizza 🍕</span>
+        <span className="text-3xl" role="img" aria-label="mis en pizza">
+          {logoEmoji}
+        </span>
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
