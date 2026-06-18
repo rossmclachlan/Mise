@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { ChecklistSection } from '../ui/ChecklistSection';
+import { RecipeImage } from '../ui/RecipeImage';
 
 interface WeekPlanViewProps {
   recipes: Recipe[];
@@ -222,9 +223,9 @@ export function WeekPlanView({
               {isOpen && (
                 <div className="border-t border-outline/60 px-5 pb-5 pt-5">
                   {suggestedRecipes.length > 0 ? (
-                    <div className={pantry.length > 0 && !query ? 'mb-5' : ''}>
+                    <div className={pantry.length > 0 && !query ? 'mb-6' : ''}>
                       <p className="label-section mb-3">Recipes</p>
-                      <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5">
+                      <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 py-2">
                         {suggestedRecipes.map((r) => (
                           <button
                             key={r.id}
@@ -233,8 +234,14 @@ export function WeekPlanView({
                               e.preventDefault();
                               selectInspiration(day, r.title);
                             }}
-                            className="card shrink-0 rounded-xl px-5 py-3 text-sm font-medium whitespace-nowrap active:shadow-none"
+                            className="card flex shrink-0 items-center gap-2.5 rounded-xl py-2 pl-2 pr-5 text-sm font-medium whitespace-nowrap active:shadow-none"
                           >
+                            <RecipeImage
+                              src={r.image}
+                              alt=""
+                              className="h-10 w-10 shrink-0 rounded-lg"
+                              iconSize={16}
+                            />
                             {r.title}
                           </button>
                         ))}
