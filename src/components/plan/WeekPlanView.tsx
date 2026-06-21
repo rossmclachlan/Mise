@@ -132,6 +132,10 @@ export function WeekPlanView({
     setGroceryList((prev) => prev.filter((item) => item.id !== id));
   }
 
+  function editGroceryItemText(id: string, text: string) {
+    setGroceryList((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
+  }
+
   function changeItemCategory(id: string, category: GroceryCategory) {
     setGroceryList((prev) =>
       prev.map((item) => {
@@ -304,6 +308,7 @@ export function WeekPlanView({
                     items={dayItems}
                     onToggle={toggleGroceryItem}
                     onRemove={removeGroceryItem}
+                    onEdit={editGroceryItemText}
                     onAdd={(text, category) => addManualDayItem(day, text, category)}
                     onCategoryChange={changeItemCategory}
                     showCategoryPreview

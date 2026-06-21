@@ -148,6 +148,10 @@ export function GroceryView({
     setGroceryList((prev) => prev.filter((item) => item.id !== id));
   }
 
+  function editItemText(id: string, text: string) {
+    setGroceryList((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
+  }
+
   function changeItemCategory(id: string, category: GroceryCategory) {
     setGroceryList((prev) =>
       prev.map((item) => {
@@ -166,6 +170,10 @@ export function GroceryView({
 
   function removeStaple(id: string) {
     setStaples((prev) => prev.filter((staple) => staple.id !== id));
+  }
+
+  function editStapleText(id: string, text: string) {
+    setStaples((prev) => prev.map((staple) => (staple.id === id ? { ...staple, text } : staple)));
   }
 
   function clearChecked() {
@@ -208,6 +216,7 @@ export function GroceryView({
               items={staples}
               onToggle={toggleStaple}
               onRemove={removeStaple}
+              onEdit={editStapleText}
               emptyText="No staples yet."
               large
             />
@@ -221,6 +230,7 @@ export function GroceryView({
               items={items}
               onToggle={toggleItem}
               onRemove={removeItem}
+              onEdit={editItemText}
               onCategoryChange={changeItemCategory}
               large
               pantryItems={pantry}
