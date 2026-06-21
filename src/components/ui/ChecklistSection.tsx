@@ -170,7 +170,7 @@ export function ChecklistSection({
               >
                 {editing ? (
                   <div
-                    className={`flex flex-1 items-center gap-3 px-4 ${
+                    className={`flex min-w-0 flex-1 items-center gap-3 px-4 ${
                       large ? 'min-h-[56px] py-3' : 'py-2.5'
                     }`}
                   >
@@ -198,7 +198,7 @@ export function ChecklistSection({
                   <button
                     type="button"
                     onClick={() => onToggle(item.id)}
-                    className={`flex flex-1 items-center gap-3 px-4 text-left ${
+                    className={`flex min-w-0 flex-1 items-center gap-3 px-4 text-left ${
                       large ? 'min-h-[56px] py-3' : 'py-2.5'
                     } ${item.checked ? 'bg-surface-variant/60' : ''}`}
                   >
@@ -209,9 +209,9 @@ export function ChecklistSection({
                     >
                       {item.checked && <Check size={large ? 18 : 14} strokeWidth={3} />}
                     </span>
-                    <span className="flex flex-1 items-center gap-2 overflow-hidden">
+                    <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                       <span
-                        className={`truncate ${large ? 'text-lg' : 'text-sm'} ${
+                        className={`min-w-0 truncate ${large ? 'text-lg' : 'text-sm'} ${
                           item.checked ? 'text-ink-variant line-through' : 'text-ink'
                         }`}
                       >
