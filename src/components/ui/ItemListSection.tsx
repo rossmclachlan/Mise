@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, type LucideIcon } from 'lucide-react';
+import { Plus, ShoppingCart, X, type LucideIcon } from 'lucide-react';
 
 export interface ListItem {
   id: string;
@@ -11,6 +11,7 @@ interface ItemListSectionProps {
   items: ListItem[];
   onRemove: (id: string) => void;
   onAdd?: (text: string) => void;
+  onMoveToList?: (id: string) => void;
   addPlaceholder?: string;
   emptyText?: string;
   /** Title + icon color, to visually set this section apart from the buy-list. */
@@ -25,6 +26,7 @@ export function ItemListSection({
   items,
   onRemove,
   onAdd,
+  onMoveToList,
   addPlaceholder = 'Add item',
   emptyText,
   accent,
@@ -62,6 +64,16 @@ export function ItemListSection({
                 {Icon && <Icon size={14} className="shrink-0" style={accent ? { color: accent } : undefined} />}
                 {item.text}
               </span>
+              {onMoveToList && (
+                <button
+                  type="button"
+                  onClick={() => onMoveToList(item.id)}
+                  aria-label={`Add ${item.text} to grocery list`}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
+                >
+                  <ShoppingCart size={16} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}

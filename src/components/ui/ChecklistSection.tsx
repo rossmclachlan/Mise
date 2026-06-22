@@ -42,6 +42,7 @@ interface ChecklistSectionProps {
   onEdit?: (id: string, text: string) => void;
   onAdd?: (text: string, category?: GroceryCategory) => void;
   onCategoryChange?: (id: string, category: GroceryCategory) => void;
+  onStock?: (item: ChecklistItem) => void;
   showCategoryPreview?: boolean;
   addPlaceholder?: string;
   emptyText?: string;
@@ -78,6 +79,7 @@ export function ChecklistSection({
   onEdit,
   onAdd,
   onCategoryChange,
+  onStock,
   showCategoryPreview,
   addPlaceholder = 'Add item',
   emptyText,
@@ -254,6 +256,16 @@ export function ChecklistSection({
                     className={`chip-${item.category ?? 'other'} mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:opacity-70`}
                   >
                     <CategoryIcon category={item.category ?? 'other'} size={large ? 16 : 14} />
+                  </button>
+                )}
+                {!editing && onStock && item.checked && (
+                  <button
+                    type="button"
+                    onClick={() => onStock(item)}
+                    aria-label={`Add ${item.text} to ${item.category === 'frozen' ? 'freezer' : 'pantry'}`}
+                    className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
+                  >
+                    {item.category === 'frozen' ? <Snowflake size={16} /> : <Package size={16} />}
                   </button>
                 )}
                 {!editing && onRemove && (

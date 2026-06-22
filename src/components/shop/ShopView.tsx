@@ -25,7 +25,7 @@ import {
 import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { BottomSheet } from '../ui/BottomSheet';
-import { ChecklistSection } from '../ui/ChecklistSection';
+import { ChecklistSection, type ChecklistItem } from '../ui/ChecklistSection';
 import { ItemListSection } from '../ui/ItemListSection';
 
 const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
@@ -189,6 +189,35 @@ export function GroceryView({
     setFreezer((prev) => prev.filter((item) => item.id !== id));
   }
 
+  function moveGroceryItemToSupplies(item: ChecklistItem) {
+    if (item.category === 'frozen') {
+      setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
+    } else {
+      setPantry((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
+    }
+    setGroceryList((prev) => prev.filter((i) => i.id !== item.id));
+  }
+
+  function movePantryItemToList(id: string) {
+    const item = pantry.find((p) => p.id === id);
+    if (!item) return;
+    setGroceryList((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text: item.text, checked: false, category: categoriseItem(item.text) },
+    ]);
+    setPantry((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function moveFreezerItemToList(id: string) {
+    const item = freezer.find((f) => f.id === id);
+    if (!item) return;
+    setGroceryList((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text: item.text, checked: false, category: 'frozen' },
+    ]);
+    setFreezer((prev) => prev.filter((f) => f.id !== id));
+  }
+
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
     category,
     items: groceryList.filter((item) => (item.category ?? 'other') === category),
@@ -232,6 +261,7 @@ export function GroceryView({
               onRemove={removeItem}
               onEdit={editItemText}
               onCategoryChange={changeItemCategory}
+              onStock={moveGroceryItemToSupplies}
               large
               pantryItems={pantry}
               freezerItems={freezer}
@@ -247,6 +277,7 @@ export function GroceryView({
               title="Pantry"
               items={pantry}
               onRemove={removePantryItem}
+              onMoveToList={movePantryItemToList}
               emptyText="No pantry items yet."
               accent={CATEGORY_ACCENT.pantry}
               tint={PANTRY_TINT}
@@ -259,6 +290,7 @@ export function GroceryView({
               title="Freezer"
               items={freezer}
               onRemove={removeFreezerItem}
+              onMoveToList={moveFreezerItemToList}
               emptyText="No freezer items yet."
               accent={CATEGORY_ACCENT.frozen}
               tint={FREEZER_TINT}
