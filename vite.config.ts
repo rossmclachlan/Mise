@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Mis En Pizza',
         short_name: 'Mis En Pizza',
@@ -23,15 +23,15 @@ export default defineConfig({
         scope: '/Mise/',
         icons: [
           {
-            src: 'icon.svg',
+            src: 'icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable',
           },
           {
-            src: 'icon.svg',
+            src: 'icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable',
           },
         ],
