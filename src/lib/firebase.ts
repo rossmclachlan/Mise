@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,4 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Optional fields (e.g. Recipe.notes, GroceryItem.from_day) are commonly
+// passed through as `undefined` rather than omitted; setDoc()/updateDoc()
+// throw on that by default, so ignore it instead of scrubbing every call site.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
