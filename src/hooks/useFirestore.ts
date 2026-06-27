@@ -12,6 +12,7 @@ import {
 import { db } from '../lib/firebase';
 import { learnCategory } from '../utils/categorise';
 import type {
+  CostcoItem,
   FreezerItem,
   GroceryCategory,
   GroceryItem,
@@ -117,6 +118,26 @@ export function useStaples(uid: string | null) {
   }
 
   return { staples, loading, addStaple, updateStaple, removeStaple };
+}
+
+// ─── Costco list ────────────────────────────────────────────────────────────
+
+export function useCostcoList(uid: string | null) {
+  const { items: costco, loading, itemDoc } = useCollection<CostcoItem>(uid, 'costco');
+
+  function addCostcoItem(item: CostcoItem) {
+    setDoc(itemDoc(item.id), { ...item, created_at: item.id });
+  }
+
+  function updateCostcoItem(id: string, updates: Partial<CostcoItem>) {
+    updateDoc(itemDoc(id), updates as Record<string, unknown>);
+  }
+
+  function removeCostcoItem(id: string) {
+    deleteDoc(itemDoc(id));
+  }
+
+  return { costco, loading, addCostcoItem, updateCostcoItem, removeCostcoItem };
 }
 
 // ─── Pantry ────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import {
   Archive,
   Beef,
   Carrot,
+  ChevronDown,
   Croissant,
   CupSoda,
   Fish,
@@ -10,12 +11,14 @@ import {
   Plus,
   Snowflake,
   Tag,
+  Warehouse,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import {
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
+  type CostcoItem,
   type FreezerItem,
   type GroceryCategory,
   type GroceryItem,
@@ -80,6 +83,8 @@ interface GroceryViewProps {
   setPantry: Dispatch<SetStateAction<PantryItem[]>>;
   freezer: FreezerItem[];
   setFreezer: Dispatch<SetStateAction<FreezerItem[]>>;
+  costco: CostcoItem[];
+  setCostco: Dispatch<SetStateAction<CostcoItem[]>>;
 }
 
 export function GroceryView({
@@ -91,9 +96,12 @@ export function GroceryView({
   setPantry,
   freezer,
   setFreezer,
+  costco,
+  setCostco,
 }: GroceryViewProps) {
   useWakeLock(true);
 
+  const [costcoOpen, setCostcoOpen] = useState(false);
   const [addBarOpen, setAddBarOpen] = useState(false);
   const draftInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
@@ -174,6 +182,24 @@ export function GroceryView({
 
   function editStapleText(id: string, text: string) {
     setStaples((prev) => prev.map((staple) => (staple.id === id ? { ...staple, text } : staple)));
+  }
+
+  function toggleCostcoItem(id: string) {
+    setCostco((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, checked: !item.checked } : item)),
+    );
+  }
+
+  function removeCostcoItem(id: string) {
+    setCostco((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function editCostcoItemText(id: string, text: string) {
+    setCostco((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
+  }
+
+  function addCostcoItem(text: string) {
+    setCostco((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
   }
 
   function clearChecked() {
@@ -297,6 +323,35 @@ export function GroceryView({
               icon={CATEGORY_ICONS.frozen}
             />
           )}
+
+          <div className="card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCostcoOpen((prev) => !prev)}
+              aria-expanded={costcoOpen}
+              className="flex w-full items-center justify-between px-4 py-3"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Warehouse size={16} />
+                Costco list{costco.length > 0 ? ` (${costco.length})` : ''}
+              </span>
+              <ChevronDown size={18} className={`transition-transform ${costcoOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {costcoOpen && (
+              <div className="border-t border-outline/60 px-3 pb-3 pt-3">
+                <ChecklistSection
+                  items={costco}
+                  onToggle={toggleCostcoItem}
+                  onRemove={removeCostcoItem}
+                  onEdit={editCostcoItemText}
+                  onAdd={addCostcoItem}
+                  addPlaceholder="Add a Costco item"
+                  emptyText="No Costco items yet."
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -70,6 +70,12 @@ export interface Staple {
   checked: boolean;
 }
 
+export interface CostcoItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
 export interface PantryItem {
   id: string;
   text: string;

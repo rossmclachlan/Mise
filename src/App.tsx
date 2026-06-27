@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { User } from 'firebase/auth';
-import type { FreezerItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
+import type { CostcoItem, FreezerItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
 import {
+  useCostcoList,
   useFreezer,
   useGroceryList,
   useLearnedCategories,
@@ -97,10 +98,17 @@ function AuthenticatedApp({ user }: { user: User }) {
     usePantry(uid);
   const { freezer, loading: fzl, addFreezerItem: fsAddFreezerItem, removeFreezerItem: fsRemoveFreezerItem } =
     useFreezer(uid);
+  const {
+    costco,
+    loading: cl,
+    addCostcoItem: fsAddCostcoItem,
+    updateCostcoItem: fsUpdateCostcoItem,
+    removeCostcoItem: fsRemoveCostcoItem,
+  } = useCostcoList(uid);
   const { weekPlan, loading: wl, saveWeekPlan } = useWeekPlan(uid);
   const { saveLearnedCategory } = useLearnedCategories(uid);
 
-  const isLoading = rl || gl || sl || pl || fzl || wl;
+  const isLoading = rl || gl || sl || pl || fzl || cl || wl;
 
   // ── Seed on first login (runs once after data loads) ──
   const seeded = useRef(false);
@@ -153,6 +161,11 @@ function AuthenticatedApp({ user }: { user: User }) {
     update: () => {},
     remove: fsRemoveFreezerItem,
   });
+
+  const setCostco = makeProxySetter<CostcoItem>(
+    costco,
+    { add: fsAddCostcoItem, update: fsUpdateCostcoItem, remove: fsRemoveCostcoItem },
+  );
 
   const setWeekPlan = useCallback<Dispatch<SetStateAction<WeekPlan>>>(
     (updater) => {
@@ -224,6 +237,8 @@ function AuthenticatedApp({ user }: { user: User }) {
         setPantry={setPantry}
         freezer={freezer}
         setFreezer={setFreezer}
+        costco={costco}
+        setCostco={setCostco}
       />
     );
   } else if (cookRecipe) {
