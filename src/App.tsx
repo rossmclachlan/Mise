@@ -129,6 +129,13 @@ function AuthenticatedApp({ user }: { user: User }) {
       .forEach((item) => fsUpdateItem(item.id, { category: categoriseItem(item.text) }));
   }, [gl]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (cl) return;
+    costco
+      .filter((item) => !item.category)
+      .forEach((item) => fsUpdateCostcoItem(item.id, { category: categoriseItem(item.text) }));
+  }, [cl]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Proxy setters — created fresh each render, close over current state ──
   const setRecipes = makeProxySetter<Recipe>(
     recipes,

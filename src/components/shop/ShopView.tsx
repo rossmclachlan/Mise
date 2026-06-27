@@ -198,8 +198,21 @@ export function GroceryView({
     setCostco((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
   }
 
-  function addCostcoItem(text: string) {
-    setCostco((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
+  function addCostcoItem(text: string, category?: GroceryCategory) {
+    setCostco((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, checked: false, category: category ?? categoriseItem(text) },
+    ]);
+  }
+
+  function changeCostcoItemCategory(id: string, category: GroceryCategory) {
+    setCostco((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        learnCategory(item.text, category);
+        return { ...item, category };
+      }),
+    );
   }
 
   function clearChecked() {
@@ -247,6 +260,11 @@ export function GroceryView({
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
     category,
     items: groceryList.filter((item) => (item.category ?? 'other') === category),
+  })).filter((group) => group.items.length > 0);
+
+  const costcoByCategory = GROCERY_CATEGORIES.map((category) => ({
+    category,
+    items: costco.filter((item) => (item.category ?? 'other') === category),
   })).filter((group) => group.items.length > 0);
 
   return (
@@ -339,15 +357,26 @@ export function GroceryView({
             </button>
 
             {costcoOpen && (
-              <div className="border-t border-outline/60 px-3 pb-3 pt-3">
+              <div className="space-y-4 border-t border-outline/60 px-3 pb-3 pt-3">
+                {costcoByCategory.map(({ category, items }) => (
+                  <ChecklistSection
+                    key={category}
+                    title={GROCERY_CATEGORY_LABELS[category]}
+                    accent={CATEGORY_ACCENT[category]}
+                    items={items}
+                    onToggle={toggleCostcoItem}
+                    onRemove={removeCostcoItem}
+                    onEdit={editCostcoItemText}
+                    onCategoryChange={changeCostcoItemCategory}
+                  />
+                ))}
                 <ChecklistSection
-                  items={costco}
+                  items={[]}
                   onToggle={toggleCostcoItem}
-                  onRemove={removeCostcoItem}
-                  onEdit={editCostcoItemText}
                   onAdd={addCostcoItem}
+                  showCategoryPreview
                   addPlaceholder="Add a Costco item"
-                  emptyText="No Costco items yet."
+                  emptyText={costco.length === 0 ? 'No Costco items yet.' : undefined}
                 />
               </div>
             )}

@@ -74,6 +74,7 @@ export interface CostcoItem {
   id: string;
   text: string;
   checked: boolean;
+  category?: GroceryCategory;
 }
 
 export interface PantryItem {
