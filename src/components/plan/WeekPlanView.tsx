@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { BookOpen, ChevronDown, X } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, Share2, X } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
@@ -13,6 +13,7 @@ import {
   type WeekPlan,
 } from '../../types';
 import { categoriseItem, learnCategory } from '../../utils/categorise';
+import { formatWeekPlanText } from '../../utils/shareWeekPlan';
 import { ChecklistSection } from '../ui/ChecklistSection';
 import { RecipeImage } from '../ui/RecipeImage';
 
@@ -39,6 +40,7 @@ export function WeekPlanView({
 }: WeekPlanViewProps) {
   const [expandedDay, setExpandedDay] = useState<WeekDay | null>(null);
   const [openDay, setOpenDay] = useState<WeekDay | null>(null);
+  const [copied, setCopied] = useState(false);
   const [dayInputs, setDayInputs] = useState<Partial<Record<WeekDay, string>>>(() => {
     const initial: Partial<Record<WeekDay, string>> = {};
     for (const day of WEEK_DAYS) {
@@ -163,9 +165,37 @@ export function WeekPlanView({
     setExpandedDay((prev) => (prev === day ? null : day));
   }
 
+  async function handleShare() {
+    const text = formatWeekPlanText(weekPlan, recipes);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch {
+        // user cancelled the share sheet — nothing to do
+      }
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const hasPlan = WEEK_DAYS.some((day) => weekPlan[day]);
+
   return (
     <div className="px-4 pb-8 pt-4">
-      <h1 className="mb-4 text-2xl font-bold">This Week</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">This Week</h1>
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={!hasPlan}
+          className="btn-tonal flex items-center gap-1.5 px-4 py-2.5 text-sm disabled:opacity-40"
+        >
+          {copied ? <Check size={16} /> : <Share2 size={16} />}
+          {copied ? 'Copied' : 'Share'}
+        </button>
+      </div>
 
       <div className="space-y-3">
         {WEEK_DAYS.map((day) => {
