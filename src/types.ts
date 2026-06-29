@@ -82,10 +82,29 @@ export interface PantryItem {
   text: string;
 }
 
+export interface FridgeItem {
+  id: string;
+  text: string;
+}
+
 export interface FreezerItem {
   id: string;
   text: string;
 }
+
+export type StorageLocation = 'pantry' | 'fridge' | 'freezer';
+
+export const CATEGORY_STORAGE: Record<GroceryCategory, StorageLocation> = {
+  produce: 'fridge',
+  dairy: 'fridge',
+  meat: 'fridge',
+  fish: 'fridge',
+  bakery: 'pantry',
+  pantry: 'pantry',
+  frozen: 'freezer',
+  drinks: 'pantry',
+  other: 'pantry',
+};
 
 export const WEEK_DAYS: WeekDay[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
 

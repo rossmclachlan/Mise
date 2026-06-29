@@ -9,6 +9,7 @@ import {
   Fish,
   Milk,
   Plus,
+  Refrigerator,
   Snowflake,
   Tag,
   Warehouse,
@@ -16,10 +17,12 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import {
+  CATEGORY_STORAGE,
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
   type CostcoItem,
   type FreezerItem,
+  type FridgeItem,
   type GroceryCategory,
   type GroceryItem,
   type PantryItem,
@@ -55,9 +58,10 @@ const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
   other: Tag,
 };
 
-// "Already have it" inventory sections borrow the Pantry/Frozen chip colors
-// so they read as visually distinct from the buy-list above them.
+// "Already have it" inventory sections borrow the Pantry/Fridge/Frozen chip
+// colors so they read as visually distinct from the buy-list above them.
 const PANTRY_TINT = '#EDE9FE';
+const FRIDGE_TINT = '#DCFCE7';
 const FREEZER_TINT = '#E0F2FE';
 
 function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
@@ -65,12 +69,13 @@ function CategoryIcon({ category, size }: { category: GroceryCategory; size: num
   return <Icon size={size} />;
 }
 
-type AddTarget = 'grocery' | 'staple' | 'pantry' | 'freezer';
+type AddTarget = 'grocery' | 'staple' | 'pantry' | 'fridge' | 'freezer';
 
 const ADD_TARGET_LABELS: Record<AddTarget, string> = {
   grocery: 'Grocery',
   staple: 'Staple',
   pantry: 'Pantry',
+  fridge: 'Fridge',
   freezer: 'Freezer',
 };
 
@@ -81,6 +86,8 @@ interface GroceryViewProps {
   setStaples: Dispatch<SetStateAction<Staple[]>>;
   pantry: PantryItem[];
   setPantry: Dispatch<SetStateAction<PantryItem[]>>;
+  fridge: FridgeItem[];
+  setFridge: Dispatch<SetStateAction<FridgeItem[]>>;
   freezer: FreezerItem[];
   setFreezer: Dispatch<SetStateAction<FreezerItem[]>>;
   costco: CostcoItem[];
@@ -94,6 +101,8 @@ export function GroceryView({
   setStaples,
   pantry,
   setPantry,
+  fridge,
+  setFridge,
   freezer,
   setFreezer,
   costco,
@@ -138,6 +147,8 @@ export function GroceryView({
       setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
     } else if (addTarget === 'pantry') {
       setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+    } else if (addTarget === 'fridge') {
+      setFridge((prev) => [...prev, { id: crypto.randomUUID(), text }]);
     } else {
       setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text }]);
     }
@@ -228,9 +239,16 @@ export function GroceryView({
     setFreezer((prev) => prev.filter((item) => item.id !== id));
   }
 
+  function removeFridgeItem(id: string) {
+    setFridge((prev) => prev.filter((item) => item.id !== id));
+  }
+
   function moveGroceryItemToSupplies(item: ChecklistItem) {
-    if (item.category === 'frozen') {
+    const location = CATEGORY_STORAGE[item.category ?? 'other'];
+    if (location === 'freezer') {
       setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
+    } else if (location === 'fridge') {
+      setFridge((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
     } else {
       setPantry((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
     }
@@ -245,6 +263,16 @@ export function GroceryView({
       { id: crypto.randomUUID(), text: item.text, checked: false, category: categoriseItem(item.text) },
     ]);
     setPantry((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function moveFridgeItemToList(id: string) {
+    const item = fridge.find((f) => f.id === id);
+    if (!item) return;
+    setGroceryList((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text: item.text, checked: false, category: categoriseItem(item.text) },
+    ]);
+    setFridge((prev) => prev.filter((f) => f.id !== id));
   }
 
   function moveFreezerItemToList(id: string) {
@@ -308,11 +336,12 @@ export function GroceryView({
               onStock={moveGroceryItemToSupplies}
               large
               pantryItems={pantry}
+              fridgeItems={fridge}
               freezerItems={freezer}
             />
           ))}
 
-          {(pantry.length > 0 || freezer.length > 0) && (
+          {(pantry.length > 0 || fridge.length > 0 || freezer.length > 0) && (
             <h1 className="text-2xl font-bold">Supplies</h1>
           )}
 
@@ -326,6 +355,19 @@ export function GroceryView({
               accent={CATEGORY_ACCENT.pantry}
               tint={PANTRY_TINT}
               icon={CATEGORY_ICONS.pantry}
+            />
+          )}
+
+          {fridge.length > 0 && (
+            <ItemListSection
+              title="Fridge"
+              items={fridge}
+              onRemove={removeFridgeItem}
+              onMoveToList={moveFridgeItemToList}
+              emptyText="No fridge items yet."
+              accent={CATEGORY_ACCENT.produce}
+              tint={FRIDGE_TINT}
+              icon={Refrigerator}
             />
           )}
 
@@ -415,7 +457,9 @@ export function GroceryView({
                     ? 'Add a staple'
                     : addTarget === 'pantry'
                       ? 'Add a pantry item'
-                      : 'Add a freezer item'
+                      : addTarget === 'fridge'
+                        ? 'Add a fridge item'
+                        : 'Add a freezer item'
               }
               className="input-field flex-1"
             />
@@ -431,7 +475,7 @@ export function GroceryView({
           </div>
 
           <div className="mt-2 flex gap-2">
-            {(['grocery', 'staple', 'pantry', 'freezer'] as const).map((target) => (
+            {(['grocery', 'staple', 'pantry', 'fridge', 'freezer'] as const).map((target) => (
               <button
                 key={target}
                 type="button"
@@ -439,9 +483,11 @@ export function GroceryView({
                 style={
                   addTarget === target && target === 'pantry'
                     ? { backgroundColor: CATEGORY_ACCENT.pantry }
-                    : addTarget === target && target === 'freezer'
-                      ? { backgroundColor: CATEGORY_ACCENT.frozen }
-                      : undefined
+                    : addTarget === target && target === 'fridge'
+                      ? { backgroundColor: CATEGORY_ACCENT.produce }
+                      : addTarget === target && target === 'freezer'
+                        ? { backgroundColor: CATEGORY_ACCENT.frozen }
+                        : undefined
                 }
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                   addTarget === target

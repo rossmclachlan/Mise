@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { User } from 'firebase/auth';
-import type { CostcoItem, FreezerItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
+import type { CostcoItem, FreezerItem, FridgeItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
 import {
   useCostcoList,
   useFreezer,
+  useFridge,
   useGroceryList,
   useLearnedCategories,
   usePantry,
@@ -96,6 +97,8 @@ function AuthenticatedApp({ user }: { user: User }) {
   } = useStaples(uid);
   const { pantry, loading: pl, addPantryItem: fsAddPantryItem, removePantryItem: fsRemovePantryItem } =
     usePantry(uid);
+  const { fridge, loading: frl, addFridgeItem: fsAddFridgeItem, removeFridgeItem: fsRemoveFridgeItem } =
+    useFridge(uid);
   const { freezer, loading: fzl, addFreezerItem: fsAddFreezerItem, removeFreezerItem: fsRemoveFreezerItem } =
     useFreezer(uid);
   const {
@@ -108,7 +111,7 @@ function AuthenticatedApp({ user }: { user: User }) {
   const { weekPlan, loading: wl, saveWeekPlan } = useWeekPlan(uid);
   const { saveLearnedCategory } = useLearnedCategories(uid);
 
-  const isLoading = rl || gl || sl || pl || fzl || cl || wl;
+  const isLoading = rl || gl || sl || pl || frl || fzl || cl || wl;
 
   // ── Seed on first login (runs once after data loads) ──
   const seeded = useRef(false);
@@ -161,6 +164,12 @@ function AuthenticatedApp({ user }: { user: User }) {
     add: fsAddPantryItem,
     update: () => {},
     remove: fsRemovePantryItem,
+  });
+
+  const setFridge = makeProxySetter<FridgeItem>(fridge, {
+    add: fsAddFridgeItem,
+    update: () => {},
+    remove: fsRemoveFridgeItem,
   });
 
   const setFreezer = makeProxySetter<FreezerItem>(freezer, {
@@ -226,6 +235,7 @@ function AuthenticatedApp({ user }: { user: User }) {
         groceryList={groceryItems}
         setGroceryList={setGroceryList}
         pantry={pantry}
+        fridge={fridge}
         freezer={freezer}
         onSelectRecipe={(id) => {
           setCookDetailId(id);
@@ -242,6 +252,8 @@ function AuthenticatedApp({ user }: { user: User }) {
         setStaples={setStaples}
         pantry={pantry}
         setPantry={setPantry}
+        fridge={fridge}
+        setFridge={setFridge}
         freezer={freezer}
         setFreezer={setFreezer}
         costco={costco}

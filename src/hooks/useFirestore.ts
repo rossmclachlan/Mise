@@ -14,6 +14,7 @@ import { learnCategory } from '../utils/categorise';
 import type {
   CostcoItem,
   FreezerItem,
+  FridgeItem,
   GroceryCategory,
   GroceryItem,
   PantryItem,
@@ -154,6 +155,22 @@ export function usePantry(uid: string | null) {
   }
 
   return { pantry, loading, addPantryItem, removePantryItem };
+}
+
+// ─── Fridge ────────────────────────────────────────────────────────────────
+
+export function useFridge(uid: string | null) {
+  const { items: fridge, loading, itemDoc } = useCollection<FridgeItem>(uid, 'fridge');
+
+  function addFridgeItem(item: FridgeItem) {
+    setDoc(itemDoc(item.id), { ...item, created_at: item.id });
+  }
+
+  function removeFridgeItem(id: string) {
+    deleteDoc(itemDoc(id));
+  }
+
+  return { fridge, loading, addFridgeItem, removeFridgeItem };
 }
 
 // ─── Freezer ───────────────────────────────────────────────────────────────

@@ -11,17 +11,21 @@ import {
   Package,
   Pencil,
   Plus,
+  Refrigerator,
   Snowflake,
   Tag,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import {
+  CATEGORY_STORAGE,
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
   type FreezerItem,
+  type FridgeItem,
   type GroceryCategory,
   type PantryItem,
+  type StorageLocation,
 } from '../../types';
 import { categoriseItem } from '../../utils/categorise';
 import { BottomSheet } from './BottomSheet';
@@ -48,6 +52,7 @@ interface ChecklistSectionProps {
   emptyText?: string;
   large?: boolean;
   pantryItems?: PantryItem[];
+  fridgeItems?: FridgeItem[];
   freezerItems?: FreezerItem[];
 }
 
@@ -63,8 +68,19 @@ const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
   other: Tag,
 };
 
+const STORAGE_ICONS: Record<StorageLocation, LucideIcon> = {
+  pantry: Package,
+  fridge: Refrigerator,
+  freezer: Snowflake,
+};
+
 function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
   const Icon = CATEGORY_ICONS[category];
+  return <Icon size={size} />;
+}
+
+function StorageIcon({ category, size }: { category: GroceryCategory; size: number }) {
+  const Icon = STORAGE_ICONS[CATEGORY_STORAGE[category]];
   return <Icon size={size} />;
 }
 
@@ -85,6 +101,7 @@ export function ChecklistSection({
   emptyText,
   large,
   pantryItems,
+  fridgeItems,
   freezerItems,
 }: ChecklistSectionProps) {
   const [draft, setDraft] = useState('');
@@ -119,6 +136,12 @@ export function ChecklistSection({
     if (!pantryItems?.length) return false;
     const text = item.text.toLowerCase();
     return pantryItems.some((p) => p.text.trim() && text.includes(p.text.toLowerCase()));
+  }
+
+  function isInFridge(item: ChecklistItem): boolean {
+    if (!fridgeItems?.length) return false;
+    const text = item.text.toLowerCase();
+    return fridgeItems.some((f) => f.text.trim() && text.includes(f.text.toLowerCase()));
   }
 
   function isInFreezer(item: ChecklistItem): boolean {
@@ -227,6 +250,14 @@ export function ChecklistSection({
                           <Package size={10} /> In Pantry
                         </span>
                       )}
+                      {isInFridge(item) && (
+                        <span
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ backgroundColor: '#DCFCE7', color: '#14532D' }}
+                        >
+                          <Refrigerator size={10} /> In Fridge
+                        </span>
+                      )}
                       {isInFreezer(item) && (
                         <span
                           className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
@@ -262,10 +293,10 @@ export function ChecklistSection({
                   <button
                     type="button"
                     onClick={() => onStock(item)}
-                    aria-label={`Add ${item.text} to ${item.category === 'frozen' ? 'freezer' : 'pantry'}`}
+                    aria-label={`Add ${item.text} to ${CATEGORY_STORAGE[item.category ?? 'other']}`}
                     className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-variant active:bg-surface-variant"
                   >
-                    {item.category === 'frozen' ? <Snowflake size={16} /> : <Package size={16} />}
+                    <StorageIcon category={item.category ?? 'other'} size={16} />
                   </button>
                 )}
                 {!editing && onRemove && (
