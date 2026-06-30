@@ -35,6 +35,10 @@ export function ItemListSection({
 }: ItemListSectionProps) {
   const [draft, setDraft] = useState('');
 
+  const sorted = [...items].sort((a, b) =>
+    a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }),
+  );
+
   function submitAdd() {
     const text = draft.trim();
     if (!text) return;
@@ -48,14 +52,14 @@ export function ItemListSection({
         {title}
       </h2>
 
-      {items.length === 0 && emptyText ? (
+      {sorted.length === 0 && emptyText ? (
         <p className="card px-4 py-3 text-sm text-ink-variant">{emptyText}</p>
-      ) : items.length > 0 ? (
+      ) : sorted.length > 0 ? (
         <ul
           className="overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(28,20,5,0.08),0_2px_12px_rgba(28,20,5,0.05)]"
           style={{ backgroundColor: tint ?? 'var(--color-surface)' }}
         >
-          {items.map((item) => (
+          {sorted.map((item) => (
             <li
               key={item.id}
               className="flex items-center justify-between gap-3 border-b border-outline/60 px-4 py-2.5 last:border-b-0"
