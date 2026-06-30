@@ -111,7 +111,11 @@ export function ChecklistSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
 
-  const sorted = [...items].sort((a, b) => Number(a.checked) - Number(b.checked));
+  const sorted = [...items].sort(
+    (a, b) =>
+      Number(a.checked) - Number(b.checked) ||
+      a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }),
+  );
 
   useEffect(() => {
     if (!showCategoryPreview) return;
