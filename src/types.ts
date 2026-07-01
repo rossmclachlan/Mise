@@ -77,34 +77,16 @@ export interface CostcoItem {
   category?: GroceryCategory;
 }
 
-export interface PantryItem {
+/**
+ * A supplies (at-home inventory) item. Categorised with the same
+ * GroceryCategory taxonomy as the grocery list so the two display and sort
+ * under a shared set of headings.
+ */
+export interface SupplyItem {
   id: string;
   text: string;
+  category?: GroceryCategory;
 }
-
-export interface FridgeItem {
-  id: string;
-  text: string;
-}
-
-export interface FreezerItem {
-  id: string;
-  text: string;
-}
-
-export type StorageLocation = 'pantry' | 'fridge' | 'freezer';
-
-export const CATEGORY_STORAGE: Record<GroceryCategory, StorageLocation> = {
-  produce: 'fridge',
-  dairy: 'fridge',
-  meat: 'fridge',
-  fish: 'fridge',
-  bakery: 'pantry',
-  pantry: 'pantry',
-  frozen: 'freezer',
-  drinks: 'pantry',
-  other: 'pantry',
-};
 
 export const WEEK_DAYS: WeekDay[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
 

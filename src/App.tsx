@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { User } from 'firebase/auth';
-import type { CostcoItem, FreezerItem, FridgeItem, GroceryItem, Mode, PantryItem, Recipe, Staple, WeekPlan } from './types';
+import type { CostcoItem, GroceryItem, Mode, Recipe, Staple, SupplyItem, WeekPlan } from './types';
 import { useAuth } from './hooks/useAuth';
 import { usePWAUpdate } from './hooks/usePWAUpdate';
 import {
+  migrateLegacySupplies,
   useCostcoList,
-  useFreezer,
-  useFridge,
   useGroceryList,
   useLearnedCategories,
-  usePantry,
   useRecipes,
   useStaples,
+  useSupplies,
   useWeekPlan,
 } from './hooks/useFirestore';
 import { categoriseItem } from './utils/categorise';
-import { SEED_PANTRY, SEED_RECIPES, SEED_STAPLES } from './utils/seedData';
+import { SEED_RECIPES, SEED_STAPLES, SEED_SUPPLIES } from './utils/seedData';
 import { BottomNav } from './components/ui/BottomNav';
 import { TopAppBar } from './components/ui/TopAppBar';
 import { RecipeDetail } from './components/plan/RecipeDetail';
@@ -95,12 +94,13 @@ function AuthenticatedApp({ user }: { user: User }) {
     updateStaple: fsUpdateStaple,
     removeStaple: fsRemoveStaple,
   } = useStaples(uid);
-  const { pantry, loading: pl, addPantryItem: fsAddPantryItem, removePantryItem: fsRemovePantryItem } =
-    usePantry(uid);
-  const { fridge, loading: frl, addFridgeItem: fsAddFridgeItem, removeFridgeItem: fsRemoveFridgeItem } =
-    useFridge(uid);
-  const { freezer, loading: fzl, addFreezerItem: fsAddFreezerItem, removeFreezerItem: fsRemoveFreezerItem } =
-    useFreezer(uid);
+  const {
+    supplies,
+    loading: supl,
+    addSupplyItem: fsAddSupplyItem,
+    updateSupplyItem: fsUpdateSupplyItem,
+    removeSupplyItem: fsRemoveSupplyItem,
+  } = useSupplies(uid);
   const {
     costco,
     loading: cl,
@@ -111,17 +111,25 @@ function AuthenticatedApp({ user }: { user: User }) {
   const { weekPlan, loading: wl, saveWeekPlan } = useWeekPlan(uid);
   const { saveLearnedCategory } = useLearnedCategories(uid);
 
-  const isLoading = rl || gl || sl || pl || frl || fzl || cl || wl;
+  const isLoading = rl || gl || sl || supl || cl || wl;
 
-  // ── Seed on first login (runs once after data loads) ──
-  const seeded = useRef(false);
+  // ── Migrate legacy supplies, then seed on first login (runs once) ──
+  const bootstrapped = useRef(false);
   useEffect(() => {
-    if (isLoading || seeded.current) return;
-    seeded.current = true;
+    if (isLoading || bootstrapped.current) return;
+    bootstrapped.current = true;
 
-    if (recipes.length === 0) SEED_RECIPES.forEach((r) => addRecipe(r));
-    if (staples.length === 0) SEED_STAPLES.forEach((s) => fsAddStaple(s));
-    if (pantry.length === 0) SEED_PANTRY.forEach((p) => fsAddPantryItem(p));
+    (async () => {
+      const migrated = await migrateLegacySupplies(uid);
+
+      if (recipes.length === 0) SEED_RECIPES.forEach((r) => addRecipe(r));
+      if (staples.length === 0) SEED_STAPLES.forEach((s) => fsAddStaple(s));
+      // Only seed supplies for a genuinely new account — never when we just
+      // migrated an existing user's pantry/fridge/freezer into supplies.
+      if (migrated === 0 && supplies.length === 0) {
+        SEED_SUPPLIES.forEach((s) => fsAddSupplyItem(s));
+      }
+    })();
   }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Backfill missing categories on first load ──
@@ -160,23 +168,15 @@ function AuthenticatedApp({ user }: { user: User }) {
     { add: fsAddStaple, update: fsUpdateStaple, remove: fsRemoveStaple },
   );
 
-  const setPantry = makeProxySetter<PantryItem>(pantry, {
-    add: fsAddPantryItem,
-    update: () => {},
-    remove: fsRemovePantryItem,
-  });
-
-  const setFridge = makeProxySetter<FridgeItem>(fridge, {
-    add: fsAddFridgeItem,
-    update: () => {},
-    remove: fsRemoveFridgeItem,
-  });
-
-  const setFreezer = makeProxySetter<FreezerItem>(freezer, {
-    add: fsAddFreezerItem,
-    update: () => {},
-    remove: fsRemoveFreezerItem,
-  });
+  const setSupplies = makeProxySetter<SupplyItem>(
+    supplies,
+    { add: fsAddSupplyItem, update: fsUpdateSupplyItem, remove: fsRemoveSupplyItem },
+    (prev, next) => {
+      if (prev.category !== next.category && next.category) {
+        saveLearnedCategory(next.text, next.category);
+      }
+    },
+  );
 
   const setCostco = makeProxySetter<CostcoItem>(
     costco,
@@ -234,9 +234,7 @@ function AuthenticatedApp({ user }: { user: User }) {
         setWeekPlan={setWeekPlan}
         groceryList={groceryItems}
         setGroceryList={setGroceryList}
-        pantry={pantry}
-        fridge={fridge}
-        freezer={freezer}
+        supplies={supplies}
         onSelectRecipe={(id) => {
           setCookDetailId(id);
           setMode('cook');
@@ -250,12 +248,8 @@ function AuthenticatedApp({ user }: { user: User }) {
         setGroceryList={setGroceryList}
         staples={staples}
         setStaples={setStaples}
-        pantry={pantry}
-        setPantry={setPantry}
-        fridge={fridge}
-        setFridge={setFridge}
-        freezer={freezer}
-        setFreezer={setFreezer}
+        supplies={supplies}
+        setSupplies={setSupplies}
         costco={costco}
         setCostco={setCostco}
       />

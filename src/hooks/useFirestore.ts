@@ -3,23 +3,23 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { learnCategory } from '../utils/categorise';
+import { categoriseItem, learnCategory } from '../utils/categorise';
 import type {
   CostcoItem,
-  FreezerItem,
-  FridgeItem,
   GroceryCategory,
   GroceryItem,
-  PantryItem,
   Recipe,
   Staple,
+  SupplyItem,
   WeekPlan,
 } from '../types';
 
@@ -141,52 +141,53 @@ export function useCostcoList(uid: string | null) {
   return { costco, loading, addCostcoItem, updateCostcoItem, removeCostcoItem };
 }
 
-// ─── Pantry ────────────────────────────────────────────────────────────────
+// ─── Supplies (at-home inventory) ────────────────────────────────────────────
 
-export function usePantry(uid: string | null) {
-  const { items: pantry, loading, itemDoc } = useCollection<PantryItem>(uid, 'pantry');
+export function useSupplies(uid: string | null) {
+  const { items: supplies, loading, itemDoc } = useCollection<SupplyItem>(uid, 'supplies');
 
-  function addPantryItem(item: PantryItem) {
+  function addSupplyItem(item: SupplyItem) {
     setDoc(itemDoc(item.id), { ...item, created_at: item.id });
   }
 
-  function removePantryItem(id: string) {
+  function updateSupplyItem(id: string, updates: Partial<SupplyItem>) {
+    updateDoc(itemDoc(id), updates as Record<string, unknown>);
+  }
+
+  function removeSupplyItem(id: string) {
     deleteDoc(itemDoc(id));
   }
 
-  return { pantry, loading, addPantryItem, removePantryItem };
+  return { supplies, loading, addSupplyItem, updateSupplyItem, removeSupplyItem };
 }
 
-// ─── Fridge ────────────────────────────────────────────────────────────────
+// One-time migration: fold the legacy pantry/fridge/freezer collections into
+// the unified `supplies` collection, auto-categorising each item by its text.
+// Atomic (single batch) and idempotent — reuses each item's id, so a re-run
+// simply re-copies before deleting the legacy docs. Returns how many items
+// were migrated (0 once the legacy collections are empty).
+export async function migrateLegacySupplies(uid: string): Promise<number> {
+  const legacyCollections = ['pantry', 'fridge', 'freezer'];
+  const batch = writeBatch(db);
+  let migrated = 0;
 
-export function useFridge(uid: string | null) {
-  const { items: fridge, loading, itemDoc } = useCollection<FridgeItem>(uid, 'fridge');
-
-  function addFridgeItem(item: FridgeItem) {
-    setDoc(itemDoc(item.id), { ...item, created_at: item.id });
+  for (const name of legacyCollections) {
+    const snap = await getDocs(collection(db, 'users', uid, name));
+    snap.forEach((legacyDoc) => {
+      const data = legacyDoc.data() as { text?: string; created_at?: string };
+      const text = (data.text ?? '').toString();
+      batch.set(doc(db, 'users', uid, 'supplies', legacyDoc.id), {
+        text,
+        category: categoriseItem(text),
+        created_at: data.created_at ?? legacyDoc.id,
+      });
+      batch.delete(legacyDoc.ref);
+      migrated += 1;
+    });
   }
 
-  function removeFridgeItem(id: string) {
-    deleteDoc(itemDoc(id));
-  }
-
-  return { fridge, loading, addFridgeItem, removeFridgeItem };
-}
-
-// ─── Freezer ───────────────────────────────────────────────────────────────
-
-export function useFreezer(uid: string | null) {
-  const { items: freezer, loading, itemDoc } = useCollection<FreezerItem>(uid, 'freezer');
-
-  function addFreezerItem(item: FreezerItem) {
-    setDoc(itemDoc(item.id), { ...item, created_at: item.id });
-  }
-
-  function removeFreezerItem(id: string) {
-    deleteDoc(itemDoc(id));
-  }
-
-  return { freezer, loading, addFreezerItem, removeFreezerItem };
+  if (migrated > 0) await batch.commit();
+  return migrated;
 }
 
 // ─── Week plan (single document) ───────────────────────────────────────────

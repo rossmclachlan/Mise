@@ -3,13 +3,11 @@ import { BookOpen, Check, ChevronDown, Share2, X } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
-  type FreezerItem,
-  type FridgeItem,
   type GroceryCategory,
   type GroceryItem,
   type MealPlanEntry,
-  type PantryItem,
   type Recipe,
+  type SupplyItem,
   type WeekDay,
   type WeekPlan,
 } from '../../types';
@@ -24,9 +22,7 @@ interface WeekPlanViewProps {
   setWeekPlan: Dispatch<SetStateAction<WeekPlan>>;
   groceryList: GroceryItem[];
   setGroceryList: Dispatch<SetStateAction<GroceryItem[]>>;
-  pantry: PantryItem[];
-  fridge: FridgeItem[];
-  freezer: FreezerItem[];
+  supplies: SupplyItem[];
   onSelectRecipe: (id: string) => void;
 }
 
@@ -36,9 +32,7 @@ export function WeekPlanView({
   setWeekPlan,
   groceryList,
   setGroceryList,
-  pantry,
-  fridge,
-  freezer,
+  supplies,
   onSelectRecipe,
 }: WeekPlanViewProps) {
   const [expandedDay, setExpandedDay] = useState<WeekDay | null>(null);
@@ -263,7 +257,7 @@ export function WeekPlanView({
               {isOpen && (
                 <div className="border-t border-outline/60 px-5 pb-5 pt-5">
                   {suggestedRecipes.length > 0 ? (
-                    <div className={(pantry.length > 0 || fridge.length > 0 || freezer.length > 0) && !query ? 'mb-6' : ''}>
+                    <div className={supplies.length > 0 && !query ? 'mb-6' : ''}>
                       <p className="label-section mb-3">Recipes</p>
                       <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 py-2">
                         {suggestedRecipes.map((r) => (
@@ -291,53 +285,11 @@ export function WeekPlanView({
                     <p className="text-sm text-ink-variant">No matching recipes.</p>
                   )}
 
-                  {!query && pantry.length > 0 && (
-                    <div className={fridge.length > 0 || freezer.length > 0 ? 'mb-6' : ''}>
-                      <p className="label-section mb-3">From Pantry</p>
-                      <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5">
-                        {pantry.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              selectInspiration(day, item.text);
-                            }}
-                            className="chip-pantry shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold whitespace-nowrap"
-                          >
-                            {item.text}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!query && fridge.length > 0 && (
-                    <div className={freezer.length > 0 ? 'mb-6' : ''}>
-                      <p className="label-section mb-3">From Fridge</p>
-                      <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5">
-                        {fridge.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              selectInspiration(day, item.text);
-                            }}
-                            className="chip-fridge shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold whitespace-nowrap"
-                          >
-                            {item.text}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!query && freezer.length > 0 && (
+                  {!query && supplies.length > 0 && (
                     <div>
-                      <p className="label-section mb-3">From Freezer</p>
+                      <p className="label-section mb-3">From Supplies</p>
                       <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5">
-                        {freezer.map((item) => (
+                        {supplies.map((item) => (
                           <button
                             key={item.id}
                             type="button"
@@ -345,7 +297,7 @@ export function WeekPlanView({
                               e.preventDefault();
                               selectInspiration(day, item.text);
                             }}
-                            className="chip-frozen shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold whitespace-nowrap"
+                            className={`chip-${item.category ?? 'other'} shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold whitespace-nowrap`}
                           >
                             {item.text}
                           </button>
@@ -368,9 +320,7 @@ export function WeekPlanView({
                     showCategoryPreview
                     addPlaceholder="Add an item"
                     emptyText="No items yet for this meal."
-                    pantryItems={pantry}
-                    fridgeItems={fridge}
-                    freezerItems={freezer}
+                    supplyItems={supplies}
                   />
                 </div>
               )}

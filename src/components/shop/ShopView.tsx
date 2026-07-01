@@ -1,82 +1,28 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { ChevronDown, Plus, Warehouse, X } from 'lucide-react';
 import {
-  Archive,
-  Beef,
-  Carrot,
-  ChevronDown,
-  Croissant,
-  CupSoda,
-  Fish,
-  Milk,
-  Plus,
-  Refrigerator,
-  Snowflake,
-  Tag,
-  Warehouse,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
-import {
-  CATEGORY_STORAGE,
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
   type CostcoItem,
-  type FreezerItem,
-  type FridgeItem,
   type GroceryCategory,
   type GroceryItem,
-  type PantryItem,
   type Staple,
+  type SupplyItem,
 } from '../../types';
 import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { BottomSheet } from '../ui/BottomSheet';
+import { CATEGORY_ACCENT } from '../ui/categoryVisuals';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import { ChecklistSection, type ChecklistItem } from '../ui/ChecklistSection';
 import { ItemListSection } from '../ui/ItemListSection';
 
-const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
-  produce: '#14532D',
-  dairy: '#1E3A8A',
-  meat: '#7F1D1D',
-  fish: '#134E4A',
-  bakery: '#78350F',
-  pantry: '#4C1D95',
-  frozen: '#0C4A6E',
-  drinks: '#831843',
-  other: '#334155',
-};
-
-const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
-  produce: Carrot,
-  dairy: Milk,
-  meat: Beef,
-  fish: Fish,
-  bakery: Croissant,
-  pantry: Archive,
-  frozen: Snowflake,
-  drinks: CupSoda,
-  other: Tag,
-};
-
-// "Already have it" inventory sections borrow the Pantry/Fridge/Frozen chip
-// colors so they read as visually distinct from the buy-list above them.
-const PANTRY_TINT = '#EDE9FE';
-const FRIDGE_TINT = '#DCFCE7';
-const FREEZER_TINT = '#E0F2FE';
-
-function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
-  const Icon = CATEGORY_ICONS[category];
-  return <Icon size={size} />;
-}
-
-type AddTarget = 'grocery' | 'staple' | 'pantry' | 'fridge' | 'freezer';
+type AddTarget = 'grocery' | 'staple' | 'supplies';
 
 const ADD_TARGET_LABELS: Record<AddTarget, string> = {
   grocery: 'Grocery',
   staple: 'Staple',
-  pantry: 'Pantry',
-  fridge: 'Fridge',
-  freezer: 'Freezer',
+  supplies: 'Supplies',
 };
 
 interface GroceryViewProps {
@@ -84,12 +30,8 @@ interface GroceryViewProps {
   setGroceryList: Dispatch<SetStateAction<GroceryItem[]>>;
   staples: Staple[];
   setStaples: Dispatch<SetStateAction<Staple[]>>;
-  pantry: PantryItem[];
-  setPantry: Dispatch<SetStateAction<PantryItem[]>>;
-  fridge: FridgeItem[];
-  setFridge: Dispatch<SetStateAction<FridgeItem[]>>;
-  freezer: FreezerItem[];
-  setFreezer: Dispatch<SetStateAction<FreezerItem[]>>;
+  supplies: SupplyItem[];
+  setSupplies: Dispatch<SetStateAction<SupplyItem[]>>;
   costco: CostcoItem[];
   setCostco: Dispatch<SetStateAction<CostcoItem[]>>;
 }
@@ -99,12 +41,8 @@ export function GroceryView({
   setGroceryList,
   staples,
   setStaples,
-  pantry,
-  setPantry,
-  fridge,
-  setFridge,
-  freezer,
-  setFreezer,
+  supplies,
+  setSupplies,
   costco,
   setCostco,
 }: GroceryViewProps) {
@@ -145,12 +83,11 @@ export function GroceryView({
       ]);
     } else if (addTarget === 'staple') {
       setStaples((prev) => [...prev, { id: crypto.randomUUID(), text, checked: false }]);
-    } else if (addTarget === 'pantry') {
-      setPantry((prev) => [...prev, { id: crypto.randomUUID(), text }]);
-    } else if (addTarget === 'fridge') {
-      setFridge((prev) => [...prev, { id: crypto.randomUUID(), text }]);
     } else {
-      setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text }]);
+      setSupplies((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), text, category: categoriseItem(text) },
+      ]);
     }
     setDraft('');
     setDraftCategory(null);
@@ -231,63 +168,55 @@ export function GroceryView({
     setStaples((prev) => prev.map((staple) => ({ ...staple, checked: false })));
   }
 
-  function removePantryItem(id: string) {
-    setPantry((prev) => prev.filter((item) => item.id !== id));
+  function removeSupplyItem(id: string) {
+    setSupplies((prev) => prev.filter((item) => item.id !== id));
   }
 
-  function removeFreezerItem(id: string) {
-    setFreezer((prev) => prev.filter((item) => item.id !== id));
-  }
-
-  function removeFridgeItem(id: string) {
-    setFridge((prev) => prev.filter((item) => item.id !== id));
+  function changeSupplyCategory(id: string, category: GroceryCategory) {
+    setSupplies((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        learnCategory(item.text, category);
+        return { ...item, category };
+      }),
+    );
   }
 
   function moveGroceryItemToSupplies(item: ChecklistItem) {
-    const location = CATEGORY_STORAGE[item.category ?? 'other'];
-    if (location === 'freezer') {
-      setFreezer((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
-    } else if (location === 'fridge') {
-      setFridge((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
-    } else {
-      setPantry((prev) => [...prev, { id: crypto.randomUUID(), text: item.text }]);
-    }
+    setSupplies((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        text: item.text,
+        category: item.category ?? categoriseItem(item.text),
+      },
+    ]);
     setGroceryList((prev) => prev.filter((i) => i.id !== item.id));
   }
 
-  function movePantryItemToList(id: string) {
-    const item = pantry.find((p) => p.id === id);
+  function moveSupplyItemToList(id: string) {
+    const item = supplies.find((s) => s.id === id);
     if (!item) return;
     setGroceryList((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), text: item.text, checked: false, category: categoriseItem(item.text) },
+      {
+        id: crypto.randomUUID(),
+        text: item.text,
+        checked: false,
+        category: item.category ?? categoriseItem(item.text),
+      },
     ]);
-    setPantry((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  function moveFridgeItemToList(id: string) {
-    const item = fridge.find((f) => f.id === id);
-    if (!item) return;
-    setGroceryList((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: item.text, checked: false, category: categoriseItem(item.text) },
-    ]);
-    setFridge((prev) => prev.filter((f) => f.id !== id));
-  }
-
-  function moveFreezerItemToList(id: string) {
-    const item = freezer.find((f) => f.id === id);
-    if (!item) return;
-    setGroceryList((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: item.text, checked: false, category: 'frozen' },
-    ]);
-    setFreezer((prev) => prev.filter((f) => f.id !== id));
+    setSupplies((prev) => prev.filter((s) => s.id !== id));
   }
 
   const groceryByCategory = GROCERY_CATEGORIES.map((category) => ({
     category,
     items: groceryList.filter((item) => (item.category ?? 'other') === category),
+  })).filter((group) => group.items.length > 0);
+
+  const suppliesByCategory = GROCERY_CATEGORIES.map((category) => ({
+    category,
+    items: supplies.filter((item) => (item.category ?? 'other') === category),
   })).filter((group) => group.items.length > 0);
 
   const costcoByCategory = GROCERY_CATEGORIES.map((category) => ({
@@ -335,54 +264,23 @@ export function GroceryView({
               onCategoryChange={changeItemCategory}
               onStock={moveGroceryItemToSupplies}
               large
-              pantryItems={pantry}
-              fridgeItems={fridge}
-              freezerItems={freezer}
+              supplyItems={supplies}
             />
           ))}
 
-          {(pantry.length > 0 || fridge.length > 0 || freezer.length > 0) && (
-            <h1 className="text-2xl font-bold">Supplies</h1>
-          )}
+          {supplies.length > 0 && <h1 className="text-2xl font-bold">Supplies</h1>}
 
-          {pantry.length > 0 && (
+          {suppliesByCategory.map(({ category, items }) => (
             <ItemListSection
-              title="Pantry"
-              items={pantry}
-              onRemove={removePantryItem}
-              onMoveToList={movePantryItemToList}
-              emptyText="No pantry items yet."
-              accent={CATEGORY_ACCENT.pantry}
-              tint={PANTRY_TINT}
-              icon={CATEGORY_ICONS.pantry}
+              key={category}
+              title={GROCERY_CATEGORY_LABELS[category]}
+              accent={CATEGORY_ACCENT[category]}
+              items={items}
+              onRemove={removeSupplyItem}
+              onMoveToList={moveSupplyItemToList}
+              onCategoryChange={changeSupplyCategory}
             />
-          )}
-
-          {fridge.length > 0 && (
-            <ItemListSection
-              title="Fridge"
-              items={fridge}
-              onRemove={removeFridgeItem}
-              onMoveToList={moveFridgeItemToList}
-              emptyText="No fridge items yet."
-              accent={CATEGORY_ACCENT.produce}
-              tint={FRIDGE_TINT}
-              icon={Refrigerator}
-            />
-          )}
-
-          {freezer.length > 0 && (
-            <ItemListSection
-              title="Freezer"
-              items={freezer}
-              onRemove={removeFreezerItem}
-              onMoveToList={moveFreezerItemToList}
-              emptyText="No freezer items yet."
-              accent={CATEGORY_ACCENT.frozen}
-              tint={FREEZER_TINT}
-              icon={CATEGORY_ICONS.frozen}
-            />
-          )}
+          ))}
 
           <div className="card overflow-hidden">
             <button
@@ -455,11 +353,7 @@ export function GroceryView({
                   ? 'Add grocery item'
                   : addTarget === 'staple'
                     ? 'Add a staple'
-                    : addTarget === 'pantry'
-                      ? 'Add a pantry item'
-                      : addTarget === 'fridge'
-                        ? 'Add a fridge item'
-                        : 'Add a freezer item'
+                    : 'Add a supplies item'
               }
               className="input-field flex-1"
             />
@@ -475,20 +369,11 @@ export function GroceryView({
           </div>
 
           <div className="mt-2 flex gap-2">
-            {(['grocery', 'staple', 'pantry', 'fridge', 'freezer'] as const).map((target) => (
+            {(['grocery', 'staple', 'supplies'] as const).map((target) => (
               <button
                 key={target}
                 type="button"
                 onClick={() => setAddTarget(target)}
-                style={
-                  addTarget === target && target === 'pantry'
-                    ? { backgroundColor: CATEGORY_ACCENT.pantry }
-                    : addTarget === target && target === 'fridge'
-                      ? { backgroundColor: CATEGORY_ACCENT.produce }
-                      : addTarget === target && target === 'freezer'
-                        ? { backgroundColor: CATEGORY_ACCENT.frozen }
-                        : undefined
-                }
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                   addTarget === target
                     ? 'bg-accent text-white'
