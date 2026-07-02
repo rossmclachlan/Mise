@@ -12,6 +12,7 @@ import {
   type WeekPlan,
 } from '../../types';
 import { categoriseItem, learnCategory } from '../../utils/categorise';
+import { isKeyIngredient, matchKeySupplies } from '../../utils/keyIngredients';
 import { formatWeekPlanText } from '../../utils/shareWeekPlan';
 import { ChecklistSection } from '../ui/ChecklistSection';
 import { RecipeImage } from '../ui/RecipeImage';
@@ -179,6 +180,15 @@ export function WeekPlanView({
 
   const hasPlan = WEEK_DAYS.some((day) => weekPlan[day]);
 
+  // Key ingredients (proteins, carb bases, hero produce) lead both suggestion
+  // rows; incidentals like salt or olive oil shouldn't drive meal ideas.
+  const keySupplies = supplies.filter((s) => isKeyIngredient(s.text, s.category));
+  const inspirationSupplies = [...supplies].sort(
+    (a, b) =>
+      Number(isKeyIngredient(b.text, b.category)) - Number(isKeyIngredient(a.text, a.category)) ||
+      a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }),
+  );
+
   return (
     <div className="px-4 pb-8 pt-4">
       <div className="mb-4 flex items-center justify-between">
@@ -202,9 +212,15 @@ export function WeekPlanView({
           const isOpen = openDay === day;
           const dayItems = groceryList.filter((item) => item.from_day === day);
           const query = dayInputs[day]?.trim() ?? '';
-          const suggestedRecipes = query
-            ? recipes.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()))
-            : recipes;
+          // Recipes that would use up key supplies float to the front
+          // (sort is stable, so ties keep their original order).
+          const suggestedRecipes = (
+            query
+              ? recipes.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()))
+              : recipes
+          )
+            .map((r) => ({ recipe: r, supplyMatches: matchKeySupplies(r, keySupplies) }))
+            .sort((a, b) => b.supplyMatches.length - a.supplyMatches.length);
 
           return (
             <div key={day} className="card overflow-hidden">
@@ -260,7 +276,7 @@ export function WeekPlanView({
                     <div className={supplies.length > 0 && !query ? 'mb-6' : ''}>
                       <p className="label-section mb-3">Recipes</p>
                       <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 py-2">
-                        {suggestedRecipes.map((r) => (
+                        {suggestedRecipes.map(({ recipe: r, supplyMatches }) => (
                           <button
                             key={r.id}
                             type="button"
@@ -276,7 +292,17 @@ export function WeekPlanView({
                               className="h-10 w-10 shrink-0 rounded-lg"
                               iconSize={16}
                             />
-                            {r.title}
+                            <span className="flex flex-col items-start">
+                              {r.title}
+                              {supplyMatches.length > 0 && (
+                                <span
+                                  className="text-[10px] font-semibold"
+                                  style={{ color: '#14532D' }}
+                                >
+                                  ✓ {supplyMatches.map((s) => s.text).join(' · ')}
+                                </span>
+                              )}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -289,7 +315,7 @@ export function WeekPlanView({
                     <div>
                       <p className="label-section mb-3">From Supplies</p>
                       <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5">
-                        {supplies.map((item) => (
+                        {inspirationSupplies.map((item) => (
                           <button
                             key={item.id}
                             type="button"
