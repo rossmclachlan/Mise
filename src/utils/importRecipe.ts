@@ -27,36 +27,59 @@ interface JsonLdNode {
   [key: string]: unknown;
 }
 
-async function fetchViaProxy(url: string): Promise<string> {
-  // Public CORS proxies flake individually, so try several in order.
-  // allorigins wraps the page in JSON; the others return it raw.
-  try {
-    const res = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    );
-    if (res.ok) {
-      const data = (await res.json()) as { contents?: string | null };
-      if (data.contents) return data.contents;
-    }
-  } catch {
-    // fall through
-  }
+// The app has no backend, so it borrows public CORS proxies to fetch recipe
+// pages. Each one flakes independently — some go down, some rate-limit, and
+// some sites serve a bot-challenge page to datacenter proxy IPs — so we try
+// every proxy and, crucially, attempt to parse each response before moving on.
+// An optional self-hosted proxy (a Cloudflare Worker, say) can be slotted in
+// first via localStorage('recipe_proxy') for a reliable path.
+type ProxyFetch = (url: string) => Promise<string>;
 
-  try {
+const PUBLIC_PROXIES: ProxyFetch[] = [
+  async (url) => {
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error(String(res.status));
+    const data = (await res.json()) as { contents?: string | null };
+    if (!data.contents) throw new Error('empty');
+    return data.contents;
+  },
+  async (url) => {
+    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error(String(res.status));
+    return res.text();
+  },
+  async (url) => {
     const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
-    if (res.ok) {
-      const text = await res.text();
-      if (text) return text;
-    }
-  } catch {
-    // fall through
-  }
+    if (!res.ok) throw new Error(String(res.status));
+    return res.text();
+  },
+  async (url) => {
+    const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error(String(res.status));
+    return res.text();
+  },
+];
 
-  const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-  if (!res.ok) throw new Error(`Proxy responded with ${res.status}`);
-  const text = await res.text();
-  if (!text) throw new Error('Empty response from proxy');
-  return text;
+function proxyChain(): ProxyFetch[] {
+  let custom: string | null = null;
+  try {
+    custom = localStorage.getItem('recipe_proxy');
+  } catch {
+    // localStorage unavailable — ignore
+  }
+  if (!custom) return PUBLIC_PROXIES;
+
+  const base = custom.trim();
+  const customFetch: ProxyFetch = async (url) => {
+    // Support "https://worker/?url=" (has a query slot) or a bare prefix.
+    const target = base.includes('?')
+      ? `${base}${encodeURIComponent(url)}`
+      : `${base}${base.endsWith('/') ? '' : '/'}${encodeURIComponent(url)}`;
+    const res = await fetch(target);
+    if (!res.ok) throw new Error(String(res.status));
+    return res.text();
+  };
+  return [customFetch, ...PUBLIC_PROXIES];
 }
 
 /**
@@ -81,14 +104,32 @@ export function parseRecipeHtml(html: string, url: string): ImportedRecipe {
 }
 
 export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> {
-  let html: string;
-  try {
-    html = await fetchViaProxy(url);
-  } catch {
-    throw new ImportError('NETWORK', "Couldn't reach this page");
+  let reachedAny = false;
+
+  for (const fetchViaProxy of proxyChain()) {
+    let html: string;
+    try {
+      html = await fetchViaProxy(url);
+    } catch {
+      continue; // proxy down / rate-limited / blocked — try the next one
+    }
+    if (!html) continue;
+    reachedAny = true;
+
+    try {
+      return parseRecipeHtml(html, url);
+    } catch {
+      // We got a page but found no recipe in it — often a bot-challenge or a
+      // proxy error page. Try another proxy before giving up.
+      continue;
+    }
   }
 
-  return parseRecipeHtml(html, url);
+  // If no proxy ever returned a page, it's a reachability problem; if pages
+  // came back but none held a recipe, it's a parsing/blocking problem.
+  throw reachedAny
+    ? new ImportError('NO_RECIPE', 'No recipe found on this page')
+    : new ImportError('NETWORK', "Couldn't reach this page");
 }
 
 // recipe.image can be a URL string, an array of URL strings, an
