@@ -28,7 +28,8 @@ interface JsonLdNode {
 }
 
 async function fetchViaProxy(url: string): Promise<string> {
-  // Try allorigins first; fall back to corsproxy.io if it fails or returns empty.
+  // Public CORS proxies flake individually, so try several in order.
+  // allorigins wraps the page in JSON; the others return it raw.
   try {
     const res = await fetch(
       `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
@@ -41,21 +42,28 @@ async function fetchViaProxy(url: string): Promise<string> {
     // fall through
   }
 
-  const res2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-  if (!res2.ok) throw new Error(`Proxy responded with ${res2.status}`);
-  const text = await res2.text();
+  try {
+    const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+    if (res.ok) {
+      const text = await res.text();
+      if (text) return text;
+    }
+  } catch {
+    // fall through
+  }
+
+  const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error(`Proxy responded with ${res.status}`);
+  const text = await res.text();
   if (!text) throw new Error('Empty response from proxy');
   return text;
 }
 
-export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> {
-  let html: string;
-  try {
-    html = await fetchViaProxy(url);
-  } catch {
-    throw new ImportError('NETWORK', "Couldn't reach this page");
-  }
-
+/**
+ * Parses a fetched HTML document for schema.org Recipe JSON-LD.
+ * Exported separately from the fetch so it can be exercised directly.
+ */
+export function parseRecipeHtml(html: string, url: string): ImportedRecipe {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const recipe = findRecipeData(doc);
 
@@ -70,6 +78,17 @@ export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> 
     steps: parseSteps(recipe.recipeInstructions),
     notes: typeof recipe.description === 'string' ? recipe.description.trim() : '',
   };
+}
+
+export async function importRecipeFromUrl(url: string): Promise<ImportedRecipe> {
+  let html: string;
+  try {
+    html = await fetchViaProxy(url);
+  } catch {
+    throw new ImportError('NETWORK', "Couldn't reach this page");
+  }
+
+  return parseRecipeHtml(html, url);
 }
 
 // recipe.image can be a URL string, an array of URL strings, an
