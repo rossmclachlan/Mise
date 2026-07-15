@@ -1,5 +1,5 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import { BookOpen, Check, ChevronDown, Share2, X } from 'lucide-react';
+import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { BookOpen, Check, ChevronDown, GripVertical, Share2, X } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
@@ -51,6 +51,66 @@ export function WeekPlanView({
     }
     return initial;
   });
+
+  // Drag-to-reorder: dragging a day's meal onto another day swaps the two.
+  const [drag, setDrag] = useState<{ day: WeekDay; offset: number; over: WeekDay | null } | null>(
+    null,
+  );
+  const dragStartY = useRef(0);
+  const cardRefs = useRef<Partial<Record<WeekDay, HTMLDivElement | null>>>({});
+
+  function handleDragStart(day: WeekDay, e: React.PointerEvent<HTMLButtonElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStartY.current = e.clientY;
+    setOpenDay(null);
+    setDrag({ day, offset: 0, over: null });
+  }
+
+  function handleDragMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!drag) return;
+    let over: WeekDay | null = null;
+    for (const day of WEEK_DAYS) {
+      if (day === drag.day) continue;
+      const rect = cardRefs.current[day]?.getBoundingClientRect();
+      if (rect && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        over = day;
+        break;
+      }
+    }
+    setDrag({ day: drag.day, offset: e.clientY - dragStartY.current, over });
+  }
+
+  function handleDragEnd() {
+    if (!drag) return;
+    if (drag.over && drag.over !== drag.day) swapDays(drag.day, drag.over);
+    setDrag(null);
+  }
+
+  function swapDays(from: WeekDay, to: WeekDay) {
+    setWeekPlan((prev) => {
+      const next = { ...prev };
+      const fromEntry = prev[from];
+      const toEntry = prev[to];
+      if (toEntry) next[from] = toEntry;
+      else delete next[from];
+      if (fromEntry) next[to] = fromEntry;
+      else delete next[to];
+      return next;
+    });
+    // Each day's grocery items (recipe ingredients and manual extras) follow
+    // the meal to its new day.
+    setGroceryList((prev) =>
+      prev.map((item) =>
+        item.from_day === from
+          ? { ...item, from_day: to }
+          : item.from_day === to
+            ? { ...item, from_day: from }
+            : item,
+      ),
+    );
+    setDayInputs((prev) => ({ ...prev, [from]: prev[to] ?? '', [to]: prev[from] ?? '' }));
+    setExpandedDay((prev) => (prev === from ? to : prev === to ? from : prev));
+  }
 
   function setEntry(day: WeekDay, entry: MealPlanEntry | undefined) {
     setWeekPlan((prev) => {
@@ -222,9 +282,34 @@ export function WeekPlanView({
             .map((r) => ({ recipe: r, supplyMatches: matchKeySupplies(r, keySupplies) }))
             .sort((a, b) => b.supplyMatches.length - a.supplyMatches.length);
 
+          const isDragging = drag?.day === day;
+          const isDropTarget = drag?.over === day;
+
           return (
-            <div key={day} className="card overflow-hidden">
+            <div
+              key={day}
+              ref={(el) => {
+                cardRefs.current[day] = el;
+              }}
+              className={`card overflow-hidden ${
+                isDragging ? 'relative z-10 opacity-90 shadow-lg' : ''
+              } ${isDropTarget ? 'ring-2 ring-accent' : ''}`}
+              style={isDragging ? { transform: `translateY(${drag.offset}px)` } : undefined}
+            >
               <div className="flex items-end gap-2 p-3">
+                {entry && (
+                  <button
+                    type="button"
+                    aria-label={`Reorder ${WEEK_DAY_LABELS[day]}`}
+                    onPointerDown={(e) => handleDragStart(day, e)}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                    onPointerCancel={handleDragEnd}
+                    className="btn-icon cursor-grab touch-none text-ink-variant active:cursor-grabbing"
+                  >
+                    <GripVertical size={18} />
+                  </button>
+                )}
                 <div className="flex-1">
                   <div className="label-section mb-1.5">{WEEK_DAY_LABELS[day]}</div>
                   <input
