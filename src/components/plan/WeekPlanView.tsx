@@ -1,5 +1,5 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { BookOpen, Check, ChevronDown, GripVertical, Share2, X } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, Share2, X } from 'lucide-react';
 import {
   WEEK_DAYS,
   WEEK_DAY_LABELS,
@@ -38,6 +38,8 @@ export function WeekPlanView({
 }: WeekPlanViewProps) {
   const [expandedDay, setExpandedDay] = useState<WeekDay | null>(null);
   const [openDay, setOpenDay] = useState<WeekDay | null>(null);
+  // Filled days rest as display cards; editingDay flips one back to its input.
+  const [editingDay, setEditingDay] = useState<WeekDay | null>(null);
   const [copied, setCopied] = useState(false);
   const [dayInputs, setDayInputs] = useState<Partial<Record<WeekDay, string>>>(() => {
     const initial: Partial<Record<WeekDay, string>> = {};
@@ -174,11 +176,13 @@ export function WeekPlanView({
     setEntry(day, undefined);
     setDayInputs((prev) => ({ ...prev, [day]: '' }));
     setOpenDay(null);
+    setEditingDay((prev) => (prev === day ? null : prev));
     setExpandedDay((prev) => (prev === day ? null : prev));
   }
 
   function selectInspiration(day: WeekDay, title: string) {
     setOpenDay(null);
+    setEditingDay((prev) => (prev === day ? null : prev));
     commitDayValue(day, title);
   }
 
@@ -296,8 +300,8 @@ export function WeekPlanView({
               } ${isDropTarget ? 'ring-2 ring-accent' : ''}`}
               style={isDragging ? { transform: `translateY(${drag.offset}px)` } : undefined}
             >
-              <div className="flex items-end gap-2 p-3">
-                {entry && (
+              {entry && editingDay !== day ? (
+                <div className="flex items-center gap-3 py-2.5 pl-2 pr-4">
                   <button
                     type="button"
                     aria-label={`Reorder ${WEEK_DAY_LABELS[day]}`}
@@ -305,55 +309,97 @@ export function WeekPlanView({
                     onPointerMove={handleDragMove}
                     onPointerUp={handleDragEnd}
                     onPointerCancel={handleDragEnd}
-                    className="btn-icon cursor-grab touch-none text-ink-variant active:cursor-grabbing"
+                    className="shrink-0 cursor-grab touch-none px-1 py-3 text-ink-variant/50 active:cursor-grabbing"
                   >
                     <GripVertical size={18} />
                   </button>
-                )}
-                <div className="flex-1">
-                  <div className="label-section mb-1.5">{WEEK_DAY_LABELS[day]}</div>
-                  <input
-                    type="text"
-                    value={dayInputs[day] ?? ''}
-                    onChange={(e) => commitDayValue(day, e.target.value)}
-                    onFocus={() => setOpenDay(day)}
-                    onBlur={() => setTimeout(() => setOpenDay((cur) => (cur === day ? null : cur)), 150)}
-                    placeholder="Add a recipe or idea..."
-                    className="input-field w-full"
-                  />
+                  {recipe ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelectRecipe(recipe.id)}
+                      aria-label={`View ${recipe.title}`}
+                      className="shrink-0"
+                    >
+                      <RecipeImage
+                        src={recipe.image}
+                        alt=""
+                        className="h-11 w-11 rounded-[10px]"
+                        iconSize={18}
+                      />
+                    </button>
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-surface-variant text-base font-bold text-ink-variant"
+                    >
+                      {(entry.label ?? '').trim().charAt(0).toUpperCase() || '·'}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEditingDay(day)}
+                    aria-label={`Edit ${WEEK_DAY_LABELS[day]}`}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <span className="label-section mb-0.5 block">{WEEK_DAY_LABELS[day]}</span>
+                    <span className="block truncate text-[15px] font-semibold">
+                      {recipe?.title ?? entry.label}
+                    </span>
+                  </button>
+                  {dayItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(day)}
+                      aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
+                      aria-expanded={isExpanded}
+                      className="flex shrink-0 items-center gap-1 py-2 text-xs font-semibold text-ink-variant"
+                    >
+                      {dayItems.length} {dayItems.length === 1 ? 'item' : 'items'}
+                      <ChevronDown
+                        size={16}
+                        className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  )}
                 </div>
-                {entry && (
-                  <button
-                    type="button"
-                    onClick={() => clearDay(day)}
-                    aria-label={`Clear ${WEEK_DAY_LABELS[day]}`}
-                    className="btn-icon"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-                {recipe && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectRecipe(recipe.id)}
-                    aria-label={`View ${recipe.title}`}
-                    className="btn-icon"
-                  >
-                    <BookOpen size={18} />
-                  </button>
-                )}
-                {entry && (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(day)}
-                    aria-label={isExpanded ? `Collapse ${WEEK_DAY_LABELS[day]}` : `Expand ${WEEK_DAY_LABELS[day]}`}
-                    aria-expanded={isExpanded}
-                    className="btn-icon"
-                  >
-                    <ChevronDown size={18} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-              </div>
+              ) : (
+                <div className="p-3">
+                  <div className="label-section mb-1.5">{WEEK_DAY_LABELS[day]}</div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={dayInputs[day] ?? ''}
+                      onChange={(e) => commitDayValue(day, e.target.value)}
+                      onFocus={() => setOpenDay(day)}
+                      onBlur={() =>
+                        setTimeout(() => {
+                          setOpenDay((cur) => (cur === day ? null : cur));
+                          setEditingDay((cur) => (cur === day ? null : cur));
+                        }, 150)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur();
+                      }}
+                      autoFocus={editingDay === day}
+                      placeholder="Add a recipe or idea..."
+                      className={`input-field w-full ${entry ? 'pr-10' : ''}`}
+                    />
+                    {entry && (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          clearDay(day);
+                        }}
+                        aria-label={`Clear ${WEEK_DAY_LABELS[day]}`}
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-variant"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {isOpen && (
                 <div className="border-t border-outline/60 px-5 pb-5 pt-5">
