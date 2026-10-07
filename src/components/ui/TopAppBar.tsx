@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { ListChecks, LogOut } from 'lucide-react';
 import { signOut, type User } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { BottomSheet } from './BottomSheet';
@@ -72,6 +72,10 @@ export function TopAppBar({ user }: TopAppBarProps) {
               {user.email}
             </span>
           </div>
+
+          <a href="/Mise/tandem/" className="btn-outlined w-full">
+            <ListChecks size={18} /> Open Tandem (to-dos)
+          </a>
 
           <button type="button" onClick={() => signOut(auth)} className="btn-danger w-full">
             <LogOut size={18} /> Log out

@@ -10,3 +10,10 @@
   green (it has flaked before with a `deployment_queued` timeout). If it fails
   transiently, retrigger with an empty commit — the integration token can't
   re-run Actions jobs directly.
+
+## Tandem
+
+- Tandem (`tandem/`) is the shared to-do app, deployed with Mise to
+  `/Mise/tandem/`. `npm run build` builds both; `npm test` runs its logic tests.
+- `firestore.rules` covers both apps. Changing it means redeploying the rules
+  (console or Firebase CLI); `deploy.yml` does not deploy them.

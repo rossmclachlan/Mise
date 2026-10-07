@@ -11,6 +11,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
+      workbox: {
+        // Tandem lives under /Mise/tandem/ with its own service worker. Without
+        // this, Mise's worker (scope /Mise/) would answer Tandem's navigations
+        // with Mise's index.html.
+        navigateFallbackDenylist: [/^\/Mise\/tandem\//],
+      },
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Mis En Pizza',

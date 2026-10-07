@@ -20,3 +20,27 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Tandem
+
+A second app in this repo: a shared to-do list for the two of us, served at
+`/Mise/tandem/` and installable as its own home-screen app. It shows this
+week's tasks first, keeps what's already been taken care of in view, and
+folds This month and Later away.
+
+- Code: `tandem/` (entry `tandem/index.html`, source `tandem/src/`), built by
+  `vite.tandem.config.ts` into `dist/tandem/` after Mise.
+- Same Firebase project as Mise, but a separately named Firebase app
+  instance, so Tandem's personal logins never sign Mise out of its shared one.
+- Data: `households/{hid}` and `households/{hid}/tasks/{taskId}` in Firestore.
+  Personal tasks are readable only by their owner (see `firestore.rules`).
+- Logic the future MCP Worker will share lives in `tandem/src/lib/`
+  (horizons, repeats, visibility, task operations), with tests.
+
+```bash
+npm run dev:tandem   # then open http://localhost:5174/Mise/tandem/?demo
+npm test
+```
+
+`?demo` (dev only) uses an in-memory backend with sample tasks; add
+`&as=emily` to see Emily's side.
