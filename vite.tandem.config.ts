@@ -20,7 +20,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      // Updates install themselves: a waiting update kept Chrome on an old
+      // version (and an old app identity) until someone tapped Install.
+      registerType: 'autoUpdate',
       // A new id, start_url and manifest filename (Oct 2026): Chrome on Android
       // kept a stale "already installed" record for the first identity after it
       // was uninstalled, and refused to install it again.
