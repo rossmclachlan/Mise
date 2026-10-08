@@ -48,5 +48,8 @@ npm run dev:tandem   # then open http://localhost:5174/Mise/tandem/?demo
 npm test
 ```
 
+Claude reads and updates Tandem through an MCP server in `mcp-worker/` (see its README), with a
+matching skill in `skills/tandem/`.
+
 `?demo` (dev only) uses an in-memory backend with sample tasks; add
 `&as=emily` to see Emily's side.

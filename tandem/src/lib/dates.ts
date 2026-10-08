@@ -15,8 +15,28 @@ export function parseDate(s: DateString): Date {
   return new Date(y, m - 1, d);
 }
 
+// The calendar we count days in. Browsers use the device's own time zone;
+// the MCP Worker runs in UTC, so it sets ours explicitly.
+let zone: string | undefined;
+
+export function setTimeZone(tz: string | undefined): void {
+  zone = tz;
+}
+
+/** The local calendar date of a moment, e.g. a done_at timestamp. */
+export function localDay(moment: Date | string): DateString {
+  const d = typeof moment === 'string' ? new Date(moment) : moment;
+  if (!zone) return toDateString(d);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
 export function today(): DateString {
-  return toDateString(new Date());
+  return localDay(new Date());
 }
 
 export function addDays(s: DateString, n: number): DateString {

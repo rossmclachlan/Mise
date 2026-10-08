@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, ExternalLink, Plus, Trash2, X } from 'lucide-react';
 import type { Horizon, RepeatRule, Step, Task } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
-import { formatDate, formatShort, today } from '../lib/dates';
+import { formatDate, formatShort, localDay, today } from '../lib/dates';
 import { effectiveHorizon } from '../lib/horizon';
 import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
@@ -134,7 +134,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
   const latest = task.history.length > 1 ? task.history.at(-1) : null;
   const who = (h: { uid: string; via: string }) => `${nameOf(h.uid)}${h.via === 'mcp' ? ' via Claude' : ''}`;
   const nextDue =
-    task.repeat && done ? nextOccurrence(task.repeat, task.do_by ?? task.deadline, task.done_at!.slice(0, 10)) : null;
+    task.repeat && done ? nextOccurrence(task.repeat, task.do_by ?? task.deadline, localDay(task.done_at!)) : null;
 
   return (
     <div className="flex flex-col gap-5 pt-1">
@@ -159,7 +159,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
       {done && (
         <div className="-mt-3 flex flex-col gap-3">
           <p className="text-sm text-ink-variant">
-            Done by {nameOf(task.done_by)} · {formatDate(task.done_at!.slice(0, 10))}
+            Done by {nameOf(task.done_by)} · {formatDate(localDay(task.done_at!))}
           </p>
           <button
             type="button"
@@ -324,7 +324,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
           <div key={n.id}>
             <p className="text-xs text-ink-variant">
               {nameOf(n.uid)}
-              {n.via === 'mcp' && ' via Claude'} · {formatShort(n.at.slice(0, 10))}
+              {n.via === 'mcp' && ' via Claude'} · {formatShort(localDay(n.at))}
             </p>
             <p className="whitespace-pre-wrap text-[15px] text-ink">{n.text}</p>
           </div>
@@ -344,8 +344,8 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
 
       {added && (
         <p className="text-xs text-ink-variant">
-          Added by {who(added)}, {formatShort(added.at.slice(0, 10))}
-          {latest && `; ${latest.what} by ${who(latest)}, ${formatShort(latest.at.slice(0, 10))}`}
+          Added by {who(added)}, {formatShort(localDay(added.at))}
+          {latest && `; ${latest.what} by ${who(latest)}, ${formatShort(localDay(latest.at))}`}
         </p>
       )}
 

@@ -1,6 +1,6 @@
 import { Check, GripVertical, Link2, Repeat, StickyNote } from 'lucide-react';
 import type { Task } from '../types';
-import { formatDate, formatShort, relativeDate } from '../lib/dates';
+import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
 import { effectiveDate, isOverdue } from '../lib/horizon';
 import { stepProgress } from '../lib/ops';
 import { describeRepeat } from '../lib/repeat';
@@ -110,7 +110,7 @@ export function TaskRow({
 
 export function TakenCareRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const { nameOf } = useTandem();
-  const line = outcomeLine(task) || `Done by ${nameOf(task.done_by)}, ${formatShort(task.done_at!.slice(0, 10))}`;
+  const line = outcomeLine(task) || `Done by ${nameOf(task.done_by)}, ${formatShort(localDay(task.done_at!))}`;
   return (
     <button type="button" onClick={onOpen} className="flex w-full items-start gap-3 py-2.5 text-left">
       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-good-container text-good">

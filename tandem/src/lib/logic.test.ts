@@ -183,3 +183,15 @@ describe('visibility', () => {
     expect(pick('everything')).toEqual([mine, sharedRoss, sharedBoth, sharedEmily, unclaimed]);
   });
 });
+
+describe('local days', () => {
+  it('dates a completion in our time zone, not UTC', async () => {
+    const { localDay, setTimeZone } = await import('./dates');
+    setTimeZone('America/Los_Angeles');
+    // 7pm Pacific on Oct 8 is already Oct 9 in UTC.
+    expect(localDay('2026-10-09T02:00:00.000Z')).toBe('2026-10-08');
+    const weekly = task({ do_by: '2026-10-08', repeat: { every: 1, unit: 'week', mode: 'after_done' } });
+    expect(completeTask(weekly, actor, '2026-10-09T02:00:00.000Z').next!.do_by).toBe('2026-10-15');
+    setTimeZone(undefined);
+  });
+});

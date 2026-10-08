@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import type { Filter, Task } from '../types';
-import { addDays, formatShort, today, weekEnd, weekStart } from '../lib/dates';
+import { addDays, formatShort, localDay, today, weekEnd, weekStart } from '../lib/dates';
 import { MONTH_DAYS, isComingUp } from '../lib/horizon';
 import { PillToggle } from '../../../src/components/ui/PillToggle';
 import { TakenCareRow } from './bits';
@@ -45,7 +45,7 @@ export function TakenCareOfView({
     const thisWeek = weekStart(now);
     const lastWeek = addDays(thisWeek, -7);
     const pastLabel = (t: Task) => {
-      const ws = weekStart(t.done_at!.slice(0, 10));
+      const ws = weekStart(localDay(t.done_at!));
       if (ws === thisWeek) return 'This week';
       if (ws === lastWeek) return 'Last week';
       return `Week of ${formatShort(ws)}`;

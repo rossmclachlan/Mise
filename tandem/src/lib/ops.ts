@@ -1,5 +1,5 @@
 import type { DateString, HistoryEntry, IsoString, Task, Via } from '../types';
-import { addDays } from './dates';
+import { addDays, localDay } from './dates';
 import { effectiveDate } from './horizon';
 import { daysBetween, nextOccurrence } from './repeat';
 
@@ -71,7 +71,7 @@ export function completeTask(
   at: IsoString,
   details: { outcome_note?: string | null; when?: DateString | null } = {},
 ): CompleteResult {
-  const doneOn = at.slice(0, 10);
+  const doneOn = localDay(at);
   const update: Partial<Task> = {
     done_at: at,
     done_by: actor.uid,
@@ -118,8 +118,8 @@ export function reopenTask(task: Task, actor: Actor, at: IsoString): Partial<Tas
 /** Moves a repeating task to its next date without marking it done. */
 export function skipOccurrence(task: Task, actor: Actor, at: IsoString): Partial<Task> {
   if (!task.repeat) return {};
-  const due = task.do_by ?? task.deadline ?? at.slice(0, 10);
-  const nextDue = nextOccurrence({ ...task.repeat, mode: 'schedule' }, due, at.slice(0, 10));
+  const due = task.do_by ?? task.deadline ?? localDay(at);
+  const nextDue = nextOccurrence({ ...task.repeat, mode: 'schedule' }, due, localDay(at));
   return {
     do_by: nextDue,
     deadline: task.deadline ? addDays(nextDue, daysBetween(due, task.deadline)) : null,

@@ -1,5 +1,5 @@
 import type { DateString, Horizon, Task } from '../types';
-import { addDays, weekEnd, weekStart } from './dates';
+import { addDays, localDay, weekEnd, weekStart } from './dates';
 
 /** How far ahead "This month" reaches, and how far "Taken care of" looks ahead. */
 export const MONTH_DAYS = 28;
@@ -65,5 +65,5 @@ export function isTakenCareOfSoon(task: Task, now: DateString): boolean {
 }
 
 export function isDoneThisWeek(task: Task, now: DateString): boolean {
-  return task.done_at !== null && task.done_at.slice(0, 10) >= weekStart(now);
+  return task.done_at !== null && localDay(task.done_at) >= weekStart(now);
 }

@@ -19,3 +19,7 @@
   redirect plus a worker-removal `sw.js`); keep that `sw.js` deployed. `npm run build` builds both; `npm test` runs its logic tests.
 - `firestore.rules` covers both apps. Changing it means redeploying the rules
   (console or Firebase CLI); `deploy.yml` does not deploy them.
+- `mcp-worker/` is Tandem's MCP server (Cloudflare Worker), deployed by
+  `deploy-mcp-worker.yml`. It imports the app's logic from `tandem/src/lib`, so
+  changes there affect both; run `npm run type-check` in `mcp-worker/` too.
+  `skills/tandem/SKILL.md` is the matching Claude skill.
