@@ -1,22 +1,24 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
+// Mise lives at /Mise/meals/ and Tandem at /Mise/tandem/: side-by-side
+// scopes, so each installs as its own app and neither captures the other's
+// pages. /Mise/ itself only redirects here (see root/).
 export default defineConfig({
-  base: '/Mise/',
+  base: '/Mise/meals/',
+  build: {
+    outDir: fileURLToPath(new URL('./dist/meals', import.meta.url)),
+    emptyOutDir: true,
+  },
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      workbox: {
-        // Tandem lives under /Mise/tandem/ with its own service worker. Without
-        // this, Mise's worker (scope /Mise/) would answer Tandem's navigations
-        // with Mise's index.html.
-        navigateFallbackDenylist: [/^\/Mise\/tandem\//],
-      },
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Mis En Pizza',
@@ -25,8 +27,9 @@ export default defineConfig({
         theme_color: '#4A6741',
         background_color: '#FAFAF8',
         display: 'standalone',
-        start_url: '/Mise/',
-        scope: '/Mise/',
+        id: '/Mise/meals/',
+        start_url: '/Mise/meals/',
+        scope: '/Mise/meals/',
         icons: [
           {
             src: 'icon-192.png',

@@ -71,7 +71,7 @@ export function Header() {
             </button>
           </div>
 
-          <a href="/Mise/" className="btn-outlined w-full">
+          <a href="/Mise/meals/" className="btn-outlined w-full">
             <UtensilsCrossed size={18} /> Open Mise (meals)
           </a>
           <button type="button" onClick={() => store.signOut()} className="btn-danger w-full">

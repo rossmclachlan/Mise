@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:tandem": "vite --config vite.tandem.config.ts",
-    "build": "tsc -b && vite build && vite build --config vite.tandem.config.ts",
+    "build": "tsc -b && vite build && vite build --config vite.tandem.config.ts && cp -R root/. dist/",
     "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview"

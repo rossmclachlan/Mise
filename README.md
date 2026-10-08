@@ -1,6 +1,7 @@
 # Mise
 
-A mobile-first PWA for personal meal planning and grocery shopping. No backend — everything is stored in `localStorage`.
+A mobile-first PWA for personal meal planning and grocery shopping, served at
+`/Mise/meals/`. No backend — everything is stored in `localStorage`.
 
 ## Modes
 
@@ -20,6 +21,11 @@ npm run dev
 ```bash
 npm run build
 ```
+
+The site has three parts: Mise at `/Mise/meals/`, Tandem at `/Mise/tandem/`,
+and `root/` copied to `/Mise/` itself (a redirect to `/Mise/meals/`, plus a
+`sw.js` that removes the service worker Mise used to have there). The two apps
+have side-by-side scopes so each installs as its own app.
 
 ## Tandem
 

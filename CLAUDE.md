@@ -13,7 +13,9 @@
 
 ## Tandem
 
-- Tandem (`tandem/`) is the shared to-do app, deployed with Mise to
-  `/Mise/tandem/`. `npm run build` builds both; `npm test` runs its logic tests.
+- Mise is served at `/Mise/meals/` and Tandem (`tandem/`, the shared to-do
+  app) at `/Mise/tandem/`. Keep their scopes side by side: nested scopes made
+  Chrome on Android treat them as one app. `/Mise/` is only `root/` (a
+  redirect plus a worker-removal `sw.js`); keep that `sw.js` deployed. `npm run build` builds both; `npm test` runs its logic tests.
 - `firestore.rules` covers both apps. Changing it means redeploying the rules
   (console or Firebase CLI); `deploy.yml` does not deploy them.
