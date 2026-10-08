@@ -8,7 +8,7 @@
 		"dev": "wrangler dev",
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "cd .. && npx vitest run mcp-worker/test"
 	},
 	"dependencies": {
 		"@cloudflare/workers-oauth-provider": "^0.8.3",
@@ -19,7 +19,6 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261001.1",
 		"typescript": "6.0.3",
-		"vitest": "^3.2.7",
 		"wrangler": "^4.147.0"
 	}
 }

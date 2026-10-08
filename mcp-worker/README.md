@@ -42,7 +42,7 @@ for Tandem without being asked.
 npm install
 npm run type-check
 # Integration tests against the Firestore emulator (needs firebase-tools and Java):
-npx firebase-tools emulators:exec --only firestore --project demo-tandem "npx vitest run"
+npx firebase-tools emulators:exec --only firestore --project demo-tandem "npm test"
 ```
 
 For `npm run dev`, a `.dev.vars` (git-ignored) can point the Worker at the emulators:
