@@ -19,7 +19,7 @@ service cloud.firestore {
     // with the public web config, so being signed in is not enough.
     function signedIn() {
       return request.auth != null
-        && request.auth.uid in ["ROSS_UID", "EMILY_UID"];
+        && request.auth.uid in ["NTMWruQo2AYj4bWBvVPxwnPeA8u1", "Bo4TkhRHmcXowr2l1DnfEU5WaJq1"];
     }
 
     function isMember(hid) {
