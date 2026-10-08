@@ -38,7 +38,7 @@ export const firestoreStore: Store = {
     await signOut(auth);
   },
 
-  onHousehold(uid, cb) {
+  onHousehold(uid, cb, onError) {
     const q = query(collection(db, 'households'), where('members', 'array-contains', uid));
     return onSnapshot(
       q,
@@ -46,7 +46,7 @@ export const firestoreStore: Store = {
         const d = snap.docs[0];
         cb(d ? ({ ...d.data(), id: d.id } as Household) : null);
       },
-      () => cb(null),
+      onError,
     );
   },
   async createHousehold(uid, displayName) {
@@ -64,7 +64,7 @@ export const firestoreStore: Store = {
     });
   },
 
-  onTasks(hid, uid, cb) {
+  onTasks(hid, uid, cb, onError) {
     let shared: Task[] = [];
     let personal: Task[] = [];
     const emit = () => cb([...shared, ...personal]);
@@ -73,16 +73,21 @@ export const firestoreStore: Store = {
 
     // Two queries, because Firestore rules only let each person read their own
     // personal tasks: a single query over everything would be refused.
-    const unsubShared = onSnapshot(query(tasksCol(hid), where('list', '==', 'shared')), (snap) => {
-      shared = toTasks(snap.docs);
-      emit();
-    });
+    const unsubShared = onSnapshot(
+      query(tasksCol(hid), where('list', '==', 'shared')),
+      (snap) => {
+        shared = toTasks(snap.docs);
+        emit();
+      },
+      onError,
+    );
     const unsubPersonal = onSnapshot(
       query(tasksCol(hid), where('list', '==', 'personal'), where('owner_uid', '==', uid)),
       (snap) => {
         personal = toTasks(snap.docs);
         emit();
       },
+      onError,
     );
     return () => {
       unsubShared();
