@@ -40,5 +40,5 @@
 		"skipLibCheck": true
 	},
 	/* Node dev scripts (scripts/) run with tsx, not in the Worker */
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "test"]
 }
