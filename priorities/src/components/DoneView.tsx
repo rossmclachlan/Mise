@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Filter, Task } from '../types';
 import { addDays, formatShort, localDay, today, weekEnd, weekStart } from '../lib/dates';
-import { MONTH_DAYS, isComingUp } from '../lib/horizon';
+import { WINDOW_DAYS, isHandledAhead } from '../lib/horizon';
+import { HANDLED_EMOJI, HANDLED_NAME } from '../lib/format';
 import { PillToggle } from '../../../src/components/ui/PillToggle';
 import { TakenCareRow } from './bits';
 import { useVisible } from '../state/useVisible';
@@ -24,8 +25,8 @@ function matches(task: Task, q: string): boolean {
 }
 
 /**
- * The Done section: everything handled. Coming up (done, its date still
- * ahead) and the searchable history, side by side on wide screens.
+ * The Done section: everything handled. Already handled (done, its date
+ * still ahead) and the searchable history, side by side on wide screens.
  */
 export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
   const [q, setQ] = useState('');
@@ -35,10 +36,10 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
 
   const { comingUp, history } = useMemo(() => {
     const done = visible.filter((t) => t.done_at && (!q || matches(t, q)));
-    const up = done.filter((t) => isComingUp(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1));
-    const past = done.filter((t) => !isComingUp(t, now)).sort((a, b) => (a.done_at! > b.done_at! ? -1 : 1));
+    const up = done.filter((t) => isHandledAhead(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1));
+    const past = done.filter((t) => !isHandledAhead(t, now)).sort((a, b) => (a.done_at! > b.done_at! ? -1 : 1));
     const upLabel = (t: Task) =>
-      t.when! <= weekEnd(now) ? 'This week' : t.when! <= addDays(now, MONTH_DAYS) ? 'This month' : 'Later';
+      t.when! <= weekEnd(now) ? 'This week' : t.when! <= addDays(now, WINDOW_DAYS) ? 'Next 6 weeks' : 'Later';
     const thisWeek = weekStart(now);
     const lastWeek = addDays(thisWeek, -7);
     const pastLabel = (t: Task) => {
@@ -82,8 +83,10 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="grid gap-6 md:grid-cols-2 md:items-start">
         {comingUp.length > 0 && (
           <section>
-            <h2 className="mb-2 text-lg font-bold text-ink">Coming up</h2>
-            <p className="mb-3 text-sm text-ink-variant">Handled, with the date still ahead.</p>
+            <h2 className="mb-2 text-lg font-bold text-ink">
+              {HANDLED_EMOJI} {HANDLED_NAME}
+            </h2>
+            <p className="mb-3 text-sm text-ink-variant">Booked, paid or covered, with the date still ahead.</p>
             {comingUp.map(([label, items]) => (
               <div key={label} className="mb-3">
                 <p className="label-section mb-1">{label}</p>

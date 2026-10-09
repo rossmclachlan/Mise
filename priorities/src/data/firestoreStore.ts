@@ -63,6 +63,9 @@ export const firestoreStore: Store = {
       [`member_names.${uid}`]: displayName,
     });
   },
+  async updateHousehold(hid, update) {
+    await updateDoc(doc(db, 'households', hid), update as Record<string, unknown>);
+  },
 
   onTasks(hid, uid, cb, onError) {
     let shared: Task[] = [];

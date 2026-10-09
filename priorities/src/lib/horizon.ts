@@ -1,8 +1,13 @@
 import type { DateString, Horizon, Task } from '../types';
 import { addDays, localDay, weekEnd, weekStart } from './dates';
 
-/** How far ahead "This month" reaches, and how far "Taken care of" looks ahead. */
-export const MONTH_DAYS = 28;
+/** How far ahead the radar looks: Coming up, and Already handled on the home screen. */
+export const WINDOW_DAYS = 42;
+
+/** A potential gap the radar raised, not yet answered. */
+export function isOpenCheck(task: Task): boolean {
+  return task.kind === 'check' && !task.done_at;
+}
 
 /**
  * The date that places an open task: the earliest of its do-by date (or its
@@ -21,7 +26,7 @@ export function effectiveDate(task: Task): DateString | null {
 
 export function horizonForDate(date: DateString, now: DateString): Horizon {
   if (date <= weekEnd(now)) return 'now';
-  if (date <= addDays(now, MONTH_DAYS)) return 'month';
+  if (date <= addDays(now, WINDOW_DAYS)) return 'month';
   return 'later';
 }
 
@@ -41,27 +46,46 @@ export function isOverdue(task: Task, now: DateString): boolean {
  * task's date is what places it, so moving it means moving its do-by date.
  */
 export function moveToHorizon(task: Task, to: Horizon, now: DateString): Partial<Task> {
+  // A moved task takes its place by date in its new section, not its old manual position.
   const dated = effectiveDate(task) !== null;
-  if (!dated) return { horizon: to };
+  if (!dated) return { horizon: to, order: null };
   const nextMonday = addDays(weekStart(now), 7);
   switch (to) {
     case 'now':
-      return { horizon: to, do_by: now };
+      return { horizon: to, do_by: now, order: null };
     case 'month':
-      return { horizon: to, do_by: nextMonday };
+      return { horizon: to, do_by: nextMonday, order: null };
     case 'later':
-      return { horizon: to, do_by: addDays(now, MONTH_DAYS + 7) };
+      return { horizon: to, do_by: addDays(now, WINDOW_DAYS + 7), order: null };
   }
 }
 
-/** Done, with its date still ahead: shown under Taken care of. */
-export function isComingUp(task: Task, now: DateString): boolean {
-  return task.done_at !== null && task.when !== null && task.when >= now;
+/** The last day a done task covers: the end of its range, or its date. */
+export function lastDay(task: Task): DateString | null {
+  return task.when_end ?? task.when;
 }
 
-/** Taken care of, on the home screen: coming up within the next four weeks. */
-export function isTakenCareOfSoon(task: Task, now: DateString): boolean {
-  return isComingUp(task, now) && task.when! <= addDays(now, MONTH_DAYS);
+/** Done, with its date (or the end of its range) still ahead: Already handled. */
+export function isHandledAhead(task: Task, now: DateString): boolean {
+  const last = lastDay(task);
+  return task.done_at !== null && last !== null && last >= now;
+}
+
+/** Already handled, on the home screen: starting within the radar's six weeks. */
+export function isHandledSoon(task: Task, now: DateString): boolean {
+  return isHandledAhead(task, now) && task.when! <= addDays(now, WINDOW_DAYS);
+}
+
+/** Whether a task's dates touch the days from..to: what the radar asks to see if something is covered. */
+export function overlaps(task: Task, from: DateString, to: DateString): boolean {
+  const ranges: [DateString, DateString][] = [];
+  if (task.when) ranges.push([task.when, lastDay(task)!]);
+  if (!task.done_at) {
+    for (const d of [task.do_by, task.deadline, ...task.steps.filter((s) => !s.done_at).map((s) => s.do_by)]) {
+      if (d) ranges.push([d, d]);
+    }
+  }
+  return ranges.some(([a, b]) => a <= to && b >= from);
 }
 
 export function isDoneThisWeek(task: Task, now: DateString): boolean {

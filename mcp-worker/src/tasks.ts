@@ -7,14 +7,19 @@
 // their own personal list, never the other person's.
 
 import { addDays, localDay, weekEnd } from "../../priorities/src/lib/dates";
+import { factsBetween } from "../../priorities/src/lib/calendar";
+import { HORIZON_NAMES } from "../../priorities/src/lib/format";
 import {
-	MONTH_DAYS,
+	WINDOW_DAYS,
 	effectiveDate,
 	effectiveHorizon,
-	isComingUp,
 	isDoneThisWeek,
+	isHandledAhead,
+	isOpenCheck,
 	isOverdue,
+	lastDay,
 	moveToHorizon,
+	overlaps,
 } from "../../priorities/src/lib/horizon";
 import {
 	buildTask,
@@ -29,12 +34,12 @@ import {
 } from "../../priorities/src/lib/ops";
 import { describeRepeat } from "../../priorities/src/lib/repeat";
 import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
-import type { DateString, Household, Horizon, RepeatRule, Step, Task } from "../../priorities/src/types";
+import type { CalendarFact, DateString, Household, Horizon, RadarRun, RepeatRule, Step, Task } from "../../priorities/src/types";
 import type { Doc, Firestore, Write } from "./firestore";
 
 export type OwnerWord = "me" | "partner" | "both" | "unclaimed";
 export type ListWord = "mine" | "shared" | "all";
-export type HorizonWord = Horizon | "taken_care_of" | "done";
+export type HorizonWord = Horizon | "gaps" | "handled" | "done";
 
 export interface StepInput {
 	title: string;
@@ -53,7 +58,16 @@ export interface NewTask {
 	steps?: StepInput[];
 	note?: string;
 	source_url?: string | null;
+	/** "check" = a potential gap: the radar can't tell whether it's handled. */
+	kind?: "task" | "check";
+	/** Checks: the date in question (and last day of a range). */
+	when?: DateString | null;
+	when_end?: DateString | null;
+	radar_key?: string | null;
 }
+
+/** A radar run counts as this week's shared sweep for this long. */
+const SWEEP_DAYS = 5;
 
 export interface TaskChanges {
 	title?: string;
@@ -69,6 +83,9 @@ export interface TaskChanges {
 	/** Done tasks only: what happened, and the date it is about. */
 	outcome_note?: string | null;
 	when?: DateString | null;
+	when_end?: DateString | null;
+	/** "task" turns a potential gap into a normal task. */
+	kind?: "task" | "check";
 }
 
 export class NotFound extends Error {}
@@ -174,8 +191,9 @@ export class PrioritiesData {
 					: task.assignee.length === 0
 						? "unclaimed"
 						: task.assignee.map((u) => name(u)).join(" & "),
-			status: done ? (isComingUp(task, this.now) ? "taken care of (date still ahead)" : "done") : "open",
-			horizon: done ? undefined : effectiveHorizon(task, this.now),
+			section: this.sectionOf(task),
+			status: done ? "done" : "open",
+			horizon: done || isOpenCheck(task) ? undefined : effectiveHorizon(task, this.now),
 			overdue: isOverdue(task, this.now) || undefined,
 			do_by: task.do_by ?? undefined,
 			deadline: task.deadline ?? undefined,
@@ -200,8 +218,18 @@ export class PrioritiesData {
 			done_by: done ? (name(task.done_by) ?? undefined) : undefined,
 			outcome_note: task.outcome_note ?? undefined,
 			when: task.when ?? undefined,
+			when_end: task.when_end ?? undefined,
+			radar_key: task.radar_key ?? undefined,
 			added: `${localDay(task.created_at)} by ${name(task.created_by.uid)}${task.created_by.via === "mcp" ? " via Claude" : ""}`,
 		};
+	}
+
+	/** Emily's categories, as the app shows them. */
+	private sectionOf(task: Task): string {
+		if (isOpenCheck(task)) return "⚠️ Potential gap";
+		if (task.done_at) return isHandledAhead(task, this.now) ? "🟢 Already handled" : "Done";
+		const h = effectiveHorizon(task, this.now);
+		return `${{ now: "🔴", month: "🟡", later: "⚪" }[h]} ${HORIZON_NAMES[h]}`;
 	}
 
 	// ── Reading ──────────────────────────────────────────────────────────────
@@ -229,18 +257,15 @@ export class PrioritiesData {
 			tasks = tasks.filter(want);
 		}
 		const h = opts.horizon;
-		if (h === "taken_care_of") tasks = tasks.filter((t) => isComingUp(t, this.now));
+		if (h === "handled") tasks = tasks.filter((t) => isHandledAhead(t, this.now));
+		else if (h === "gaps") tasks = tasks.filter(isOpenCheck);
 		else if (h === "done") tasks = tasks.filter((t) => t.done_at && (!opts.done_since || localDay(t.done_at) >= opts.done_since));
 		else if (opts.done_since) tasks = tasks.filter((t) => t.done_at && localDay(t.done_at) >= opts.done_since!);
 		else {
-			tasks = tasks.filter((t) => !t.done_at);
+			tasks = tasks.filter((t) => !t.done_at && !isOpenCheck(t));
 			if (h) tasks = tasks.filter((t) => effectiveHorizon(t, this.now) === h);
 		}
-		tasks.sort((a, b) =>
-			!a.done_at && !b.done_at && effectiveHorizon(a, this.now) === "now" && effectiveHorizon(b, this.now) === "now"
-				? a.rank - b.rank
-				: compareOpen(a, b),
-		);
+		tasks.sort(compareOpen);
 		return Promise.all(tasks.map((t) => this.describe(t)));
 	}
 
@@ -255,36 +280,42 @@ export class PrioritiesData {
 	async overview() {
 		const h = await this.getHousehold();
 		const tasks = await this.visibleTasks();
-		const open = tasks.filter((t) => !t.done_at);
+		const open = tasks.filter((t) => !t.done_at && !isOpenCheck(t));
 		const people = h.members.map((uid) => {
 			const on = open.filter((t) => (t.list === "personal" ? t.owner_uid === uid : t.assignee.includes(uid)));
 			const count = (hz: Horizon) => on.filter((t) => effectiveHorizon(t, this.now) === hz).length;
 			return {
 				name: h.member_names[uid],
 				is_me: uid === this.uid,
-				now: count("now"),
-				this_month: count("month"),
-				later: count("later"),
-				now_titles: on
+				needs_action_now: count("now"),
+				coming_up: count("month"),
+				not_yet: count("later"),
+				needs_action_now_titles: on
 					.filter((t) => effectiveHorizon(t, this.now) === "now")
-					.sort((a, b) => a.rank - b.rank)
+					.sort(compareOpen)
 					.map((t) => t.title),
 			};
 		});
-		const monthEnd = addDays(this.now, MONTH_DAYS);
+		const windowEnd = addDays(this.now, WINDOW_DAYS);
 		return {
 			today: this.now,
 			week_ends: weekEnd(this.now),
+			radar_window_ends: windowEnd,
+			sections:
+				"🔴 Needs action now = this week and overdue; 🟡 Coming up = through radar_window_ends; ⚪ Not yet = after that; ⚠️ Potential gaps = open checks; 🟢 Already handled = done with a date ahead. The top 3 of each person's Needs action now are their top 3 for the week.",
 			note: "Counts for the other person include only shared tasks; their personal list is private.",
 			people,
 			overdue: open.filter((t) => isOverdue(t, this.now)).map((t) => ({ id: t.id, title: t.title, was_due: effectiveDate(t) })),
 			unclaimed_shared: open
 				.filter((t) => t.list === "shared" && t.assignee.length === 0)
 				.map((t) => ({ id: t.id, title: t.title, horizon: effectiveHorizon(t, this.now) })),
-			taken_care_of_next_4_weeks: tasks
-				.filter((t) => isComingUp(t, this.now) && t.when! <= monthEnd)
+			potential_gaps: tasks
+				.filter(isOpenCheck)
+				.map((t) => ({ id: t.id, title: t.title, when: t.when, when_end: t.when_end ?? undefined })),
+			already_handled_next_6_weeks: tasks
+				.filter((t) => isHandledAhead(t, this.now) && t.when! <= windowEnd)
 				.sort((a, b) => (a.when! < b.when! ? -1 : 1))
-				.map((t) => ({ id: t.id, title: t.title, when: t.when, outcome_note: t.outcome_note })),
+				.map((t) => ({ id: t.id, title: t.title, when: t.when, when_end: t.when_end ?? undefined, outcome_note: t.outcome_note })),
 			done_this_week: tasks.filter((t) => isDoneThisWeek(t, this.now)).map((t) => t.title),
 		};
 	}
@@ -293,6 +324,8 @@ export class PrioritiesData {
 
 	private async write(writes: Write[]) {
 		await this.db.commit(writes);
+		// The household document may have changed; read it fresh next time.
+		if (writes.some((w) => w.path.split("/").length === 2)) this.household = undefined;
 	}
 
 	private async taskPath(id: string) {
@@ -314,7 +347,21 @@ export class PrioritiesData {
 	async add(inputs: NewTask[]) {
 		const writes: Write[] = [];
 		const created: Task[] = [];
+		const skipped: { title: string; radar_key: string; already: string }[] = [];
+		// Radar keys already used, open or done, so neither of our radars adds the same thing twice
+		// (and a gap someone answered "covered" doesn't come back next week).
+		const keys = new Map<string, Task>();
+		if (inputs.some((i) => i.radar_key)) {
+			for (const t of await this.visibleTasks()) if (t.radar_key) keys.set(t.radar_key, t);
+		}
 		for (const input of inputs) {
+			const key = input.radar_key?.trim().toLowerCase() || null;
+			if (key && keys.has(key)) {
+				const t = keys.get(key)!;
+				skipped.push({ title: input.title, radar_key: key, already: `${t.title} (${this.sectionOf(t)}, id ${t.id})` });
+				continue;
+			}
+			if (input.kind === "check" && !input.when) throw new Error(`"${input.title}": a check needs the date in question (when)`);
 			if (input.list === "personal" && input.owner && input.owner !== "me") {
 				throw new Error(`"${input.title}": a personal task can only go on your own list. Use the shared list to give it to someone else.`);
 			}
@@ -329,10 +376,15 @@ export class PrioritiesData {
 					// A repeat needs a date to count from.
 					repeat: input.repeat ?? null,
 					source_url: input.source_url,
+					kind: input.kind ?? "task",
+					when: input.when ?? null,
+					when_end: input.when_end ?? null,
+					radar_key: key,
 				},
 				this.actor,
 				this.at,
 			);
+			if (key) keys.set(key, task);
 			if (task.repeat && !task.do_by && !task.deadline) task.do_by = this.now;
 			task.steps = await this.buildSteps(input.steps);
 			if (input.note?.trim()) task.notes = [{ id: newId(), text: input.note.trim(), uid: this.uid, via: "mcp", at: this.at }];
@@ -340,8 +392,9 @@ export class PrioritiesData {
 			writes.push({ kind: "create", path: await this.taskPath(id), data });
 			created.push(task);
 		}
-		await this.write(writes);
-		return Promise.all(created.map((t) => this.describe(t)));
+		if (writes.length) await this.write(writes);
+		const added = await Promise.all(created.map((t) => this.describe(t)));
+		return skipped.length ? { added, skipped_already_tracked: skipped } : added;
 	}
 
 	async update(id: string, changes: TaskChanges) {
@@ -364,11 +417,18 @@ export class PrioritiesData {
 				what.push(`assigned to ${changes.owner}`);
 			}
 		}
-		for (const k of ["do_by", "deadline", "source_url", "outcome_note", "when"] as const) {
+		for (const k of ["do_by", "deadline", "source_url", "outcome_note", "when", "when_end"] as const) {
 			if (changes[k] !== undefined) {
 				(u as Record<string, unknown>)[k] = changes[k];
 				what.push(`changed ${k.replace("_", " ")}`);
 			}
+		}
+		// A dated task re-files by its new date.
+		if (changes.do_by !== undefined || changes.deadline !== undefined) u.order = null;
+		if (changes.kind && changes.kind !== (task.kind ?? "task")) {
+			u.kind = changes.kind;
+			if (changes.kind === "task" && !(u.deadline ?? task.deadline) && task.when) u.deadline = task.when;
+			what.push(changes.kind === "task" ? "added to the list" : "marked as a potential gap");
 		}
 		if (changes.repeat !== undefined) {
 			u.repeat = changes.repeat;
@@ -409,7 +469,7 @@ export class PrioritiesData {
 		return this.describe({ ...task, notes });
 	}
 
-	async complete(id: string, details: { outcome_note?: string | null; when?: DateString | null }) {
+	async complete(id: string, details: { outcome_note?: string | null; when?: DateString | null; when_end?: DateString | null }) {
 		const task = await this.getTask(id);
 		if (task.done_at) throw new Error(`"${task.title}" is already done`);
 		const { update, next } = completeTask(task, this.actor, this.at, details);
@@ -441,7 +501,7 @@ export class PrioritiesData {
 		return this.describe({ ...task, ...u });
 	}
 
-	/** Puts the given tasks at the top of Now, in this order. */
+	/** Puts the given tasks at the top of their sections, in this order; the rest follow by date. */
 	async reorderNow(ids: string[]) {
 		const tasks = await Promise.all(ids.map((id) => this.getTask(id)));
 		const writes: Write[] = [];
@@ -449,7 +509,8 @@ export class PrioritiesData {
 			writes.push({
 				kind: "update",
 				path: await this.taskPath(t.id),
-				data: { rank: i + 1, history: [...t.history, historyEntry(this.actor, "reordered", this.at)] },
+				// Small numbers sort before any date (dates order by their milliseconds).
+				data: { order: i + 1, history: [...t.history, historyEntry(this.actor, "reordered", this.at)] },
 			});
 		}
 		await this.write(writes);
@@ -463,7 +524,8 @@ export class PrioritiesData {
 		for (const t of tasks) {
 			const u: Partial<Task> =
 				to === "month" || to === "later" ? moveToHorizon(t, to, this.now) : { do_by: to };
-			u.history = [...t.history, historyEntry(this.actor, `deferred to ${to === "month" ? "this month" : to}`, this.at)];
+			if (to !== "month" && to !== "later") u.order = null;
+			u.history = [...t.history, historyEntry(this.actor, `deferred to ${to === "month" ? "Coming up" : to === "later" ? "Not yet" : to}`, this.at)];
 			writes.push({ kind: "update", path: await this.taskPath(t.id), data: u });
 			out.push({ ...t, ...u });
 		}
@@ -475,6 +537,128 @@ export class PrioritiesData {
 		const task = await this.getTask(id);
 		await this.write([{ kind: "delete", path: await this.taskPath(id) }]);
 		return { deleted: task.title };
+	}
+
+	// ── Radar ────────────────────────────────────────────────────────────────
+
+	/** One line per task, for the radar's wide view. */
+	private async brief(t: Task) {
+		const d = await this.describe(t);
+		return {
+			id: d.id,
+			title: d.title,
+			section: d.section,
+			list: d.list,
+			owner: d.owner,
+			date: t.done_at || isOpenCheck(t) ? (t.when ?? undefined) : (effectiveDate(t) ?? undefined),
+			when_end: d.when_end,
+			deadline: d.deadline,
+			outcome_note: d.outcome_note,
+			radar_key: d.radar_key,
+		};
+	}
+
+	/** Everything with a date touching from..to, open or done, plus school calendar days in that span. */
+	async coverage(from: DateString, to: DateString) {
+		if (to < from) throw new Error("'to' is before 'from'");
+		const h = await this.getHousehold();
+		const tasks = (await this.visibleTasks()).filter((t) => overlaps(t, from, to));
+		const pick = (f: (t: Task) => boolean) => Promise.all(tasks.filter(f).map((t) => this.brief(t)));
+		return {
+			from,
+			to,
+			school_calendar: factsBetween(h.calendar_facts ?? [], from, to),
+			already_handled: await pick((t) => t.done_at !== null),
+			potential_gaps: await pick(isOpenCheck),
+			open_tasks: await pick((t) => !t.done_at && !isOpenCheck(t)),
+			note: "Only what's recorded in Priorities. A booking that's only in email or on a calendar won't show here.",
+		};
+	}
+
+	/**
+	 * Starts a weekly radar run: everything it needs in one call, and whether
+	 * this run does the shared sweep. The first run in any 5 days claims it, so
+	 * when both of our radars run, the second only looks at its own person's list.
+	 */
+	async startRadar(fallbackRules: string) {
+		const h = await this.getHousehold();
+		const cutoff = new Date(Date.parse(this.at) - SWEEP_DAYS * 86_400_000).toISOString();
+		const runs = h.radar_runs ?? [];
+		const lastShared = runs.find((r) => r.shared && r.at >= cutoff);
+		const claim = h.radar_claim && h.radar_claim.at >= cutoff && h.radar_claim.uid !== this.uid ? h.radar_claim : null;
+		const sweep = !lastShared && !claim;
+		const name = (uid: string) => h.member_names[uid] ?? "someone";
+		if (sweep) {
+			await this.write([{ kind: "update", path: `households/${h.id}`, data: { radar_claim: { uid: this.uid, at: this.at } } }]);
+		}
+
+		const windowEnd = addDays(this.now, WINDOW_DAYS);
+		const tasks = await this.visibleTasks();
+		const recent = (t: Task) => (lastDay(t) ?? effectiveDate(t) ?? this.now) >= addDays(this.now, -7);
+		const open = tasks.filter((t) => !t.done_at && !isOpenCheck(t) && effectiveHorizon(t, this.now) !== "later");
+		const rules = await this.getHouseRules(fallbackRules);
+		return {
+			today: this.now,
+			week_ends: weekEnd(this.now),
+			window_ends: windowEnd,
+			shared_sweep: sweep
+				? { yours: true, why: "No shared sweep in the last 5 days, so this run does it: school, childcare, and the shared list." }
+				: {
+						yours: false,
+						why: lastShared
+							? `${name(lastShared.uid)}'s radar did the shared sweep on ${localDay(lastShared.at)}. Look only at your own personal list and anything only you would know about (your email and calendar); add shared items only if they are new.`
+							: `${name(claim!.uid)}'s radar started the shared sweep on ${localDay(claim!.at)}. Look only at your own list and anything only you would know about.`,
+					},
+			recent_runs: runs
+				.filter((r) => r.at >= cutoff)
+				.map((r) => ({ by: name(r.uid), on: localDay(r.at), shared_sweep: r.shared, summary: r.summary })),
+			house_rules: rules.text,
+			school_calendar: {
+				feeds: (h.calendar_feeds ?? []).map((f) => f.name),
+				last_read: h.calendar_refreshed_at ? localDay(h.calendar_refreshed_at) : "never",
+				problems: h.calendar_errors?.length ? h.calendar_errors : undefined,
+				days: factsBetween(h.calendar_facts ?? [], this.now, windowEnd),
+			},
+			potential_gaps: await Promise.all(tasks.filter(isOpenCheck).map((t) => this.brief(t))),
+			already_handled: await Promise.all(
+				tasks.filter((t) => isHandledAhead(t, this.now) && t.when! <= windowEnd).map((t) => this.brief(t)),
+			),
+			open_through_window: await Promise.all(open.sort(compareOpen).map((t) => this.brief(t))),
+			radar_keys_in_use: [...new Set(tasks.filter((t) => t.radar_key && recent(t)).map((t) => t.radar_key!))],
+		};
+	}
+
+	/** Records what a radar run did, for the other person's radar and the app's House rules page. */
+	async finishRadar(summary: string, shared: boolean) {
+		const h = await this.getHousehold();
+		const run: RadarRun = { uid: this.uid, at: this.at, shared, summary: summary.trim() };
+		const runs = [run, ...(h.radar_runs ?? [])].slice(0, 12);
+		await this.write([{ kind: "update", path: `households/${h.id}`, data: { radar_runs: runs } }]);
+		return { recorded: true };
+	}
+
+	// ── School calendar ──────────────────────────────────────────────────────
+
+	/** Adds dates by hand, e.g. from a school calendar PDF someone pasted. Kept when the feeds refresh. */
+	async addSchoolDates(dates: { date: DateString; end?: DateString | null; title: string; kind?: CalendarFact["kind"] }[]) {
+		const h = await this.getHousehold();
+		const facts = [...(h.calendar_facts ?? [])];
+		const seen = new Set(facts.map((f) => `${f.date}|${f.title.toLowerCase()}`));
+		let added = 0;
+		for (const d of dates) {
+			const key = `${d.date}|${d.title.trim().toLowerCase()}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			facts.push({ date: d.date, end: d.end && d.end > d.date ? d.end : null, title: d.title.trim(), kind: d.kind ?? "no_school", source: "manual" });
+			added++;
+		}
+		facts.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+		await this.write([{ kind: "update", path: `households/${h.id}`, data: { calendar_facts: facts } }]);
+		return { added, already_there: dates.length - added };
+	}
+
+	async householdForCalendar() {
+		return this.getHousehold();
 	}
 
 	// ── House rules ──────────────────────────────────────────────────────────
@@ -513,5 +697,9 @@ function asTask(doc: Doc<Omit<Task, "id">>): Task {
 		notes: d.notes ?? [],
 		history: d.history ?? [],
 		repeat: d.repeat ?? null,
+		kind: d.kind ?? "task",
+		order: typeof d.order === "number" ? d.order : null,
+		when_end: d.when_end ?? null,
+		radar_key: d.radar_key ?? null,
 	} as Task;
 }

@@ -2,6 +2,7 @@
 // (firebase emulators:exec starts it and sets FIRESTORE_EMULATOR_HOST).
 import { beforeEach, describe, expect, it } from "vitest";
 import { Firestore } from "../src/firestore";
+import { refreshHousehold } from "../src/calendar";
 import { NotFound, PrioritiesData } from "../src/tasks";
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
@@ -88,14 +89,14 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 			{ title: "Book kids' checkups", list: "shared", owner: "me", do_by: "2026-10-09", repeat: { every: 1, unit: "year", mode: "schedule" } },
 		]);
 		const res = await ross.complete(t.id, { outcome_note: "Dr. Alvarez, 3:30pm, #48213", when: "2026-10-20" });
-		expect(res.done.status).toBe("taken care of (date still ahead)");
+		expect(res.done.section).toBe("🟢 Already handled");
 		expect(res.next_occurrence!.do_by).toBe("2027-10-09");
 		const emily = as("emily");
-		const tco = await emily.list({ horizon: "taken_care_of" });
+		const tco = await emily.list({ horizon: "handled" });
 		expect(tco.map((x) => x.outcome_note)).toEqual(["Dr. Alvarez, 3:30pm, #48213"]);
 		expect((await emily.search("alvarez", true))[0].when).toBe("2026-10-20");
 		const ov = await emily.overview();
-		expect(ov.taken_care_of_next_4_weeks.map((x) => x.title)).toEqual(["Book kids' checkups"]);
+		expect(ov.already_handled_next_6_weeks.map((x) => x.title)).toEqual(["Book kids' checkups"]);
 		expect(ov.done_this_week).toContain("Book kids' checkups");
 		await expect(ross.complete(t.id, {})).rejects.toThrow(/already done/);
 		const reopened = await ross.reopen(t.id);
@@ -139,6 +140,81 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		await ross.setHouseRules("v3");
 		// Dentist rules, then v3, are kept as earlier versions.
 		expect((await ross.setHouseRules("v4")).previous_versions_kept).toBe(2);
+	});
+
+	it("never adds the same radar item twice, even once it's answered", async () => {
+		const emily = as("emily");
+		const ross = as("ross");
+		const gap = { title: "Childcare for Oct 12?", list: "shared" as const, kind: "check" as const, when: "2026-10-12", radar_key: "childcare:2026-10-12" };
+		const [g] = (await emily.add([gap])) as { id: string; section: string }[];
+		expect(g.section).toBe("⚠️ Potential gap");
+		expect((await ross.list({})).some((t) => t.id === g.id)).toBe(false); // not in the open lists
+		expect((await ross.list({ horizon: "gaps" })).map((t) => t.id)).toEqual([g.id]);
+		// Ross's radar finds the same thing: skipped.
+		const again = (await ross.add([{ ...gap, title: "No school Oct 12" }])) as { skipped_already_tracked: unknown[] };
+		expect(again.skipped_already_tracked).toHaveLength(1);
+		// Answered "covered": still skipped next week, and it's handled.
+		await ross.complete(g.id, { outcome_note: "Grandma has them" });
+		expect(((await emily.add([gap])) as { skipped_already_tracked: unknown[] }).skipped_already_tracked).toHaveLength(1);
+		const cover = await ross.coverage("2026-10-12", "2026-10-12");
+		expect(cover.already_handled.map((t) => t.title)).toEqual(["Childcare for Oct 12?"]);
+		await expect(ross.add([{ title: "Gap", list: "shared", kind: "check" }])).rejects.toThrow(/date in question/);
+	});
+
+	it("gives the shared sweep to the first radar run of the week", async () => {
+		const emily = await as("emily").startRadar("RULES");
+		expect(emily.shared_sweep.yours).toBe(true);
+		expect(emily.house_rules).toBe("RULES");
+		// Ross's run a few hours later only covers his own list.
+		const ross = await new PrioritiesData(db, "ross", NOW, "2026-10-07T22:00:00.000Z").startRadar("RULES");
+		expect(ross.shared_sweep.yours).toBe(false);
+		expect(ross.shared_sweep.why).toMatch(/Emily/);
+		await as("emily").finishRadar("Added 1 gap.", true);
+		const later = await new PrioritiesData(db, "ross", NOW, "2026-10-08T08:00:00.000Z").startRadar("RULES");
+		expect(later.recent_runs).toEqual([{ by: "Emily", on: "2026-10-07", shared_sweep: true, summary: "Added 1 gap." }]);
+		// A week on, whoever runs first sweeps again.
+		const nextWeek = await new PrioritiesData(db, "ross", "2026-10-14", "2026-10-14T18:00:00.000Z").startRadar("RULES");
+		expect(nextWeek.shared_sweep.yours).toBe(true);
+	});
+
+	it("records ranges and school dates", async () => {
+		const ross = as("ross");
+		const [camp] = (await ross.add([{ title: "Book Thanksgiving camp", list: "shared" }])) as { id: string }[];
+		await ross.complete(camp.id, { outcome_note: "Camp Kinder, 9-3", when: "2026-11-25", when_end: "2026-11-27" });
+		await ross.addSchoolDates([{ date: "2026-11-23", end: "2026-11-27", title: "Thanksgiving Break" }]);
+		expect((await ross.addSchoolDates([{ date: "2026-11-23", title: "thanksgiving break" }])).added).toBe(0);
+		const c = await ross.coverage("2026-11-23", "2026-11-24");
+		expect(c.school_calendar.map((f) => f.title)).toEqual(["Thanksgiving Break"]);
+		expect(c.already_handled).toEqual([]); // camp starts the 25th: the 23rd-24th are the gap
+		expect((await ross.coverage("2026-11-26", "2026-11-26")).already_handled[0].when_end).toBe("2026-11-27");
+	});
+
+	it("reads school calendar feeds, keeping hand-added dates and the last good copy", async () => {
+		const ross = as("ross");
+		await ross.addSchoolDates([{ date: "2026-12-21", end: "2027-01-01", title: "Winter Break" }]);
+		await db.commit([
+			{
+				kind: "update",
+				path: `households/${H}`,
+				data: { calendar_feeds: [{ name: "Lincoln", url: "webcal://example.org/lincoln.ics" }] },
+			},
+		]);
+		const ics = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:20261111\r\nSUMMARY:Veterans Day\r\nEND:VEVENT\r\nEND:VCALENDAR";
+		let asked = "";
+		const ok = (async (url: string) => {
+			asked = url;
+			return new Response(ics);
+		}) as unknown as typeof fetch;
+		const h = await new PrioritiesData(db, "ross", NOW, AT).householdForCalendar();
+		expect(await refreshHousehold(db, h, NOW, AT, ok)).toEqual({ days: 2, errors: [] });
+		expect(asked).toBe("https://example.org/lincoln.ics");
+		const failing = (async () => new Response("nope", { status: 503 })) as unknown as typeof fetch;
+		const h2 = await new PrioritiesData(db, "ross", NOW, AT).householdForCalendar();
+		const r = await refreshHousehold(db, h2, NOW, AT, failing);
+		expect(r.days).toBe(2);
+		expect(r.errors[0]).toMatch(/Lincoln.*503/);
+		const days = (await new PrioritiesData(db, "ross", NOW, AT).coverage("2026-11-01", "2026-12-31")).school_calendar;
+		expect(days.map((d) => d.title)).toEqual(["Veterans Day", "Winter Break"]);
 	});
 
 	it("reports a missing household clearly", async () => {

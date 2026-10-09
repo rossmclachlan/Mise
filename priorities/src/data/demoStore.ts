@@ -57,9 +57,17 @@ function seed(): Task[] {
       outcome_note: 'Payment scheduled for the 28th from checking. Due Nov 1.',
     }),
     t({ title: 'Thanksgiving break plans', list: 'shared', assignee: [ROSS, EMILY] }, {
-      done_at: addDays(now, -5) + 'T17:00:00.000Z', done_by: EMILY, when: addDays(now, 50),
+      done_at: addDays(now, -5) + 'T17:00:00.000Z', done_by: EMILY, when: addDays(now, 47), when_end: addDays(now, 49),
       outcome_note: 'Flights booked, kids\' camp booked for Nov 26–29.',
     }),
+    t({ title: "No childcare visible for Indigenous Peoples' Day", list: 'shared', assignee: [], kind: 'check',
+      when: addDays(now, 3), radar_key: 'childcare:' + addDays(now, 3) }, {
+      notes: [{ id: 'n4', text: 'No school (school calendar). No camp or sitter booking found in email or calendar.', uid: EMILY, via: 'mcp', at }],
+    }, claude),
+    t({ title: 'Thanksgiving break: Nov 23–24 not covered?', list: 'shared', assignee: [], kind: 'check',
+      when: addDays(now, 45), when_end: addDays(now, 46) }, {
+      notes: [{ id: 'n5', text: 'Camp covers the 25th to 27th; nothing seen for the first two days.', uid: EMILY, via: 'mcp', at }],
+    }, claude),
     t({ title: 'Return library books', list: 'personal' }, { done_at: addDays(now, -1) + 'T09:00:00.000Z', done_by: ROSS }),
   ];
 }
@@ -67,12 +75,25 @@ function seed(): Task[] {
 const as = new URLSearchParams(location.search).get('as') === 'emily' ? EMILY : ROSS;
 let user: SignedInUser | null = { uid: as, email: `${as.slice(5)}@example.com` };
 let tasks = seed();
-const household: Household = {
+let household: Household = {
   id: 'demo-household',
   name: 'Our household',
   members: [ROSS, EMILY],
   member_names: { [ROSS]: 'Ross', [EMILY]: 'Emily' },
+  calendar_feeds: [{ name: 'Lincoln Elementary', url: 'https://example.org/lincoln.ics' }],
+  calendar_refreshed_at: new Date().toISOString(),
+  calendar_facts: [
+    { date: addDays(today(), 3), end: null, title: "Indigenous Peoples' Day - No School", kind: 'no_school', source: 'Lincoln Elementary' },
+    { date: addDays(today(), 19), end: null, title: 'Minimum Day', kind: 'early_release', source: 'Lincoln Elementary' },
+    { date: addDays(today(), 33), end: null, title: 'Veterans Day', kind: 'no_school', source: 'Lincoln Elementary' },
+    { date: addDays(today(), 45), end: addDays(today(), 49), title: 'Thanksgiving Break', kind: 'no_school', source: 'Lincoln Elementary' },
+  ],
+  radar_runs: [
+    { uid: EMILY, at: new Date(Date.now() - 86_400_000).toISOString(), shared: true,
+      summary: 'Shared sweep: 2 potential gaps (Oct 12 childcare, Nov 23–24 coverage), top 3 set. Thanksgiving camp confirmed.' },
+  ],
 };
+const householdSubs = new Set<(h: Household) => void>();
 
 const authSubs = new Set<(u: SignedInUser | null) => void>();
 const taskSubs = new Set<() => void>();
@@ -93,11 +114,16 @@ export const demoStore: Store = {
     authSubs.forEach((f) => f(null));
   },
   onHousehold(_uid, cb) {
+    householdSubs.add(cb);
     cb(household);
-    return () => {};
+    return () => householdSubs.delete(cb);
   },
   async createHousehold() {},
   async joinHousehold() {},
+  async updateHousehold(_hid, update) {
+    household = { ...household, ...update };
+    householdSubs.forEach((f) => f(household));
+  },
   onTasks(_hid, uid, cb) {
     const emit = () =>
       cb(tasks.filter((t) => t.list === 'shared' || t.owner_uid === uid).map((t) => ({ ...t })));

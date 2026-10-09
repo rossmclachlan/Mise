@@ -7,7 +7,7 @@ import { effectiveHorizon } from '../lib/horizon';
 import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
-import { HORIZON_NAMES, initial } from '../lib/format';
+import { GAPS_EMOJI, HORIZON_SHORT, formatWhen, initial } from '../lib/format';
 import { DateField } from './DateField';
 
 export function TaskSheet({
@@ -52,6 +52,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
   const [confirmDelete, setConfirmDelete] = useState(false);
   const now = today();
   const done = task.done_at !== null;
+  const check = task.kind === 'check' && !done;
   const shared = task.list === 'shared';
   const horizon = effectiveHorizon(task, now);
 
@@ -167,11 +168,34 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
             className="rounded-2xl border border-good/40 bg-good-container/60 p-3 text-left"
           >
             <span className="label-section text-on-good-container">Outcome</span>
-            {task.when && <p className="mt-1 text-[15px] font-semibold text-ink">{formatDate(task.when)}</p>}
+            {task.when && <p className="mt-1 text-[15px] font-semibold text-ink">{formatWhen(task.when, task.when_end)}</p>}
             <p className="mt-0.5 whitespace-pre-wrap text-[15px] text-ink">
               {task.outcome_note || <span className="text-ink-variant">Add the details we’ll want later</span>}
             </p>
           </button>
+        </div>
+      )}
+
+      {check && (
+        <div className="-mt-3 rounded-2xl border border-warn/40 bg-warn-container/60 p-3">
+          <p className="label-section text-on-warn-container">
+            {GAPS_EMOJI} Potential gap{task.when && ` · ${formatWhen(task.when, task.when_end)}`}
+          </p>
+          <p className="mt-1 text-sm text-ink">
+            The radar couldn’t tell whether this is handled. Is it covered, or does something need doing?
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" className="btn-filled flex-1" onClick={() => onDone(task)}>
+              We’re covered
+            </button>
+            <button
+              type="button"
+              className="btn-outlined flex-1"
+              onClick={() => update(task, { kind: 'task', deadline: task.deadline ?? task.when, order: null }, 'added to the list')}
+            >
+              Needs doing
+            </button>
+          </div>
         </div>
       )}
 
@@ -202,13 +226,13 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
         </div>
       )}
 
-      {!done && (
+      {!done && !check && (
         <div className="flex flex-col gap-1.5">
           <span className="label-section">When</span>
           <div className="flex gap-2">
             {(['now', 'month', 'later'] as Horizon[]).map((h) => (
               <button key={h} type="button" className={`${chip(horizon === h)} flex-1`} onClick={() => t.moveTo(task, h)}>
-                {HORIZON_NAMES[h]}
+                {HORIZON_SHORT[h]}
               </button>
             ))}
           </div>
@@ -217,11 +241,11 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
 
       {!done && (
         <div className="grid grid-cols-2 gap-3">
-          <DateField label="Do by" value={task.do_by} onChange={(v) => update(task, { do_by: v }, 'changed the do-by date')} />
+          <DateField label="Do by" value={task.do_by} onChange={(v) => update(task, { do_by: v, order: null }, 'changed the do-by date')} />
           <DateField
             label="Deadline"
             value={task.deadline}
-            onChange={(v) => update(task, { deadline: v }, 'changed the deadline')}
+            onChange={(v) => update(task, { deadline: v, order: null }, 'changed the deadline')}
           />
         </div>
       )}
@@ -354,7 +378,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
           <button type="button" className="btn-outlined flex-1" onClick={() => t.reopen(task)}>
             Reopen
           </button>
-        ) : (
+        ) : check ? null : (
           <>
             <button type="button" className="btn-filled flex-1" onClick={() => onDone(task)}>
               <Check size={18} /> Done

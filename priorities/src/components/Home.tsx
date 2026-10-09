@@ -4,18 +4,21 @@ import type { Filter, Horizon, Task } from '../types';
 import { PillToggle } from '../../../src/components/ui/PillToggle';
 import { addDays, today, weekEnd } from '../lib/dates';
 import {
-  MONTH_DAYS,
+  WINDOW_DAYS,
   effectiveHorizon,
-  isComingUp,
   isDoneThisWeek,
-  isTakenCareOfSoon,
+  isHandledAhead,
+  isHandledSoon,
+  isOpenCheck,
 } from '../lib/horizon';
 import { compareOpen } from '../lib/ops';
+import { GAPS_EMOJI, GAPS_NAME, HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
 import { usePriorities } from '../state/PrioritiesContext';
 import { useVisible } from '../state/useVisible';
 import { Header } from './Header';
-import { TakenCareRow, TaskRow } from './bits';
-import { NowList } from './NowList';
+import { GapRow, TakenCareRow } from './bits';
+import { ReorderList } from './ReorderList';
+import { HouseRulesView } from './HouseRulesView';
 import { QuickAddSheet } from './QuickAddSheet';
 import { TaskSheet } from './TaskSheet';
 import { DoneView } from './DoneView';
@@ -28,7 +31,8 @@ const SECTION_KEY = 'priorities:section';
 
 function loadSection(): Section {
   try {
-    return localStorage.getItem(SECTION_KEY) === 'done' ? 'done' : 'open';
+    const v = localStorage.getItem(SECTION_KEY);
+    return v === 'done' || v === 'rules' ? v : 'open';
   } catch {
     return 'open';
   }
@@ -79,28 +83,30 @@ export function Home() {
 
   const now = today();
   const visible = useVisible(filter);
-  // Taken care of always includes everything shared: seeing that the other
+  // Already handled always includes everything shared: seeing that the other
   // person has handled something is the point, whoever it was assigned to.
   const handledPool = useVisible('everything');
   const { tasks } = usePriorities();
 
   const sections = useMemo(() => {
-    const open = visible.filter((t) => !t.done_at);
-    const by = (h: Horizon) => open.filter((t) => effectiveHorizon(t, now) === h);
-    const comingUp = handledPool.filter((t) => isComingUp(t, now));
-    const monthEnd = addDays(now, MONTH_DAYS);
+    const open = visible.filter((t) => !t.done_at && !isOpenCheck(t));
+    const by = (h: Horizon) => open.filter((t) => effectiveHorizon(t, now) === h).sort(compareOpen);
+    const ahead = handledPool.filter((t) => isHandledAhead(t, now));
+    const windowEnd = addDays(now, WINDOW_DAYS);
     return {
-      now: by('now').sort((a, b) => a.rank - b.rank),
-      month: by('month').sort(compareOpen),
-      later: by('later').sort(compareOpen),
-      soon: handledPool
-        .filter((t) => isTakenCareOfSoon(t, now))
-        .sort((a, b) => (a.when! < b.when! ? -1 : 1)),
+      now: by('now'),
+      month: by('month'),
+      later: by('later'),
+      // A gap is a question for the household: under Mine, show the unclaimed ones too.
+      gaps: (filter === 'mine' ? handledPool.filter((t) => t.list === 'personal' || t.assignee.length === 0 || t.assignee.includes(user.uid)) : visible)
+        .filter(isOpenCheck)
+        .sort((a, b) => ((a.when ?? '') < (b.when ?? '') ? -1 : 1)),
+      soon: handledPool.filter((t) => isHandledSoon(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1)),
       doneThisWeek: handledPool.filter((t) => isDoneThisWeek(t, now)).length,
-      handledMonth: comingUp.filter((t) => t.when! > weekEnd(now) && t.when! <= monthEnd).length,
-      handledLater: comingUp.filter((t) => t.when! > monthEnd).length,
+      handledMonth: ahead.filter((t) => t.when! > weekEnd(now) && t.when! <= windowEnd).length,
+      handledLater: ahead.filter((t) => t.when! > windowEnd).length,
     };
-  }, [visible, handledPool, now]);
+  }, [visible, handledPool, now, filter, user.uid]);
 
   const openTask = tasks.find((t) => t.id === openId) ?? null;
   const detailsTask = tasks.find((t) => t.id === detailsId) ?? null;
@@ -137,21 +143,43 @@ export function Home() {
   const nowSection = (
     <section>
       <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">Now · this week</h2>
+        <h2 className="text-lg font-bold text-ink">
+          {HORIZON_EMOJI.now} {HORIZON_NAMES.now}
+        </h2>
         <span className="text-sm text-ink-variant">{countLabel}</span>
       </div>
       {sections.now.length === 0 ? (
         <p className="card px-4 py-5 text-center text-sm text-ink-variant">Nothing on this week. Enjoy it.</p>
       ) : (
-        <NowList tasks={sections.now} now={now} onTick={tick} onOpen={setOpenId} />
+        <ReorderList tasks={sections.now} now={now} onTick={tick} onOpen={setOpenId} topThree />
       )}
+    </section>
+  );
+
+  // Only there when the radar has a question.
+  const gapsSection = sections.gaps.length > 0 && (
+    <section>
+      <div className="mb-1 flex items-baseline justify-between">
+        <h2 className="text-lg font-bold text-ink">
+          {GAPS_EMOJI} {GAPS_NAME}
+        </h2>
+        <span className="text-sm text-ink-variant">{sections.gaps.length}</span>
+      </div>
+      <p className="mb-2 text-sm text-ink-variant">The radar couldn’t tell whether these are handled.</p>
+      <div className="divide-y divide-warn/20 rounded-2xl border border-warn/30 bg-warn-container/50 px-3">
+        {sections.gaps.map((t) => (
+          <GapRow key={t.id} task={t} onOpen={() => setOpenId(t.id)} onCovered={() => setDetailsId(t.id)} />
+        ))}
+      </div>
     </section>
   );
 
   const takenCareOf = (
     <section>
       <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">Taken care of</h2>
+        <h2 className="text-lg font-bold text-ink">
+          {HANDLED_EMOJI} {HANDLED_NAME}
+        </h2>
         <button type="button" onClick={() => setSection('done')} className="text-sm text-ink-variant">
           {sections.doneThisWeek > 0 && `${sections.doneThisWeek} done this week · `}
           <span className="font-semibold text-accent">See all</span>
@@ -159,8 +187,8 @@ export function Home() {
       </div>
       {sections.soon.length === 0 ? (
         <p className="rounded-2xl border border-good/30 bg-good-container/50 px-4 py-4 text-sm text-ink-variant">
-          Nothing booked for the next four weeks yet. When you finish something with a date ahead, like an
-          appointment, it shows here.
+          Nothing booked for the next six weeks yet. When you finish something with a date ahead, like an
+          appointment or a camp, it shows here.
         </p>
       ) : (
         <div className="divide-y divide-good/15 rounded-2xl border border-good/30 bg-good-container/50 px-3">
@@ -175,7 +203,7 @@ export function Home() {
   const laterSections = (['month', 'later'] as const).map((h) => {
     const list = sections[h];
     const handled = h === 'month' ? sections.handledMonth : sections.handledLater;
-    const counts = [`${list.length} to do`, handled > 0 ? `${handled} taken care of` : null].filter(Boolean).join(' · ');
+    const counts = [`${list.length} to do`, handled > 0 ? `${handled} handled` : null].filter(Boolean).join(' · ');
     return (
       <section key={h} className="card px-4">
         <button
@@ -184,18 +212,24 @@ export function Home() {
           className="flex w-full items-center justify-between py-3.5"
           aria-expanded={expanded[h]}
         >
-          <span className="text-[15px] font-bold text-ink">{h === 'month' ? 'This month' : 'Later'}</span>
+          <span className="text-[15px] font-bold text-ink">
+            {HORIZON_EMOJI[h]} {HORIZON_NAMES[h]}
+            <span className="ml-1.5 hidden font-normal text-ink-variant sm:inline">
+              {h === 'month' ? 'next 6 weeks' : 'revisit later'}
+            </span>
+          </span>
           <span className="flex items-center gap-1 text-sm text-ink-variant">
             {counts}
             <ChevronDown size={18} className={`transition-transform ${expanded[h] ? 'rotate-180' : ''}`} />
           </span>
         </button>
         {expanded[h] && (
-          <div className="divide-y divide-outline border-t border-outline">
-            {list.length === 0 && <p className="py-4 text-sm text-ink-variant">Nothing here.</p>}
-            {list.map((t) => (
-              <TaskRow key={t.id} task={t} now={now} onTick={() => tick(t)} onOpen={() => setOpenId(t.id)} />
-            ))}
+          <div className="border-t border-outline">
+            {list.length === 0 ? (
+              <p className="py-4 text-sm text-ink-variant">Nothing here.</p>
+            ) : (
+              <ReorderList tasks={list} now={now} onTick={tick} onOpen={setOpenId} bare />
+            )}
           </div>
         )}
       </section>
@@ -204,7 +238,7 @@ export function Home() {
 
   return (
     <>
-      <Header />
+      <Header onHouseRules={() => setSection('rules')} />
       <div className="flex min-h-0 flex-1">
         <SideNav active={section} onChange={setSection} openCount={sections.now.length} onAdd={() => setAdding(true)} />
         <main className="relative min-w-0 flex-1 overflow-y-auto">
@@ -214,15 +248,20 @@ export function Home() {
                 {filterToggle}
                 {/* One column on phones; on wide screens Now sits beside everything else. */}
                 <div className="grid gap-6 md:grid-cols-2 md:items-start">
-                  <div className="space-y-6">{nowSection}</div>
+                  <div className="space-y-6">
+                    {nowSection}
+                    {gapsSection}
+                  </div>
                   <div className="space-y-6">
                     {takenCareOf}
                     {laterSections}
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : section === 'done' ? (
               <DoneView onOpen={setOpenId} />
+            ) : (
+              <HouseRulesView />
             )}
           </div>
         </main>

@@ -20,6 +20,10 @@
   --color-good-container: #E4F2E8;
   --color-on-good-container: #1B4D30;
   --color-late: #A15C07;
+  /* Potential gaps: amber, a question rather than an alarm. */
+  --color-warn: #B7791F;
+  --color-warn-container: #FDF3DC;
+  --color-on-warn-container: #6B4A0F;
 }
 
 @layer base {

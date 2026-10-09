@@ -15,6 +15,8 @@ export interface Store {
   createHousehold(uid: string, displayName: string): Promise<void>;
   /** Join with the code the other person shares; it is the household's id. */
   joinHousehold(hid: string, uid: string, displayName: string): Promise<void>;
+  /** House rules and calendar settings; never membership. */
+  updateHousehold(hid: string, update: Partial<Omit<Household, 'id' | 'members' | 'member_names'>>): Promise<void>;
 
   /** Shared tasks plus this person's personal tasks, kept live. */
   onTasks(hid: string, uid: string, cb: (tasks: Task[]) => void, onError: (e: Error) => void): () => void;

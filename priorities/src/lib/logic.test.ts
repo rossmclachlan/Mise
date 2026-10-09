@@ -6,10 +6,14 @@ import {
   effectiveHorizon,
   isDoneThisWeek,
   isOverdue,
-  isTakenCareOfSoon,
+  isHandledAhead,
+  isHandledSoon,
+  isOpenCheck,
   moveToHorizon,
+  overlaps,
 } from './horizon';
-import { completeTask, skipOccurrence, buildTask } from './ops';
+import { completeTask, compareOpen, orderBetween, skipOccurrence, buildTask } from './ops';
+import { classify, factsBetween, factsFromIcs } from './calendar';
 import { describeRepeat, nextOccurrence } from './repeat';
 import { canSee, matchesFilter } from './visibility';
 
@@ -47,8 +51,9 @@ describe('effectiveHorizon', () => {
   it('places dated tasks by date', () => {
     expect(effectiveHorizon(task({ do_by: '2026-10-11' }), NOW)).toBe('now'); // this Sunday
     expect(effectiveHorizon(task({ do_by: '2026-10-12' }), NOW)).toBe('month'); // next Monday
-    expect(effectiveHorizon(task({ do_by: '2026-11-04' }), NOW)).toBe('month'); // 28 days out
-    expect(effectiveHorizon(task({ do_by: '2026-11-05' }), NOW)).toBe('later');
+    expect(effectiveHorizon(task({ do_by: '2026-11-18' }), NOW)).toBe('month'); // 42 days out
+    expect(effectiveHorizon(task({ do_by: '2026-11-19' }), NOW)).toBe('later');
+    expect(effectiveHorizon(task({ do_by: '2026-11-20' }), NOW)).toBe('later');
     expect(effectiveHorizon(task({ do_by: '2026-09-30' }), NOW)).toBe('now'); // overdue
   });
 
@@ -62,7 +67,7 @@ describe('effectiveHorizon', () => {
       do_by: '2026-12-15',
       steps: [
         { id: 'a', title: 'Photos', done_at: null, assignee: null, do_by: '2026-10-09' },
-        { id: 'b', title: 'Forms', done_at: null, assignee: null, do_by: '2026-11-15' },
+        { id: 'b', title: 'Forms', done_at: null, assignee: null, do_by: '2026-11-25' },
       ],
     });
     expect(effectiveDate(t)).toBe('2026-10-09');
@@ -83,18 +88,25 @@ describe('effectiveHorizon', () => {
     expect(later.do_by).toBe('2026-10-12');
     expect(effectiveHorizon(later, NOW)).toBe('month');
     const undated = task({ horizon: 'now' });
-    expect(moveToHorizon(undated, 'later', NOW)).toEqual({ horizon: 'later' });
+    expect(moveToHorizon(undated, 'later', NOW)).toEqual({ horizon: 'later', order: null });
   });
 });
 
 describe('taken care of', () => {
-  it('shows done tasks whose date is ahead, within four weeks', () => {
-    expect(isTakenCareOfSoon(task({ done_at: AT, when: '2026-10-20' }), NOW)).toBe(true);
-    expect(isTakenCareOfSoon(task({ done_at: AT, when: '2026-10-07' }), NOW)).toBe(true);
-    expect(isTakenCareOfSoon(task({ done_at: AT, when: '2026-10-06' }), NOW)).toBe(false);
-    expect(isTakenCareOfSoon(task({ done_at: AT, when: '2026-12-01' }), NOW)).toBe(false);
-    expect(isTakenCareOfSoon(task({ done_at: AT, when: null }), NOW)).toBe(false);
-    expect(isTakenCareOfSoon(task({ when: '2026-10-20' }), NOW)).toBe(false);
+  it('shows done tasks whose date is ahead, within six weeks', () => {
+    expect(isHandledSoon(task({ done_at: AT, when: '2026-10-20' }), NOW)).toBe(true);
+    expect(isHandledSoon(task({ done_at: AT, when: '2026-10-07' }), NOW)).toBe(true);
+    expect(isHandledSoon(task({ done_at: AT, when: '2026-10-06' }), NOW)).toBe(false);
+    expect(isHandledSoon(task({ done_at: AT, when: '2026-11-18' }), NOW)).toBe(true);
+    expect(isHandledSoon(task({ done_at: AT, when: '2026-12-01' }), NOW)).toBe(false);
+    expect(isHandledSoon(task({ done_at: AT, when: null }), NOW)).toBe(false);
+    expect(isHandledSoon(task({ when: '2026-10-20' }), NOW)).toBe(false);
+  });
+
+  it('keeps a range handled until its last day', () => {
+    const camp = task({ done_at: AT, when: '2026-10-05', when_end: '2026-10-09' });
+    expect(isHandledAhead(camp, NOW)).toBe(true);
+    expect(isHandledAhead(camp, '2026-10-10')).toBe(false);
   });
 
   it('counts done this week from Monday', () => {
@@ -193,5 +205,88 @@ describe('local days', () => {
     const weekly = task({ do_by: '2026-10-08', repeat: { every: 1, unit: 'week', mode: 'after_done' } });
     expect(completeTask(weekly, actor, '2026-10-09T02:00:00.000Z').next!.do_by).toBe('2026-10-15');
     setTimeZone(undefined);
+  });
+});
+
+describe('radar', () => {
+  it('finds what covers a range of days', () => {
+    const camp = task({ done_at: AT, when: '2026-11-25', when_end: '2026-11-27' });
+    expect(overlaps(camp, '2026-11-23', '2026-11-24')).toBe(false);
+    expect(overlaps(camp, '2026-11-23', '2026-11-25')).toBe(true);
+    expect(overlaps(task({ deadline: '2026-11-11' }), '2026-11-11', '2026-11-11')).toBe(true);
+    // A done task's old do-by date isn't coverage.
+    expect(overlaps(task({ done_at: AT, do_by: '2026-11-11' }), '2026-11-11', '2026-11-11')).toBe(false);
+  });
+
+  it('keeps checks out of the lists until answered', () => {
+    const check = buildTask({ title: 'Childcare Oct 12?', list: 'shared', kind: 'check', when: '2026-10-12' }, actor, AT);
+    expect(isOpenCheck(check)).toBe(true);
+    expect(isOpenCheck({ ...check, done_at: AT })).toBe(false);
+    expect(isOpenCheck(task())).toBe(false);
+  });
+});
+
+describe('ordering', () => {
+  it('sorts by date until someone drags, then keeps the dragged spot', () => {
+    const a = task({ id: 'a', do_by: '2026-10-20' });
+    const b = task({ id: 'b', do_by: '2026-10-25' });
+    const c = task({ id: 'c', do_by: '2026-10-30' });
+    expect([c, a, b].sort(compareOpen).map((t) => t.id)).toEqual(['a', 'b', 'c']);
+    const dragged = { ...c, order: orderBetween(a, b) };
+    expect([dragged, a, b].sort(compareOpen).map((t) => t.id)).toEqual(['a', 'c', 'b']);
+    const top = { ...b, order: orderBetween(undefined, a) };
+    expect([a, top, c].sort(compareOpen).map((t) => t.id)).toEqual(['b', 'a', 'c']);
+  });
+});
+
+describe('school calendar', () => {
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT',
+    'DTSTART;VALUE=DATE:20261012',
+    'DTEND;VALUE=DATE:20261013',
+    "SUMMARY:Indigenous Peoples' Day - No School",
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'DTSTART;VALUE=DATE:20261123',
+    'DTEND;VALUE=DATE:20261128',
+    'SUMMARY:Thanksgiving',
+    '  Break',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'DTSTART:20261015T020000Z',
+    'DTEND:20261015T030000Z',
+    'SUMMARY:PTA Meeting',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'DTSTART:20261021T190000Z',
+    'SUMMARY:Minimum Day',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'DTSTART;VALUE=DATE:20260901',
+    'SUMMARY:Labor Day',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  it('keeps days off and short days, with ranges, and drops timed meetings and past dates', () => {
+    expect(factsFromIcs(ics, 'Lincoln', NOW)).toEqual([
+      { date: '2026-10-12', end: null, title: "Indigenous Peoples' Day - No School", kind: 'no_school', source: 'Lincoln' },
+      { date: '2026-10-21', end: null, title: 'Minimum Day', kind: 'early_release', source: 'Lincoln' },
+      { date: '2026-11-23', end: '2026-11-27', title: 'Thanksgiving Break', kind: 'no_school', source: 'Lincoln' },
+    ]);
+  });
+
+  it('tells closures from events that mention them', () => {
+    expect(classify('Veterans Day')).toBe('no_school');
+    expect(classify('Teacher Workday')).toBe('no_school');
+    expect(classify('Holiday Concert')).toBe('event');
+    expect(classify('Early Release')).toBe('early_release');
+    expect(classify('Picture Day')).toBe('event');
+  });
+
+  it('finds facts touching a window', () => {
+    const facts = factsFromIcs(ics, 'Lincoln', NOW);
+    expect(factsBetween(facts, '2026-11-25', '2026-11-30').map((f) => f.title)).toEqual(['Thanksgiving Break']);
   });
 });

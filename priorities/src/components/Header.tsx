@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Copy, LogOut, UtensilsCrossed } from 'lucide-react';
+import { BookText, Copy, LogOut, UtensilsCrossed } from 'lucide-react';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { emojiPairFor } from '../lib/emoji';
 import { formatDate, today } from '../lib/dates';
 import { usePriorities } from '../state/PrioritiesContext';
 import { initial } from '../lib/format';
 
-export function Header() {
+export function Header({ onHouseRules }: { onHouseRules: () => void }) {
   const { user, household, nameOf, store } = usePriorities();
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -71,6 +71,16 @@ export function Header() {
             </button>
           </div>
 
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onHouseRules();
+            }}
+            className="btn-outlined w-full"
+          >
+            <BookText size={18} /> House rules and school calendar
+          </button>
           <a href="/Mise/meals/" className="btn-outlined w-full">
             <UtensilsCrossed size={18} /> Open Mise (meals)
           </a>

@@ -29,7 +29,11 @@ export interface NewTaskInput {
   deadline?: DateString | null;
   repeat?: Task['repeat'];
   source_url?: string | null;
-  rank?: number;
+  kind?: Task['kind'];
+  /** Checks: the date in question. */
+  when?: DateString | null;
+  when_end?: DateString | null;
+  radar_key?: string | null;
 }
 
 export function buildTask(input: NewTaskInput, actor: Actor, at: IsoString): Task {
@@ -43,11 +47,14 @@ export function buildTask(input: NewTaskInput, actor: Actor, at: IsoString): Tas
     horizon: input.horizon ?? 'now',
     do_by: input.do_by ?? null,
     deadline: input.deadline ?? null,
-    rank: input.rank ?? Date.now(),
+    kind: input.kind ?? 'task',
+    order: null,
     done_at: null,
     done_by: null,
     outcome_note: null,
-    when: null,
+    when: input.when ?? null,
+    when_end: input.when_end ?? null,
+    radar_key: input.radar_key ?? null,
     steps: [],
     repeat: input.repeat ?? null,
     series_id: null,
@@ -57,6 +64,12 @@ export function buildTask(input: NewTaskInput, actor: Actor, at: IsoString): Tas
     created_by: { uid: actor.uid, via: actor.via },
     history: [historyEntry(actor, 'added', at)],
   };
+}
+
+export interface CompleteDetails {
+  outcome_note?: string | null;
+  when?: DateString | null;
+  when_end?: DateString | null;
 }
 
 export interface CompleteResult {
@@ -69,7 +82,7 @@ export function completeTask(
   task: Task,
   actor: Actor,
   at: IsoString,
-  details: { outcome_note?: string | null; when?: DateString | null } = {},
+  details: CompleteDetails = {},
 ): CompleteResult {
   const doneOn = localDay(at);
   const update: Partial<Task> = {
@@ -77,6 +90,7 @@ export function completeTask(
     done_by: actor.uid,
     outcome_note: details.outcome_note ?? task.outcome_note,
     when: details.when ?? task.when,
+    when_end: details.when_end !== undefined ? details.when_end : (task.when_end ?? null),
     history: [...task.history, historyEntry(actor, 'done', at)],
   };
 
@@ -96,6 +110,9 @@ export function completeTask(
       done_by: null,
       outcome_note: null,
       when: null,
+      when_end: null,
+      order: null,
+      radar_key: null,
       steps: task.steps.map((s) => ({ ...s, done_at: null, do_by: null })),
       series_id: seriesId,
       notes: [],
@@ -134,14 +151,26 @@ export function stepProgress(task: Task) {
   return { done, total: task.steps.length, next };
 }
 
-/** Sort for open tasks: manual rank in Now, then by date, then by creation. */
+/**
+ * Where an open task sits in its section, lower first: its manual position if
+ * someone dragged it, otherwise its date (undated tasks by when they were added).
+ * Both are milliseconds, so a dragged task lands among dated ones sensibly.
+ */
+export function orderKey(task: Task): number {
+  if (typeof task.order === 'number') return task.order;
+  const date = effectiveDate(task);
+  return date ? Date.parse(`${date}T12:00:00Z`) : Date.parse(task.created_at);
+}
+
 export function compareOpen(a: Task, b: Task): number {
-  const da = effectiveDate(a);
-  const db = effectiveDate(b);
-  if (da !== db) {
-    if (!da) return 1;
-    if (!db) return -1;
-    return da < db ? -1 : 1;
-  }
-  return a.created_at < b.created_at ? -1 : 1;
+  return orderKey(a) - orderKey(b) || (a.created_at < b.created_at ? -1 : 1);
+}
+
+/** The order for a task dropped between two others (either may be missing at the ends). */
+export function orderBetween(before: Task | undefined, after: Task | undefined): number {
+  const HOUR = 3_600_000;
+  if (before && after) return (orderKey(before) + orderKey(after)) / 2;
+  if (before) return orderKey(before) + HOUR;
+  if (after) return orderKey(after) - HOUR;
+  return 0;
 }

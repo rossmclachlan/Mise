@@ -29,10 +29,12 @@ have side-by-side scopes so each installs as its own app.
 
 ## Priorities
 
-A second app in this repo: a shared to-do list for the two of us, served at
-`/Mise/priorities/` and installable as its own home-screen app. It shows this
-week's tasks first, keeps what's already been taken care of in view, and
-folds This month and Later away.
+A second app in this repo: our shared 6-week radar for family life admin,
+served at `/Mise/priorities/` and installable as its own home-screen app. Its
+sections are 🔴 Needs action now, ⚠️ Potential gaps, 🟢 Already handled,
+🟡 Coming up (6 weeks) and ⚪ Not yet. House rules and the school calendar
+feeds live on its House rules page; a weekly radar in each of our Claudes fills
+it through the MCP Worker (`mcp-worker/`), which also reads the feeds daily.
 
 - Code: `priorities/` (entry `priorities/index.html`, source `priorities/src/`), built by
   `vite.priorities.config.ts` into `dist/priorities/` after Mise.

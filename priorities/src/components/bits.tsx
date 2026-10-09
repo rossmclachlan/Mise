@@ -1,11 +1,11 @@
-import { Check, GripVertical, Link2, Repeat, StickyNote } from 'lucide-react';
+import { Check, GripVertical, Link2, Plus, Repeat, StickyNote } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
 import { effectiveDate, isOverdue } from '../lib/horizon';
 import { stepProgress } from '../lib/ops';
 import { describeRepeat } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
-import { initial, outcomeLine } from '../lib/format';
+import { formatWhen, initial, outcomeLine } from '../lib/format';
 
 /** Who a shared task is on: R, E, R+E, or a dashed ? when nobody has it yet. */
 export function OwnerChip({ task }: { task: Task }) {
@@ -121,5 +121,35 @@ export function TakenCareRow({ task, onOpen }: { task: Task; onOpen: () => void 
         <span className="line-clamp-2 text-[13px] text-ink-variant">{line}</span>
       </span>
     </button>
+  );
+}
+
+/** A potential gap the radar raised: the question, its date, and the two answers. */
+export function GapRow({ task, onOpen, onCovered }: { task: Task; onOpen: () => void; onCovered: () => void }) {
+  const { update } = usePriorities();
+  return (
+    <div className="flex flex-col gap-2 py-3">
+      <button type="button" onClick={onOpen} className="flex min-w-0 items-start gap-2 text-left">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[15px] font-semibold text-ink">{task.title}</span>
+          <span className="text-[13px] text-ink-variant">
+            {[task.when && formatWhen(task.when, task.when_end), task.notes[0]?.text].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+        <OwnerChip task={task} />
+      </button>
+      <div className="flex gap-2">
+        <button type="button" onClick={onCovered} className="chip flex-1 bg-surface">
+          <Check size={15} /> We’re covered
+        </button>
+        <button
+          type="button"
+          onClick={() => update(task, { kind: 'task', deadline: task.deadline ?? task.when, order: null }, 'added to the list')}
+          className="chip flex-1 bg-surface"
+        >
+          <Plus size={15} /> Needs doing
+        </button>
+      </div>
+    </div>
   );
 }

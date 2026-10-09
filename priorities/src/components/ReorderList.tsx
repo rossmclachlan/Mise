@@ -1,22 +1,29 @@
 import { useRef, useState } from 'react';
 import type { Task } from '../types';
 import { usePriorities } from '../state/PrioritiesContext';
+import { orderBetween } from '../lib/ops';
 import { TaskRow } from './bits';
 
 /**
- * The Now list, reorderable by dragging a row's handle. Dropping a row gives
- * it a rank halfway between its new neighbours, so only one document changes.
+ * A section's tasks, reorderable by dragging a row's handle. Dropping a row
+ * gives it an order halfway between its new neighbours, so only one document
+ * changes. With `topThree`, the first three are marked as the week's top 3.
  */
-export function NowList({
+export function ReorderList({
   tasks,
   now,
   onTick,
   onOpen,
+  topThree,
+  bare,
 }: {
   tasks: Task[];
   now: string;
   onTick: (t: Task) => void;
   onOpen: (id: string) => void;
+  topThree?: boolean;
+  /** Rows only, for a list inside another card. */
+  bare?: boolean;
 }) {
   const { update } = usePriorities();
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -49,20 +56,14 @@ export function NowList({
     const { from, to } = drag;
     setDrag(null);
     if (from === to) return;
-    const order = tasks.filter((_, i) => i !== from);
-    const before = order[to - 1];
-    const after = order[to];
-    const rank =
-      before && after
-        ? (before.rank + after.rank) / 2
-        : before
-          ? before.rank + 1000
-          : after.rank - 1000;
-    await update(tasks[from], { rank }, 'reordered');
+    const rest = tasks.filter((_, i) => i !== from);
+    await update(tasks[from], { order: orderBetween(rest[to - 1], rest[to]) }, 'reordered');
   }
 
+  const marked = topThree && tasks.length > 3;
+
   return (
-    <div className="card divide-y divide-outline px-4">
+    <div className={bare ? 'divide-y divide-outline' : 'card divide-y divide-outline px-4'}>
       {tasks.map((t, i) => {
         const dragging = drag?.from === i;
         const showLine = drag && !dragging && drag.to === i && drag.from !== drag.to;
@@ -75,6 +76,8 @@ export function NowList({
             className={`relative ${dragging ? 'z-10 rounded-xl bg-surface shadow-lg' : ''}`}
             style={dragging ? { transform: `translateY(${drag.offset}px)` } : undefined}
           >
+            {marked && i === 0 && <p className="label-section pt-3 text-accent">Top 3 this week</p>}
+            {marked && i === 3 && <p className="label-section pt-3">Then</p>}
             {showLine && (
               <div
                 className={`absolute inset-x-0 h-0.5 bg-accent ${drag.to > drag.from ? 'bottom-0' : 'top-0'}`}

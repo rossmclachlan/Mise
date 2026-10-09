@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Horizon, ListKind } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { usePriorities } from '../state/PrioritiesContext';
+import { HORIZON_SHORT } from '../lib/format';
 
 /** Title, when, whose. Everything else can be filled in later, or by Claude. */
 export function QuickAddSheet({
@@ -47,7 +48,7 @@ function Form({ onClose, defaultList }: { onClose: () => void; defaultList: List
       <div className="flex gap-2">
         {(['now', 'month', 'later'] as const).map((h) => (
           <button key={h} type="button" className={chip(horizon === h)} onClick={() => setHorizon(h)}>
-            {h === 'now' ? 'Now' : h === 'month' ? 'This month' : 'Later'}
+            {HORIZON_SHORT[h]}
           </button>
         ))}
       </div>

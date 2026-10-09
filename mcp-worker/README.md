@@ -11,9 +11,15 @@ whoever connected it, and only ever sees the shared list plus that person's own 
   bypasses security rules, so `src/tasks.ts` enforces the same visibility as the rules.
 - **Logic:** the task rules (horizons, repeats, completing, deferring) are imported from the
   app, `../priorities/src/lib`, so Claude and the app behave the same.
-- **Guidance:** `src/guidance.ts` holds the server instructions Claude gets on connect, the
-  starting draft of the house rules (the live copy is in the household document once edited)
-  and the *Plan my week* prompt.
+- **Guidance:** `src/guidance.ts` holds the server instructions Claude gets on connect and the
+  *Weekly radar* prompt. The house rules' starting draft is `../priorities/src/lib/houseRules.ts`;
+  the live copy is in the household document once edited (in the app or by Claude).
+- **Radar:** `start_radar` / `finish_radar` let both our weekly runs share the work: the first run
+  in 5 days does the shared sweep, and `radar_key` stops either run adding something already
+  tracked or answered. `check_coverage` answers "is this day covered?".
+- **School calendar:** a daily cron (`triggers` in `wrangler.jsonc`) reads the iCal feeds listed on
+  the app's House rules page into the household document (`src/calendar.ts`); `add_school_dates`
+  adds dates by hand.
 
 ## Deploying
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
-import type { DateString, Household, Horizon, Note, Step, Task } from '../types';
+import type { CalendarFeed, Household, Horizon, Note, Step, Task } from '../types';
 import type { SignedInUser, Store } from '../data/store';
 import { today } from '../lib/dates';
 import { moveToHorizon } from '../lib/horizon';
@@ -12,6 +12,7 @@ import {
   reopenTask,
   skipOccurrence,
   type Actor,
+  type CompleteDetails,
   type NewTaskInput,
 } from '../lib/ops';
 
@@ -25,13 +26,15 @@ export interface Priorities {
 
   addTask(input: NewTaskInput): Promise<void>;
   update(task: Task, update: Partial<Task>, what?: string): Promise<void>;
-  complete(task: Task, details?: { outcome_note?: string | null; when?: DateString | null }): Promise<{ nextId: string | null }>;
+  complete(task: Task, details?: CompleteDetails): Promise<{ nextId: string | null }>;
   reopen(task: Task, deleteNextId?: string | null): Promise<void>;
   skip(task: Task): Promise<void>;
   remove(task: Task): Promise<void>;
   moveTo(task: Task, horizon: Horizon): Promise<void>;
   addNote(task: Task, text: string): Promise<void>;
   setSteps(task: Task, steps: Step[], what?: string): Promise<void>;
+  saveHouseRules(text: string): Promise<void>;
+  saveFeeds(feeds: CalendarFeed[]): Promise<void>;
 }
 
 const Ctx = createContext<Priorities | null>(null);
@@ -111,6 +114,17 @@ export function PrioritiesProvider({
     },
     async setSteps(task, steps, what) {
       await update(task, { steps }, what);
+    },
+    async saveHouseRules(text) {
+      // Keeps the last 20 versions, as Claude's update_house_rules does.
+      const history = [...(household.house_rules ? [household.house_rules] : []), ...(household.house_rules_history ?? [])].slice(0, 20);
+      await store.updateHousehold(hid, {
+        house_rules: { text, updated_at: stamp(), updated_by: user.uid },
+        house_rules_history: history,
+      });
+    },
+    async saveFeeds(feeds) {
+      await store.updateHousehold(hid, { calendar_feeds: feeds });
     },
   };
 

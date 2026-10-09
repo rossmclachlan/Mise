@@ -1,8 +1,9 @@
-import { CircleCheckBig, ListTodo, Plus } from 'lucide-react';
+import { BookText, CircleCheckBig, ListTodo, Plus } from 'lucide-react';
 
-export type Section = 'open' | 'done';
+/** The two main sections, plus the house rules page (opened from the menu, or the sidebar). */
+export type Section = 'open' | 'done' | 'rules';
 
-const ITEMS: { section: Section; label: string; Icon: typeof ListTodo }[] = [
+const ITEMS: { section: Exclude<Section, 'rules'>; label: string; Icon: typeof ListTodo }[] = [
   { section: 'open', label: 'Open', Icon: ListTodo },
   { section: 'done', label: 'Done', Icon: CircleCheckBig },
 ];
@@ -75,6 +76,16 @@ export function SideNav({ active, onChange, openCount, onAdd }: NavProps & { onA
           </button>
         );
       })}
+      <button
+        type="button"
+        onClick={() => onChange('rules')}
+        aria-current={active === 'rules' ? 'page' : undefined}
+        className={`mt-auto flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+          active === 'rules' ? 'bg-accent-container text-on-accent-container' : 'text-ink-variant hover:bg-surface-variant'
+        }`}
+      >
+        <BookText size={18} /> House rules
+      </button>
     </nav>
   );
 }
