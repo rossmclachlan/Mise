@@ -17,6 +17,11 @@ function Spinner() {
 
 const LOADING = Symbol('loading');
 
+/** Sign-in, setup and error screens stay phone-width, centered on wide screens. */
+function Narrow({ children }: { children: React.ReactNode }) {
+  return <div className="mx-auto flex h-full w-full max-w-[480px] flex-col">{children}</div>;
+}
+
 /** Shown instead of an endless spinner when Firebase refuses or fails. */
 function ErrorScreen({ error, store }: { error: Error; store: Store }) {
   const code = (error as { code?: string }).code;
@@ -59,9 +64,9 @@ function SignedIn({ store, user }: { store: Store; user: SignedInUser }) {
     };
   }, [store, hid, user.uid]);
 
-  if (error) return <ErrorScreen error={error} store={store} />;
+  if (error) return <Narrow><ErrorScreen error={error} store={store} /></Narrow>;
   if (household === LOADING) return <Spinner />;
-  if (!household) return <HouseholdSetup store={store} user={user} />;
+  if (!household) return <Narrow><HouseholdSetup store={store} user={user} /></Narrow>;
   if (!tasks) return <Spinner />;
   return (
     <PrioritiesProvider store={store} user={user} household={household} tasks={tasks}>
@@ -77,14 +82,7 @@ export default function App({ store }: { store: Store }) {
   useEffect(() => store.onAuth(setUser), [store]);
 
   return (
-    <div className="fixed inset-0 mx-auto flex max-w-[480px] flex-col bg-bg text-ink">
-      {user === LOADING ? (
-        <Spinner />
-      ) : user ? (
-        <SignedIn store={store} user={user} />
-      ) : (
-        <LoginScreen store={store} />
-      )}
+    <div className="fixed inset-0 flex flex-col bg-bg text-ink">
       {needsRefresh && (
         <div className="flex items-center justify-between bg-accent-container px-4 py-2.5">
           <span className="text-sm font-medium text-on-accent-container">Update available</span>
@@ -96,6 +94,15 @@ export default function App({ store }: { store: Store }) {
             Install
           </button>
         </div>
+      )}
+      {user === LOADING ? (
+        <Spinner />
+      ) : user ? (
+        <SignedIn store={store} user={user} />
+      ) : (
+        <Narrow>
+          <LoginScreen store={store} />
+        </Narrow>
       )}
     </div>
   );

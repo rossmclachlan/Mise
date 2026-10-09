@@ -8,9 +8,11 @@ interface BottomSheetProps {
   children: ReactNode;
   /** Take up most of the viewport, for longer forms like Add Recipe. */
   tall?: boolean;
+  /** On wide screens, show as a centered dialog instead of a bottom sheet. */
+  dialogOnWide?: boolean;
 }
 
-export function BottomSheet({ isOpen, onClose, title, children, tall }: BottomSheetProps) {
+export function BottomSheet({ isOpen, onClose, title, children, tall, dialogOnWide }: BottomSheetProps) {
   if (!isOpen) return null;
 
   return (
@@ -24,10 +26,10 @@ export function BottomSheet({ isOpen, onClose, title, children, tall }: BottomSh
       <div
         className={`relative flex w-full max-w-[480px] flex-col self-end rounded-t-[28px] bg-surface shadow-xl ${
           tall ? 'h-[92vh]' : 'max-h-[85vh]'
-        }`}
+        } ${dialogOnWide ? `md:mx-4 md:self-center md:rounded-[28px] md:max-w-[560px] ${tall ? 'md:h-[85vh]' : ''}` : ''}`}
       >
         <div className="flex shrink-0 flex-col items-center pt-2.5">
-          <div className="h-1.5 w-10 rounded-full bg-outline" />
+          <div className={`h-1.5 w-10 rounded-full bg-outline ${dialogOnWide ? 'md:invisible' : ''}`} />
           {title && (
             <div className="mt-2 flex w-full items-center justify-between px-4 pb-2">
               <h2 className="text-lg font-semibold text-ink">{title}</h2>

@@ -10,7 +10,7 @@ import { DateField } from './DateField';
  */
 export function DoneDetailsSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
   return (
-    <BottomSheet isOpen={task !== null} onClose={onClose} title={task?.done_at ? 'Details' : 'Mark done'}>
+    <BottomSheet dialogOnWide isOpen={task !== null} onClose={onClose} title={task?.done_at ? 'Details' : 'Mark done'}>
       {task && <Form key={task.id} task={task} onClose={onClose} />}
     </BottomSheet>
   );

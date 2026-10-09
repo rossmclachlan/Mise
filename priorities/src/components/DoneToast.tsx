@@ -17,7 +17,7 @@ export function DoneToast({
   onDetails: () => void;
 }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto flex max-w-[480px] justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+10rem)] z-40 mx-auto flex max-w-[480px] justify-center px-4 md:bottom-8 md:left-56">
       <div
         role="status"
         className="pointer-events-auto flex w-full items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-xl"
