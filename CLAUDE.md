@@ -27,3 +27,7 @@
   `deploy-mcp-worker.yml`. It imports the app's logic from `priorities/src/lib`, so
   changes there affect both; run `npm run type-check` in `mcp-worker/` too.
   `skills/priorities/SKILL.md` is the matching Claude skill.
+- `mise-mcp/` is Mise's MCP server (Cloudflare Worker), deployed by
+  `deploy-mise-mcp.yml`. It imports `src/types.ts` and `src/utils` from the app and
+  `mcp-worker/src/firestore.ts`; run `npm run type-check` in `mise-mcp/` after
+  changing those.

@@ -1,0 +1,37 @@
+/**
+ * Mise's MCP server: lets Claude read and edit the meal plan, grocery lists and recipes.
+ * Setup and deploy: see README.md.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mise-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+  /**
+   * Secret (never in this file): FIREBASE_SERVICE_ACCOUNT, the service-account
+   * key JSON (the same one the Priorities Worker uses).
+   */
+  "vars": {
+    // Same Firebase project as the apps. Neither value is secret: both ship in the apps' web config.
+    "FIREBASE_PROJECT_ID": "<firebase-project-id>",
+    "FIREBASE_API_KEY": "<firebase-web-api-key>",
+    // The shared Mise account (must match firestore.rules).
+    "ALLOWED_UIDS": "OY6CbOwlq9aXV5tiJ6FdDdSYMB12",
+    // "Today" is counted in this time zone.
+    "TIMEZONE": "America/Los_Angeles"
+  },
+  "migrations": [{ "new_sqlite_classes": ["MiseMCP"], "tag": "v1" }],
+  "durable_objects": {
+    "bindings": [{ "class_name": "MiseMCP", "name": "MCP_OBJECT" }]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      // Filled in by deploy-mise-mcp.yml (found or created by name, not a secret).
+      "id": "<Add-KV-ID>"
+    }
+  ],
+  "observability": { "enabled": true },
+  "dev": { "port": 8790 }
+}

@@ -126,6 +126,8 @@ export type FieldFilter = [field: string, op: "EQUAL" | "ARRAY_CONTAINS", value:
 export type Write =
 	| { kind: "create"; path: string; data: Record<string, unknown> }
 	| { kind: "update"; path: string; data: Record<string, unknown> }
+	/** Writes whether or not the document exists: replaces it, or with merge only touches these fields. */
+	| { kind: "set"; path: string; data: Record<string, unknown>; merge?: boolean }
 	| { kind: "delete"; path: string };
 
 export class Firestore {
@@ -198,6 +200,10 @@ export class Firestore {
 				const fields = toFields(w.data);
 				if (w.kind === "create") {
 					return { update: { name: name(w.path), fields }, currentDocument: { exists: false } };
+				}
+				if (w.kind === "set") {
+					if (!w.merge) return { update: { name: name(w.path), fields } };
+					return { update: { name: name(w.path), fields }, updateMask: { fieldPaths: Object.keys(fields).map(quoteFieldPath) } };
 				}
 				return {
 					update: { name: name(w.path), fields },
