@@ -9,6 +9,7 @@ import {
 import { categoriseItem } from '../../utils/categorise';
 import { BottomSheet } from './BottomSheet';
 import { CategoryIcon } from './CategoryIcon';
+import { Scribble } from './Scribble';
 
 export interface ChecklistItem {
   id: string;
@@ -142,7 +143,7 @@ export function ChecklistSection({
                   >
                     <span
                       className={`checkbox-indicator ${large ? 'h-7 w-7' : 'h-5 w-5'} ${
-                        item.checked ? 'border-accent bg-accent text-white' : 'border-outline'
+                        item.checked ? 'hg-bounce border-ink bg-second text-white' : 'border-ink-variant/50 bg-surface'
                       }`}
                     >
                       {item.checked && <Check size={large ? 18 : 14} strokeWidth={3} />}
@@ -170,23 +171,23 @@ export function ChecklistSection({
                   >
                     <span
                       className={`checkbox-indicator ${large ? 'h-7 w-7' : 'h-5 w-5'} ${
-                        item.checked ? 'border-accent bg-accent text-white' : 'border-outline'
+                        item.checked ? 'hg-bounce border-ink bg-second text-white' : 'border-ink-variant/50 bg-surface'
                       }`}
                     >
                       {item.checked && <Check size={large ? 18 : 14} strokeWidth={3} />}
                     </span>
                     <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                       <span
-                        className={`min-w-0 truncate ${large ? 'text-lg' : 'text-sm'} ${
-                          item.checked ? 'text-ink-variant line-through' : 'text-ink'
+                        className={`relative min-w-0 truncate ${large ? 'text-lg' : 'text-sm'} ${
+                          item.checked ? 'text-ink-variant' : 'text-ink'
                         }`}
                       >
                         {item.text}
+                        {item.checked && <Scribble />}
                       </span>
                       {isInSupplies(item) && (
                         <span
-                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          style={{ backgroundColor: '#F1F5F9', color: '#334155' }}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-second-container px-2 py-0.5 text-[10px] font-bold text-on-second-container"
                         >
                           <Package size={10} /> In Stock
                         </span>

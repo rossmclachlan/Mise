@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { ChefHat } from 'lucide-react';
+import { Seal } from '../ui/Seal';
 import { auth } from '../../lib/firebase';
 
 export function LoginScreen() {
@@ -25,10 +25,8 @@ export function LoginScreen() {
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 pb-16">
       <div className="mb-10 flex flex-col items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-container">
-          <ChefHat size={32} className="text-on-accent-container" />
-        </div>
-        <h1 className="font-display text-4xl text-accent">mis en pizza 🍕</h1>
+        <Seal emoji="🍕" size={88} tone="accent" />
+        <h1 className="mt-2 font-display text-5xl text-accent">mis en pizza</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-3">

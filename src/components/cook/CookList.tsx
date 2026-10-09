@@ -20,7 +20,7 @@ export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
   return (
     <div className="relative h-full overflow-hidden">
       <div className="h-full overflow-y-auto px-4 pb-24 pt-4">
-        <h1 className="mb-4 text-2xl font-bold">Cook</h1>
+        <h1 className="heading-page mb-4">Cook</h1>
 
         <div className="input-field mb-4 flex items-center gap-2">
           <Search size={18} className="text-ink-variant" />
@@ -49,6 +49,7 @@ export function CookList({ recipes, onSelect, onAdd }: CookListProps) {
                     <RecipeImage
                       src={recipe.image}
                       alt={recipe.title}
+                      seed={recipe.title}
                       className="h-14 w-14 shrink-0 rounded-xl"
                       iconSize={22}
                     />

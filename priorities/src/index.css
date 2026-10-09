@@ -1,89 +1,26 @@
 @import "tailwindcss";
+/* The foundation shared with Mise; this file only sets Priorities' own colours and face. */
+@import "../../src/components/ui/brand.css";
 
-/* Shared UI kit from Mise (BottomSheet, PillToggle) reads these same token names. */
+/* Shared UI kit from Mise (BottomSheet, PillToggle, Seal, LookPicker) reads these same token names. */
 @source "../../src/components/ui";
 
+/* Priorities: the garden. Moss, lilac and sage. */
 @theme {
-  --color-bg: #F7F6F1;
-  --color-surface: #FFFFFF;
-  --color-surface-variant: #EEF1F4;
-  --color-accent: #3D5A80;
-  --color-accent-container: #DCE6F2;
-  --color-on-accent-container: #1F3350;
-  --color-ink: #1B1D20;
-  --color-ink-variant: #6B7079;
-  --color-outline: #DFE2E6;
-  --color-error: #DC2626;
-  --color-error-container: #FEE2E2;
-  --color-on-error-container: #7F1D1D;
-  --color-good: #2E7D4F;
-  --color-good-container: #E4F2E8;
-  --color-on-good-container: #1B4D30;
-  --color-late: #A15C07;
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --color-bg: #EDF1E2;
+  --color-surface: #FFFFFB;
+  --color-surface-variant: #E3E9D6;
+  --color-outline: #D3DBC4;
+  --color-accent: #2D6A57;
+  --color-accent-container: #D3E8DA;
+  --color-on-accent-container: #173D31;
+  /* Lilac: the second person, and the mushroom nod. */
+  --color-second: #A792F0;
+  --color-second-container: #E8E1FF;
+  --color-on-second-container: #3E2C8A;
   /* Potential gaps: amber, a question rather than an alarm. */
   --color-warn: #B7791F;
   --color-warn-container: #FDF3DC;
   --color-on-warn-container: #6B4A0F;
-}
-
-@layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-  }
-
-  body {
-    margin: 0;
-    background-color: var(--color-bg);
-    color: var(--color-ink);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  button {
-    font-family: inherit;
-  }
-}
-
-@layer components {
-  .card {
-    @apply rounded-2xl bg-surface shadow-[0_1px_3px_rgba(20,24,30,0.07),0_2px_12px_rgba(20,24,30,0.04)];
-  }
-
-  .label-section {
-    @apply text-[11px] font-extrabold uppercase tracking-[0.1em] text-ink-variant;
-  }
-
-  .btn-filled {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition active:opacity-90 disabled:opacity-40 disabled:shadow-none;
-  }
-
-  .btn-tonal {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent-container px-5 py-2.5 text-sm font-semibold text-on-accent-container transition active:opacity-80 disabled:opacity-40;
-  }
-
-  .btn-outlined {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-outline bg-transparent px-5 py-2.5 text-sm font-semibold text-ink transition active:bg-surface-variant disabled:opacity-40;
-  }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-error-container bg-transparent px-5 py-2.5 text-sm font-semibold text-error transition active:bg-error-container disabled:opacity-40;
-  }
-
-  .input-field {
-    @apply rounded-xl border border-outline bg-surface px-3 py-2.5 text-base text-ink placeholder:text-ink-variant focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15;
-  }
-
-  .chip {
-    @apply inline-flex items-center justify-center gap-1 rounded-full border border-outline px-3 py-1.5 text-sm font-medium text-ink transition active:bg-surface-variant;
-  }
-
-  .chip-on {
-    @apply border-accent bg-accent-container text-on-accent-container;
-  }
-
-  .fab {
-    @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg active:shadow-md;
-  }
 }

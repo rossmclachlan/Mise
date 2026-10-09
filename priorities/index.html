@@ -5,10 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/Mise/priorities/icon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/Mise/priorities/icon-180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#3D5A80" />
+    <meta name="theme-color" content="#EDF1E2" />
     <meta name="description" content="Priorities - our week, taken care of" />
     <meta name="apple-mobile-web-app-title" content="Priorities" />
     <title>Priorities</title>
+    <script>
+      // The Look setting (src/components/ui/whimsy.ts), applied before first paint.
+      try {
+        var look = localStorage.getItem('homegrown:look');
+        if (look === 'calm' || look === 'sunny') document.documentElement.dataset.whimsy = look;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

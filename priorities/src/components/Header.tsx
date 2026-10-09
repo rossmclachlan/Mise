@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BookText, Copy, LogOut, UtensilsCrossed } from 'lucide-react';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
+import { LookPicker } from '../../../src/components/ui/LookPicker';
+import { Seal } from '../../../src/components/ui/Seal';
 import { emojiPairFor } from '../lib/emoji';
 import { formatDate, today } from '../lib/dates';
 import { usePriorities } from '../state/PrioritiesContext';
@@ -26,27 +28,32 @@ export function Header({ onHouseRules }: { onHouseRules: () => void }) {
 
   return (
     <>
-      <header className="z-40 flex shrink-0 items-center justify-between border-b border-outline bg-surface px-4 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.625rem)]">
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl" role="img" aria-label="Priorities">
-            {emoji}
+      <header className="z-40 flex shrink-0 items-center justify-between border-b-[1.5px] border-outline bg-bg px-4 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.625rem)]">
+        <div className="flex items-center gap-2.5">
+          <Seal emoji={emoji} size={42} tone="sun" pair label="Priorities" />
+          <span className="flex flex-col">
+            <span className="font-display text-[24px] leading-none text-accent" aria-hidden>
+              priorities
+            </span>
+            <span className="mt-0.5 text-xs font-semibold text-ink-variant">{formatDate(today())}</span>
           </span>
-          <span className="text-sm text-ink-variant">{formatDate(today())}</span>
         </div>
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-label="Menu"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-accent-container font-semibold text-on-accent-container active:opacity-80"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-ink bg-accent-container font-extrabold text-on-accent-container active:opacity-80"
         >
           {initial(myName)}
-          {alone && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-accent" />}
+          {alone && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-[1.5px] border-ink bg-sun" />}
         </button>
       </header>
 
       <BottomSheet dialogOnWide isOpen={menuOpen} onClose={() => setMenuOpen(false)} title={myName}>
         <div className="flex flex-col gap-4 pb-4">
           <p className="truncate text-sm text-ink-variant">{user.email}</p>
+
+          <LookPicker />
 
           <div className="rounded-2xl bg-surface-variant p-3">
             <p className="text-sm font-semibold text-ink">

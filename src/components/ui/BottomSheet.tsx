@@ -20,19 +20,26 @@ export function BottomSheet({ isOpen, onClose, title, children, tall, dialogOnWi
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-ink/40"
         onClick={onClose}
       />
       <div
-        className={`relative flex w-full max-w-[480px] flex-col self-end rounded-t-[28px] bg-surface shadow-xl ${
+        className={`relative flex w-full max-w-[480px] flex-col self-end rounded-t-[28px] border-2 border-b-0 border-ink bg-surface shadow-xl ${
           tall ? 'h-[92vh]' : 'max-h-[85vh]'
-        } ${dialogOnWide ? `md:mx-4 md:self-center md:rounded-[28px] md:max-w-[560px] ${tall ? 'md:h-[85vh]' : ''}` : ''}`}
+        } ${dialogOnWide ? `md:mx-4 md:self-center md:rounded-[28px] md:border-b-2 md:max-w-[560px] ${tall ? 'md:h-[85vh]' : ''}` : ''}`}
       >
         <div className="flex shrink-0 flex-col items-center pt-2.5">
-          <div className={`h-1.5 w-10 rounded-full bg-outline ${dialogOnWide ? 'md:invisible' : ''}`} />
+          {/* The grab handle is a little squiggle. */}
+          <svg
+            viewBox="0 0 44 8"
+            aria-hidden
+            className={`h-2 w-11 fill-none stroke-ink-variant ${dialogOnWide ? 'md:invisible' : ''}`}
+          >
+            <path d="M2 4 Q7.5 0 13 4 T24 4 T35 4 T42 4" strokeWidth="3" strokeLinecap="round" />
+          </svg>
           {title && (
             <div className="mt-2 flex w-full items-center justify-between px-4 pb-2">
-              <h2 className="text-lg font-semibold text-ink">{title}</h2>
+              <h2 className="heading-section">{title}</h2>
               <button
                 type="button"
                 onClick={onClose}

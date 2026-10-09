@@ -1,120 +1,32 @@
 @import "tailwindcss";
+/* The foundation shared with Priorities; this file only sets Mise's own colours and face. */
+@import "./components/ui/brand.css";
 
-@font-face {
-  font-family: "Lobster";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("./assets/fonts/lobster-latin.woff2") format("woff2");
-}
-
+/* Mise: the kitchen. Tomato, basil and butter. */
 @theme {
-  --font-display: "Lobster", system-ui, sans-serif;
-  --color-bg: #FFFCF5;
-  --color-surface: #FFFFFF;
-  --color-surface-variant: #FFF5EA;
-  --color-accent: #C2410C;
-  --color-accent-container: #FFEDD5;
-  --color-on-accent-container: #7C2D12;
-  --color-ink: #1C1915;
-  --color-ink-variant: #78706A;
-  --color-outline: #E5DDD4;
-  --color-error: #DC2626;
-  --color-error-container: #FEE2E2;
-  --color-on-error-container: #7F1D1D;
-}
-
-@layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-  }
-
-  body {
-    margin: 0;
-    background-color: var(--color-bg);
-    color: var(--color-ink);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      Roboto, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  button {
-    font-family: inherit;
-  }
-
-  h1 {
-    letter-spacing: -0.02em;
-    font-weight: 800;
-  }
+  --font-display: "Shrikhand", "Cooper Black", Georgia, serif;
+  --color-bg: #FFF5D6;
+  --color-surface: #FFFDF6;
+  --color-surface-variant: #FBEFCB;
+  --color-outline: #EBDCB8;
+  --color-accent: #E04A2F;
+  --color-accent-container: #FFDCCF;
+  --color-on-accent-container: #7A2312;
+  /* Basil: done, ticked and in stock. */
+  --color-second: #3E7B3A;
+  --color-second-container: #DCEBCB;
+  --color-on-second-container: #2D5A26;
 }
 
 @layer components {
-  /* Surfaces */
-  .card {
-    @apply rounded-2xl bg-surface shadow-[0_1px_3px_rgba(28,20,5,0.08),0_2px_12px_rgba(28,20,5,0.05)];
-  }
-
-  /* Section / group labels */
-  .label-section {
-    @apply text-[11px] font-extrabold uppercase tracking-[0.1em] text-ink-variant;
-  }
-
-  /* Buttons */
-  .btn-filled {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition active:opacity-90 disabled:opacity-40 disabled:shadow-none;
-  }
-
-  .btn-tonal {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-accent-container px-6 py-3 text-sm font-semibold text-on-accent-container transition active:opacity-80 disabled:opacity-40;
-  }
-
-  .btn-outlined {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-outline bg-transparent px-6 py-3 text-sm font-semibold text-ink transition active:bg-surface-variant disabled:opacity-40;
-  }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-error-container bg-transparent px-6 py-3 text-sm font-semibold text-error transition active:bg-error-container disabled:opacity-40;
-  }
-
-  /* Small round icon buttons */
-  .btn-icon {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-variant text-ink transition active:bg-outline/50;
-  }
-
-  /* Text inputs / textareas */
-  .input-field {
-    @apply rounded-xl border border-outline bg-surface px-3 py-2.5 text-base text-ink placeholder:text-ink-variant focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15;
-  }
-
-  /* Floating action button */
-  .fab {
-    @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg active:shadow-md;
-  }
-
-  /* M3-style square checkbox indicator */
-  .checkbox-indicator {
-    @apply flex shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors;
-  }
-
-  /* Grocery category color chips */
-  .chip-produce { background-color: #DCFCE7; color: #14532D; }
-  .chip-dairy   { background-color: #DBEAFE; color: #1E3A8A; }
-  .chip-meat    { background-color: #FEE2E2; color: #7F1D1D; }
-  .chip-fish    { background-color: #CCFBF1; color: #134E4A; }
-  .chip-bakery  { background-color: #FEF3C7; color: #78350F; }
-  .chip-pantry  { background-color: #EDE9FE; color: #4C1D95; }
-  .chip-fridge  { background-color: #DCFCE7; color: #14532D; }
-  .chip-frozen  { background-color: #E0F2FE; color: #0C4A6E; }
-  .chip-drinks  { background-color: #FCE7F3; color: #831843; }
-  .chip-other   { background-color: #F1F5F9; color: #334155; }
-
-  /* Swipeable chip rows scroll by touch, not by visible scrollbar */
-  .no-scrollbar {
-    scrollbar-width: none;
-  }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+  /* Grocery category colours */
+  .chip-produce { background-color: #DCEFD0; color: #2D5A26; }
+  .chip-dairy   { background-color: #DCEBFA; color: #23497A; }
+  .chip-meat    { background-color: #FADBD6; color: #8A2A1D; }
+  .chip-fish    { background-color: #D3EEEA; color: #1C5A52; }
+  .chip-bakery  { background-color: #FBE7C2; color: #7A4A0E; }
+  .chip-pantry  { background-color: #E8E1FF; color: #4A3696; }
+  .chip-frozen  { background-color: #DDF1FB; color: #1D5470; }
+  .chip-drinks  { background-color: #F9DCEB; color: #842A57; }
+  .chip-other   { background-color: #ECEAE2; color: #4A4A40; }
 }

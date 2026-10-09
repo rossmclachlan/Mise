@@ -13,6 +13,7 @@ import {
 } from '../lib/horizon';
 import { compareOpen } from '../lib/ops';
 import { GAPS_EMOJI, GAPS_NAME, HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
+import { Seal } from '../../../src/components/ui/Seal';
 import { usePriorities } from '../state/PrioritiesContext';
 import { useVisible } from '../state/useVisible';
 import { Header } from './Header';
@@ -123,8 +124,7 @@ export function Home() {
     setToast(null);
   }
 
-  const countLabel =
-    filter === 'mine' ? `${sections.now.length} for ${nameOf(user.uid)}` : `${sections.now.length}`;
+  const countFor = filter === 'mine' ? `for ${nameOf(user.uid)}` : null;
 
   const filterToggle = (
     <div className="flex justify-center md:justify-start">
@@ -142,14 +142,19 @@ export function Home() {
 
   const nowSection = (
     <section>
-      <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">
+      <div className="mb-2 flex items-center gap-2.5">
+        <h2 className="heading-section">
           {HORIZON_EMOJI.now} {HORIZON_NAMES.now}
         </h2>
-        <span className="text-sm text-ink-variant">{countLabel}</span>
+        {sections.now.length > 0 && <span className="count-badge">{sections.now.length}</span>}
+        {countFor && <span className="ml-auto text-sm text-ink-variant">{countFor}</span>}
       </div>
       {sections.now.length === 0 ? (
-        <p className="card px-4 py-5 text-center text-sm text-ink-variant">Nothing on this week. Enjoy it.</p>
+        <div className="card flex flex-col items-center gap-2 px-4 py-6 text-center">
+          <Seal emoji="☀️" size={56} tone="sun" />
+          <p className="font-display text-xl text-ink">Nothing on this week</p>
+          <p className="text-sm text-ink-variant">Go and sit in the sun.</p>
+        </div>
       ) : (
         <ReorderList tasks={sections.now} now={now} onTick={tick} onOpen={setOpenId} topThree />
       )}
@@ -159,11 +164,11 @@ export function Home() {
   // Only there when the radar has a question.
   const gapsSection = sections.gaps.length > 0 && (
     <section>
-      <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">
+      <div className="mb-1 flex items-center gap-2.5">
+        <h2 className="heading-section">
           {GAPS_EMOJI} {GAPS_NAME}
         </h2>
-        <span className="text-sm text-ink-variant">{sections.gaps.length}</span>
+        <span className="count-badge">{sections.gaps.length}</span>
       </div>
       <p className="mb-2 text-sm text-ink-variant">The radar couldn’t tell whether these are handled.</p>
       <div className="divide-y divide-warn/20 rounded-2xl border border-warn/30 bg-warn-container/50 px-3">
@@ -176,8 +181,8 @@ export function Home() {
 
   const takenCareOf = (
     <section>
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 className="heading-section">
           {HANDLED_EMOJI} {HANDLED_NAME}
         </h2>
         <button type="button" onClick={() => setSection('done')} className="text-sm text-ink-variant">
@@ -186,12 +191,12 @@ export function Home() {
         </button>
       </div>
       {sections.soon.length === 0 ? (
-        <p className="rounded-2xl border border-good/30 bg-good-container/50 px-4 py-4 text-sm text-ink-variant">
+        <p className="rounded-2xl border-[1.5px] border-dashed border-good bg-good-container/70 px-4 py-4 text-sm text-ink-variant">
           Nothing booked for the next six weeks yet. When you finish something with a date ahead, like an
           appointment or a camp, it shows here.
         </p>
       ) : (
-        <div className="divide-y divide-good/15 rounded-2xl border border-good/30 bg-good-container/50 px-3">
+        <div className="divide-y divide-good/20 rounded-2xl border-[1.5px] border-dashed border-good bg-good-container/70 px-3">
           {sections.soon.map((t) => (
             <TakenCareRow key={t.id} task={t} onOpen={() => setOpenId(t.id)} />
           ))}
@@ -212,9 +217,9 @@ export function Home() {
           className="flex w-full items-center justify-between py-3.5"
           aria-expanded={expanded[h]}
         >
-          <span className="text-[15px] font-bold text-ink">
+          <span className="font-display text-lg text-ink">
             {HORIZON_EMOJI[h]} {HORIZON_NAMES[h]}
-            <span className="ml-1.5 hidden font-normal text-ink-variant sm:inline">
+            <span className="ml-1.5 hidden font-sans text-sm text-ink-variant sm:inline">
               {h === 'month' ? 'next 6 weeks' : 'revisit later'}
             </span>
           </span>

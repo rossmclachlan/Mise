@@ -59,7 +59,7 @@ export function CookView({ recipe, onBack }: CookViewProps) {
         <ArrowLeft size={18} /> Back
       </button>
 
-      <h1 className="text-xl font-bold">{recipe.title}</h1>
+      <h1 className="heading-section">{recipe.title}</h1>
 
       <div className="card mt-3 flex items-center gap-3 p-3">
         <span className="font-medium">Servings</span>

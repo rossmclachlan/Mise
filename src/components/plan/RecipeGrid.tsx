@@ -27,7 +27,7 @@ export function RecipeGrid({ recipes, onSelect, onAdd }: RecipeGridProps) {
                 onClick={() => onSelect(recipe.id)}
                 className="card flex flex-col items-start overflow-hidden text-left active:shadow-none"
               >
-                <RecipeImage className="aspect-square w-full" />
+                <RecipeImage seed={recipe.title} className="aspect-square w-full" iconSize={40} />
                 <div className="flex flex-col items-start p-3">
                   <span className="font-semibold leading-snug">{recipe.title}</span>
                   {domain && (

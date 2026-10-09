@@ -85,11 +85,12 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
       <RecipeImage
         src={recipe.image}
         alt={recipe.title}
+        seed={recipe.title}
         className="mb-4 h-40 w-full rounded-2xl"
         iconSize={40}
       />
 
-      <h1 className="text-2xl font-bold">{recipe.title}</h1>
+      <h1 className="heading-page">{recipe.title}</h1>
       {recipe.source_url && (
         <a
           href={recipe.source_url}
@@ -201,7 +202,7 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
                 />
                 <span
                   className={`checkbox-indicator h-5 w-5 ${
-                    selected.has(i) ? 'border-accent bg-accent text-white' : 'border-outline'
+                    selected.has(i) ? 'hg-bounce border-ink bg-second text-white' : 'border-ink-variant/50 bg-surface'
                   }`}
                 >
                   {selected.has(i) && <Check size={14} strokeWidth={3} />}
