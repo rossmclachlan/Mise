@@ -18,7 +18,7 @@ interface NavProps {
 /** Phones: the two sections as a bottom bar. */
 export function BottomNav({ active, onChange, openCount }: NavProps) {
   return (
-    <nav className="z-30 shrink-0 border-t-[1.5px] border-outline bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="z-30 shrink-0 border-t-[1.5px] border-outline bg-bg pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="flex items-stretch justify-around py-2">
         {ITEMS.map(({ section, label, Icon }) => {
           const on = active === section;

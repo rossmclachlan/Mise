@@ -15,7 +15,7 @@ const TABS: { mode: Mode; label: string; Icon: typeof Map; bg: string }[] = [
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="z-40 shrink-0 border-t-[1.5px] border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
+    <nav className="z-40 shrink-0 border-t-[1.5px] border-outline bg-bg pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-stretch justify-around py-2">
         {TABS.map(({ mode, label, Icon, bg }) => {
           const isActive = active === mode;
