@@ -121,7 +121,7 @@ export function TaskRow({
         </span>
       )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col items-start text-left">
-        <span className={`w-full truncate text-[15px] font-semibold transition-colors ${sprout ? 'text-ink-variant' : 'text-ink'}`}>
+        <span className={`line-clamp-2 w-full break-words text-[15px] font-semibold transition-colors ${sprout ? 'text-ink-variant' : 'text-ink'}`}>
           {task.title}
         </span>
         <TaskMeta task={task} now={now} />
@@ -150,7 +150,7 @@ export function TakenCareRow({ task, onOpen }: { task: Task; onOpen: () => void 
         <Check size={14} strokeWidth={3} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[15px] font-semibold text-ink">{task.title}</span>
+        <span className="line-clamp-2 break-words text-[15px] font-semibold text-ink">{task.title}</span>
         <span className="line-clamp-2 text-[13px] text-ink-variant">{line}</span>
       </span>
     </button>
