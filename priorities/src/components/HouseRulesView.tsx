@@ -14,7 +14,7 @@ import { usePriorities } from '../state/PrioritiesContext';
  */
 export function HouseRulesView() {
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start">
       <Rules />
       <div className="space-y-6">
         <SchoolCalendar />

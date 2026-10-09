@@ -80,7 +80,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
 
       {empty && <p className="py-8 text-center text-sm text-ink-variant">{q ? 'No matches.' : 'Nothing done yet.'}</p>}
 
-      <div className="grid gap-6 md:grid-cols-2 md:items-start">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
         {comingUp.length > 0 && (
           <section>
             <h2 className="mb-2 text-lg font-bold text-ink">

@@ -247,7 +247,7 @@ export function Home() {
               <div className="space-y-6">
                 {filterToggle}
                 {/* One column on phones; on wide screens Now sits beside everything else. */}
-                <div className="grid gap-6 md:grid-cols-2 md:items-start">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
                   <div className="space-y-6">
                     {nowSection}
                     {gapsSection}
