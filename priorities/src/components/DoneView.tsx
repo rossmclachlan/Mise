@@ -69,7 +69,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
           <PillToggle
             options={[
               { label: 'Everything', value: 'everything' },
-              { label: 'Mine', value: 'mine' },
+              { label: 'On me', value: 'mine' },
               { label: 'Shared', value: 'shared' },
             ]}
             value={filter}

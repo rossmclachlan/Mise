@@ -130,7 +130,7 @@ export function Home() {
     <div className="flex justify-center md:justify-start">
       <PillToggle
         options={[
-          { label: 'Mine', value: 'mine' },
+          { label: 'On me', value: 'mine' },
           { label: 'Shared', value: 'shared' },
           { label: 'Everything', value: 'everything' },
         ]}

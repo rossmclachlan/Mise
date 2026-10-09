@@ -9,6 +9,7 @@ import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
 import { GAPS_EMOJI, HORIZON_SHORT, formatWhen, initial } from '../lib/format';
 import { DateField } from './DateField';
+import { VisibilityPicker } from './bits';
 
 export function TaskSheet({
   task,
@@ -72,7 +73,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
       list === 'personal'
         ? { list, owner_uid: user.uid, assignee: [] }
         : { list, owner_uid: null, assignee: [user.uid] },
-      list === 'personal' ? 'moved to personal' : 'moved to shared',
+      list === 'personal' ? 'made it Just me' : 'shared it with both of us',
     );
   }
 
@@ -199,14 +200,7 @@ function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDo
         </div>
       )}
 
-      <div className="flex gap-2">
-        <button type="button" className={chip(task.list === 'personal')} onClick={() => setList('personal')}>
-          Personal
-        </button>
-        <button type="button" className={chip(shared)} onClick={() => setList('shared')}>
-          Shared
-        </button>
-      </div>
+      <VisibilityPicker value={task.list} onChange={setList} />
 
       {shared && (
         <div className="flex flex-col gap-1.5">

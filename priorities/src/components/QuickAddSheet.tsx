@@ -3,6 +3,7 @@ import type { Horizon, ListKind } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { usePriorities } from '../state/PrioritiesContext';
 import { HORIZON_SHORT } from '../lib/format';
+import { VisibilityPicker } from './bits';
 
 /** Title, when, whose. Everything else can be filled in later, or by Claude. */
 export function QuickAddSheet({
@@ -52,14 +53,7 @@ function Form({ onClose, defaultList }: { onClose: () => void; defaultList: List
           </button>
         ))}
       </div>
-      <div className="flex gap-2">
-        <button type="button" className={chip(list === 'personal')} onClick={() => setList('personal')}>
-          Mine
-        </button>
-        <button type="button" className={chip(list === 'shared')} onClick={() => setList('shared')}>
-          Shared
-        </button>
-      </div>
+      <VisibilityPicker value={list} onChange={setList} />
       <button type="submit" disabled={!title.trim()} className="btn-filled w-full">
         Add
       </button>

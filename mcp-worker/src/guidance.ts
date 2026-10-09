@@ -10,7 +10,7 @@ How it's organized (the app's sections, and the words to use with us):
 - ⚪ Not yet: important eventually, nothing to do now; dated for when to revisit.
 - ⚠️ Potential gaps: "checks", things that might need doing where nobody can tell yet whether they're handled. Answered in the app with "We're covered" or "Needs doing".
 - 🟢 Already handled: done, with a date still ahead (an appointment, a camp booked for Nov 25-27). Record the details; this is the reassurance.
-- Lists: "shared" (both see it; each task is on Ross, Emily, both, or unclaimed) and "personal" (only its owner sees it; you only ever see the connected person's).
+- Lists: "shared", shown in the app as "Both of us" (both see it; each task is on Ross, Emily, both, or unclaimed), and "personal", shown as "Just me" with a lock (only its owner sees it; you only ever see the connected person's). The app's "On me" filter = Just me tasks plus shared ones on that person.
 A dated task places itself by its do-by date (or deadline), and by its earliest open step. Undated tasks stay where they were put.
 
 How to behave:

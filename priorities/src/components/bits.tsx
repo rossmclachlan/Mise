@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, GripVertical, Link2, Plus, Repeat, StickyNote } from 'lucide-react';
+import { Check, GripVertical, Link2, Lock, Plus, Repeat, StickyNote, Users } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
 import { effectiveDate, isOverdue } from '../lib/horizon';
@@ -14,10 +14,21 @@ const MEMBER_CHIP = [
   'border-on-second-container bg-second-container text-on-second-container',
 ];
 
-/** Who a shared task is on: R, E, R+E, or a dashed ? when nobody has it yet. */
+/** Who can see a task, and whose it is: a lock for Just me; R, E, R+E, or a dashed ? on shared ones. */
 export function OwnerChip({ task }: { task: Task }) {
   const { nameOf, household } = usePriorities();
-  if (task.list !== 'shared') return null;
+  if (task.list !== 'shared') {
+    return (
+      <span
+        role="img"
+        aria-label="Just me"
+        title="Just me: only you can see this"
+        className="flex h-6 min-w-7 items-center justify-center rounded-full border border-outline px-2 text-ink-variant"
+      >
+        <Lock size={13} strokeWidth={2.5} />
+      </span>
+    );
+  }
   if (task.assignee.length === 0) {
     return (
       <span className="flex h-6 min-w-7 items-center justify-center rounded-full border border-dashed border-ink-variant px-2 text-xs font-semibold text-ink-variant">
@@ -40,7 +51,7 @@ export function OwnerChip({ task }: { task: Task }) {
   );
 }
 
-/** The quiet line under a task's title: date, rhythm, steps, privacy. */
+/** The quiet line under a task's title: date, rhythm, steps. */
 export function TaskMeta({ task, now }: { task: Task; now: string }) {
   const parts: { text: string; late?: boolean }[] = [];
   const date = effectiveDate(task);
@@ -56,7 +67,6 @@ export function TaskMeta({ task, now }: { task: Task; now: string }) {
       text: `${steps.done} of ${steps.total} steps${steps.next ? ` · next: ${steps.next.title.toLowerCase()}` : ''}`,
     });
   }
-  if (task.list === 'personal') parts.push({ text: 'personal' });
 
   const hasContext = task.notes.length > 0 || task.source_url;
   if (parts.length === 0 && !hasContext) return null;
@@ -183,6 +193,31 @@ export function GapRow({ task, onOpen, onCovered }: { task: Task; onOpen: () => 
           <Plus size={15} /> Needs doing
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Just me or Both of us, with a line saying who can see it. */
+export function VisibilityPicker({ value, onChange }: { value: Task['list']; onChange: (v: Task['list']) => void }) {
+  const { otherUid, nameOf } = usePriorities();
+  const chip = (on: boolean) => `chip ${on ? 'chip-on' : ''}`;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-2">
+        <button type="button" className={chip(value === 'personal')} onClick={() => onChange('personal')} aria-pressed={value === 'personal'}>
+          <Lock size={15} /> Just me
+        </button>
+        <button type="button" className={chip(value === 'shared')} onClick={() => onChange('shared')} aria-pressed={value === 'shared'}>
+          <Users size={15} /> Both of us
+        </button>
+      </div>
+      <p className="text-xs text-ink-variant">
+        {value === 'personal'
+          ? 'Only you and your Claude can see this.'
+          : otherUid
+            ? `${nameOf(otherUid)} (and ${nameOf(otherUid)}’s Claude) can see this too.`
+            : 'Anyone who joins the household can see this too.'}
+      </p>
     </div>
   );
 }
