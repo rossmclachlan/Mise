@@ -1,7 +1,10 @@
 import type { GroceryCategory } from '../../types';
-import { CATEGORY_ICONS } from './categoryVisuals';
+import { CATEGORY_EMOJI } from './categoryVisuals';
 
 export function CategoryIcon({ category, size }: { category: GroceryCategory; size: number }) {
-  const Icon = CATEGORY_ICONS[category];
-  return <Icon size={size} />;
+  return (
+    <span aria-hidden className="leading-none" style={{ fontSize: size }}>
+      {CATEGORY_EMOJI[category]}
+    </span>
+  );
 }

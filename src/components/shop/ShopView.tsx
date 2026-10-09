@@ -12,7 +12,7 @@ import {
 import { categoriseItem, learnCategory } from '../../utils/categorise';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { BottomSheet } from '../ui/BottomSheet';
-import { CATEGORY_ACCENT } from '../ui/categoryVisuals';
+import { CATEGORY_ACCENT, CATEGORY_EMOJI } from '../ui/categoryVisuals';
 import { CategoryIcon } from '../ui/CategoryIcon';
 import { ChecklistSection, type ChecklistItem } from '../ui/ChecklistSection';
 import { ItemListSection } from '../ui/ItemListSection';
@@ -228,7 +228,7 @@ export function GroceryView({
     <div className="relative h-full overflow-hidden">
       <div className="h-full overflow-y-auto px-4 pb-40 pt-4">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Grocery</h1>
+          <h1 className="heading-page">Grocery</h1>
           <button
             type="button"
             onClick={clearChecked}
@@ -255,7 +255,7 @@ export function GroceryView({
           {groceryByCategory.map(({ category, items }) => (
             <ChecklistSection
               key={category}
-              title={GROCERY_CATEGORY_LABELS[category]}
+              title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
               accent={CATEGORY_ACCENT[category]}
               items={items}
               onToggle={toggleItem}
@@ -268,12 +268,12 @@ export function GroceryView({
             />
           ))}
 
-          {supplies.length > 0 && <h1 className="text-2xl font-bold">Supplies</h1>}
+          {supplies.length > 0 && <h1 className="heading-page pt-2">Supplies</h1>}
 
           {suppliesByCategory.map(({ category, items }) => (
             <ItemListSection
               key={category}
-              title={GROCERY_CATEGORY_LABELS[category]}
+              title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
               accent={CATEGORY_ACCENT[category]}
               items={items}
               onRemove={removeSupplyItem}
@@ -301,7 +301,7 @@ export function GroceryView({
                 {costcoByCategory.map(({ category, items }) => (
                   <ChecklistSection
                     key={category}
-                    title={GROCERY_CATEGORY_LABELS[category]}
+                    title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
                     accent={CATEGORY_ACCENT[category]}
                     items={items}
                     onToggle={toggleCostcoItem}

@@ -17,6 +17,10 @@
   app) at `/Mise/priorities/`. Keep their scopes side by side: nested scopes made
   Chrome on Android treat them as one app. `/Mise/` is only `root/` (a
   redirect plus a worker-removal `sw.js`); keep that `sw.js` deployed. `npm run build` builds both; `npm test` runs its logic tests.
+- Both apps share one look ("Homegrown"): `src/components/ui/brand.css` holds the
+  shared tokens and component classes, and each app's `index.css` sets only its own
+  colours and display face. The Calm / Sunny / Wild Look setting (`whimsy.ts`) is
+  saved per phone and also applied by a small script in each `index.html`.
 - `firestore.rules` covers both apps. Changing it means redeploying the rules
   (console or Firebase CLI); `deploy.yml` does not deploy them.
 - `mcp-worker/` is Priorities' MCP server (Cloudflare Worker), deployed by

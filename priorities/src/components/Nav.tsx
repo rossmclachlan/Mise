@@ -18,7 +18,7 @@ interface NavProps {
 /** Phones: the two sections as a bottom bar. */
 export function BottomNav({ active, onChange, openCount }: NavProps) {
   return (
-    <nav className="z-30 shrink-0 border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="z-30 shrink-0 border-t-[1.5px] border-outline bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="flex items-stretch justify-around py-2">
         {ITEMS.map(({ section, label, Icon }) => {
           const on = active === section;
@@ -32,17 +32,17 @@ export function BottomNav({ active, onChange, openCount }: NavProps) {
             >
               <span
                 className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
-                  on ? 'bg-accent-container text-on-accent-container' : 'text-ink-variant'
+                  on ? 'sticker-sm bg-accent-container text-ink' : 'text-ink-variant'
                 }`}
               >
                 <Icon size={22} strokeWidth={on ? 2.5 : 2} />
                 {section === 'open' && openCount > 0 && (
-                  <span className="absolute -right-0.5 -top-1 min-w-5 rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-white">
+                  <span className="count-badge absolute -right-2 -top-2 min-w-5 px-1.5 text-[11px]">
                     {openCount}
                   </span>
                 )}
               </span>
-              <span className={on ? 'text-ink' : 'text-ink-variant'}>{label}</span>
+              <span className={on ? 'font-extrabold text-ink' : 'text-ink-variant'}>{label}</span>
             </button>
           );
         })}
@@ -54,7 +54,7 @@ export function BottomNav({ active, onChange, openCount }: NavProps) {
 /** Wide screens: the same sections in a sidebar, with Add in place of the floating button. */
 export function SideNav({ active, onChange, openCount, onAdd }: NavProps & { onAdd: () => void }) {
   return (
-    <nav className="hidden w-56 shrink-0 flex-col gap-1 border-r border-outline bg-surface px-3 py-5 md:flex">
+    <nav className="hidden w-56 shrink-0 flex-col gap-1.5 border-r-[1.5px] border-outline bg-surface px-3 py-5 md:flex">
       <button type="button" onClick={onAdd} className="btn-filled mb-4 w-full">
         <Plus size={18} /> Add a task
       </button>
@@ -67,12 +67,12 @@ export function SideNav({ active, onChange, openCount, onAdd }: NavProps & { onA
             onClick={() => onChange(section)}
             aria-current={on ? 'page' : undefined}
             className={`flex items-center gap-3 rounded-full px-4 py-2.5 text-[15px] font-semibold transition-colors ${
-              on ? 'bg-accent-container text-on-accent-container' : 'text-ink-variant hover:bg-surface-variant'
+              on ? 'sticker-sm bg-accent-container text-ink' : 'border-[1.5px] border-transparent text-ink-variant hover:bg-surface-variant'
             }`}
           >
             <Icon size={20} />
             <span className="flex-1 text-left">{label}</span>
-            {section === 'open' && openCount > 0 && <span className="text-sm font-medium">{openCount}</span>}
+            {section === 'open' && openCount > 0 && <span className="count-badge">{openCount}</span>}
           </button>
         );
       })}
@@ -81,7 +81,7 @@ export function SideNav({ active, onChange, openCount, onAdd }: NavProps & { onA
         onClick={() => onChange('rules')}
         aria-current={active === 'rules' ? 'page' : undefined}
         className={`mt-auto flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
-          active === 'rules' ? 'bg-accent-container text-on-accent-container' : 'text-ink-variant hover:bg-surface-variant'
+          active === 'rules' ? 'sticker-sm bg-accent-container text-ink' : 'border-[1.5px] border-transparent text-ink-variant hover:bg-surface-variant'
         }`}
       >
         <BookText size={18} /> House rules

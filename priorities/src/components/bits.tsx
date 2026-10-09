@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Check, GripVertical, Link2, Plus, Repeat, StickyNote } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
@@ -6,6 +7,12 @@ import { stepProgress } from '../lib/ops';
 import { describeRepeat } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
 import { formatWhen, initial, outcomeLine } from '../lib/format';
+
+// Each household member keeps one colour: the first sun, the second lilac.
+const MEMBER_CHIP = [
+  'border-ink bg-sun text-ink',
+  'border-on-second-container bg-second-container text-on-second-container',
+];
 
 /** Who a shared task is on: R, E, R+E, or a dashed ? when nobody has it yet. */
 export function OwnerChip({ task }: { task: Task }) {
@@ -18,12 +25,16 @@ export function OwnerChip({ task }: { task: Task }) {
       </span>
     );
   }
-  const label = household.members
-    .filter((m) => task.assignee.includes(m))
-    .map((m) => initial(nameOf(m)))
-    .join('+');
+  const on = household.members.flatMap((m, i) => (task.assignee.includes(m) ? [i] : []));
+  const label = on.map((i) => initial(nameOf(household.members[i]))).join('+');
+  const both = on.length > 1;
   return (
-    <span className="flex h-6 min-w-7 items-center justify-center rounded-full border border-outline px-2 text-xs font-semibold text-ink">
+    <span
+      className={`flex h-6 min-w-7 items-center justify-center rounded-full border-[1.5px] px-2 text-xs font-extrabold ${
+        both ? 'border-ink text-ink' : (MEMBER_CHIP[on[0]] ?? 'border-outline text-ink')
+      }`}
+      style={both ? { background: 'linear-gradient(90deg, var(--color-sun) 50%, var(--color-second-container) 50%)' } : undefined}
+    >
       {label}
     </span>
   );
@@ -66,6 +77,8 @@ export function TaskMeta({ task, now }: { task: Task; now: string }) {
   );
 }
 
+const SPROUTS = ['🌱', '🌼', '🍄', '🌻', '🌿', '🌷'];
+
 export function TaskRow({
   task,
   now,
@@ -79,18 +92,38 @@ export function TaskRow({
   onOpen: () => void;
   dragHandle?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
+  // Ticking shows the check and a sprout first, then completes, so the moment is seen.
+  const [sprout, setSprout] = useState<string | null>(null);
+
+  function tick() {
+    if (sprout) return;
+    setSprout(SPROUTS[Math.floor(Math.random() * SPROUTS.length)]);
+    setTimeout(onTick, 450);
+  }
+
   return (
-    <div className="flex items-center gap-3 py-2.5">
+    <div className="relative flex items-center gap-3 py-2.5">
       <button
         type="button"
-        onClick={onTick}
+        onClick={tick}
         aria-label={`Mark ${task.title} done`}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-outline text-transparent transition active:border-good active:text-good"
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition ${
+          sprout
+            ? 'hg-bounce border-ink bg-accent text-white'
+            : 'border-ink-variant/50 bg-surface text-transparent active:border-accent active:text-accent'
+        }`}
       >
         <Check size={16} strokeWidth={3} />
       </button>
+      {sprout && (
+        <span aria-hidden className="hg-pop pointer-events-none absolute left-1 top-0 text-xl">
+          {sprout}
+        </span>
+      )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col items-start text-left">
-        <span className="w-full truncate text-[15px] font-semibold text-ink">{task.title}</span>
+        <span className={`w-full truncate text-[15px] font-semibold transition-colors ${sprout ? 'text-ink-variant' : 'text-ink'}`}>
+          {task.title}
+        </span>
         <TaskMeta task={task} now={now} />
       </button>
       <OwnerChip task={task} />

@@ -6,41 +6,35 @@ interface BottomNavProps {
   onChange: (mode: Mode) => void;
 }
 
-const TABS: { mode: Mode; label: string; Icon: typeof Map; bg: string; fg: string }[] = [
-  { mode: 'plan',    label: 'Plan',    Icon: Map,          bg: '#DCFCE7', fg: '#14532D' },
-  { mode: 'grocery', label: 'Grocery', Icon: ShoppingCart, bg: '#FFEDD5', fg: '#C2410C' },
-  { mode: 'cook',    label: 'Cook',    Icon: ChefHat,      bg: '#FEE2E2', fg: '#7F1D1D' },
+// Each mode has its own colour when active: basil, sun, peach.
+const TABS: { mode: Mode; label: string; Icon: typeof Map; bg: string }[] = [
+  { mode: 'plan',    label: 'Plan',    Icon: Map,          bg: 'bg-second-container' },
+  { mode: 'grocery', label: 'Grocery', Icon: ShoppingCart, bg: 'bg-sun' },
+  { mode: 'cook',    label: 'Cook',    Icon: ChefHat,      bg: 'bg-accent-container' },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="z-40 shrink-0 border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
+    <nav className="z-40 shrink-0 border-t-[1.5px] border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-stretch justify-around py-2">
-        {TABS.map(({ mode, label, Icon, bg, fg }) => {
+        {TABS.map(({ mode, label, Icon, bg }) => {
           const isActive = active === mode;
           return (
             <button
               key={mode}
               type="button"
               onClick={() => onChange(mode)}
-              className="flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium"
+              className="flex flex-1 flex-col items-center gap-1 py-1 text-xs"
               aria-current={isActive ? 'page' : undefined}
             >
               <span
-                style={isActive ? { backgroundColor: bg } : undefined}
-                className="flex h-8 w-14 items-center justify-center rounded-full transition-colors"
+                className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
+                  isActive ? `sticker-sm ${bg} text-ink` : 'text-ink-variant'
+                }`}
               >
-                <Icon
-                  size={22}
-                  strokeWidth={isActive ? 2.5 : 2}
-                  style={isActive ? { color: fg } : undefined}
-                  className={isActive ? '' : 'text-ink-variant'}
-                />
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
               </span>
-              <span
-                style={isActive ? { color: fg } : undefined}
-                className={isActive ? 'font-semibold' : 'text-ink-variant'}
-              >
+              <span className={isActive ? 'font-extrabold text-ink' : 'font-semibold text-ink-variant'}>
                 {label}
               </span>
             </button>

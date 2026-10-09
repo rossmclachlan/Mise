@@ -83,14 +83,14 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="grid gap-6 md:grid-cols-2 md:items-start">
         {comingUp.length > 0 && (
           <section>
-            <h2 className="mb-2 text-lg font-bold text-ink">
+            <h2 className="heading-section mb-2">
               {HANDLED_EMOJI} {HANDLED_NAME}
             </h2>
             <p className="mb-3 text-sm text-ink-variant">Booked, paid or covered, with the date still ahead.</p>
             {comingUp.map(([label, items]) => (
               <div key={label} className="mb-3">
                 <p className="label-section mb-1">{label}</p>
-                <div className="divide-y divide-good/15 rounded-2xl border border-good/30 bg-good-container/50 px-3">
+                <div className="divide-y divide-good/20 rounded-2xl border-[1.5px] border-dashed border-good bg-good-container/70 px-3">
                   {items.map((t) => (
                     <TakenCareRow key={t.id} task={t} onOpen={() => onOpen(t.id)} />
                   ))}
@@ -102,7 +102,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
 
         {history.length > 0 && (
           <section>
-            <h2 className="mb-2 text-lg font-bold text-ink">History</h2>
+            <h2 className="heading-section mb-2">History</h2>
             <p className="mb-3 text-sm text-ink-variant">Everything finished, newest first.</p>
             {history.map(([label, items]) => (
               <div key={label} className="mb-3">

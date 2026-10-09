@@ -82,14 +82,14 @@ export default function App({ store }: { store: Store }) {
   useEffect(() => store.onAuth(setUser), [store]);
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-bg text-ink">
+    <div className="paper fixed inset-0 flex flex-col bg-bg text-ink">
       {needsRefresh && (
-        <div className="flex items-center justify-between bg-accent-container px-4 py-2.5">
-          <span className="text-sm font-medium text-on-accent-container">Update available</span>
+        <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-sun-container px-4 py-2.5">
+          <span className="text-sm font-bold text-ink">Update available</span>
           <button
             type="button"
             onClick={installUpdate}
-            className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-white"
+            className="btn-filled px-4 py-1.5"
           >
             Install
           </button>

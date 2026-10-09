@@ -1,40 +1,28 @@
-import {
-  Archive,
-  Beef,
-  Carrot,
-  Croissant,
-  CupSoda,
-  Fish,
-  Milk,
-  Snowflake,
-  Tag,
-  type LucideIcon,
-} from 'lucide-react';
 import type { GroceryCategory } from '../../types';
 
 // Shared visual language for grocery categories, used by the grocery list,
 // the Costco list, and the Supplies inventory so they read consistently.
 
-export const CATEGORY_ICONS: Record<GroceryCategory, LucideIcon> = {
-  produce: Carrot,
-  dairy: Milk,
-  meat: Beef,
-  fish: Fish,
-  bakery: Croissant,
-  pantry: Archive,
-  frozen: Snowflake,
-  drinks: CupSoda,
-  other: Tag,
+export const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
+  produce: '🥕',
+  dairy: '🧀',
+  meat: '🥩',
+  fish: '🐟',
+  bakery: '🥐',
+  pantry: '🫙',
+  frozen: '🧊',
+  drinks: '🧃',
+  other: '🏷️',
 };
 
 export const CATEGORY_ACCENT: Record<GroceryCategory, string> = {
-  produce: '#14532D',
-  dairy: '#1E3A8A',
-  meat: '#7F1D1D',
-  fish: '#134E4A',
-  bakery: '#78350F',
-  pantry: '#4C1D95',
-  frozen: '#0C4A6E',
-  drinks: '#831843',
-  other: '#334155',
+  produce: '#2D5A26',
+  dairy: '#23497A',
+  meat: '#8A2A1D',
+  fish: '#1C5A52',
+  bakery: '#7A4A0E',
+  pantry: '#4A3696',
+  frozen: '#1D5470',
+  drinks: '#842A57',
+  other: '#4A4A40',
 };

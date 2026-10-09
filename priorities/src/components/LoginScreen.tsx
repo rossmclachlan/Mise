@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Store } from '../data/store';
+import { Seal } from '../../../src/components/ui/Seal';
 import { emojiPairFor } from '../lib/emoji';
 
 export function LoginScreen({ store }: { store: Store }) {
@@ -24,10 +25,8 @@ export function LoginScreen({ store }: { store: Store }) {
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 pb-16">
       <div className="mb-10 flex flex-col items-center gap-2">
-        <span className="text-5xl" aria-hidden>
-          {emojiPairFor()}
-        </span>
-        <h1 className="text-4xl font-bold tracking-tight text-accent">Priorities</h1>
+        <Seal emoji={emojiPairFor()} size={88} tone="sun" pair />
+        <h1 className="mt-2 font-display text-5xl text-accent">Priorities</h1>
         <p className="text-sm text-ink-variant">Our week, taken care of</p>
       </div>
 

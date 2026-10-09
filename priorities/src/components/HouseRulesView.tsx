@@ -41,7 +41,7 @@ function Rules() {
   return (
     <section>
       <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="text-lg font-bold text-ink">House rules</h2>
+        <h2 className="heading-section">House rules</h2>
         {draft === null && (
           <button type="button" onClick={() => setDraft(rules?.text ?? DEFAULT_HOUSE_RULES)} className="chip">
             <Pencil size={14} /> Edit
@@ -103,7 +103,7 @@ function SchoolCalendar() {
 
   return (
     <section>
-      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-ink">
+      <h2 className="heading-section mb-1 flex items-center gap-2">
         <CalendarDays size={20} /> School calendar
       </h2>
       <p className="mb-3 text-sm text-ink-variant">
@@ -176,7 +176,7 @@ function RadarRuns() {
   const runs = (household.radar_runs ?? []).slice(0, 4);
   return (
     <section>
-      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-ink">
+      <h2 className="heading-section mb-1 flex items-center gap-2">
         <Radar size={20} /> Radar
       </h2>
       <p className="mb-3 text-sm text-ink-variant">What each weekly run did. The briefing itself is in Claude.</p>

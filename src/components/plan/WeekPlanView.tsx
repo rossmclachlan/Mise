@@ -256,7 +256,7 @@ export function WeekPlanView({
   return (
     <div className="px-4 pb-8 pt-4">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">This Week</h1>
+        <h1 className="heading-page">This week</h1>
         <button
           type="button"
           onClick={handleShare}
@@ -323,6 +323,7 @@ export function WeekPlanView({
                       <RecipeImage
                         src={recipe.image}
                         alt=""
+                        seed={recipe.title}
                         className="h-11 w-11 rounded-[10px]"
                         iconSize={18}
                       />
@@ -341,7 +342,7 @@ export function WeekPlanView({
                     aria-label={`Edit ${WEEK_DAY_LABELS[day]}`}
                     className="min-w-0 flex-1 text-left"
                   >
-                    <span className="label-section mb-0.5 block">{WEEK_DAY_LABELS[day]}</span>
+                    <span className="mb-1 block font-display text-[15px] leading-none text-accent">{WEEK_DAY_LABELS[day]}</span>
                     <span className="block truncate text-[15px] font-semibold">
                       {recipe?.title ?? entry.label}
                     </span>
@@ -364,7 +365,7 @@ export function WeekPlanView({
                 </div>
               ) : (
                 <div className="p-3">
-                  <div className="label-section mb-1.5">{WEEK_DAY_LABELS[day]}</div>
+                  <div className="mb-2 font-display text-[15px] leading-none text-accent">{WEEK_DAY_LABELS[day]}</div>
                   <div className="relative">
                     <input
                       type="text"
@@ -420,16 +421,14 @@ export function WeekPlanView({
                             <RecipeImage
                               src={r.image}
                               alt=""
+                              seed={r.title}
                               className="h-10 w-10 shrink-0 rounded-lg"
                               iconSize={16}
                             />
                             <span className="flex flex-col items-start">
                               {r.title}
                               {supplyMatches.length > 0 && (
-                                <span
-                                  className="text-[10px] font-semibold"
-                                  style={{ color: '#14532D' }}
-                                >
+                                <span className="text-[10px] font-bold text-second">
                                   ✓ {supplyMatches.map((s) => s.text).join(' · ')}
                                 </span>
                               )}
