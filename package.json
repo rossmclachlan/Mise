@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:priorities": "vite --config vite.priorities.config.ts",
     "build": "tsc -b && vite build && vite build --config vite.priorities.config.ts && cp -R root/. dist/",
-    "test": "vitest run priorities",
+    "test": "vitest run priorities src/utils",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { Ingredient, Recipe } from '../../types';
-import { ImportError, importRecipeFromUrl } from '../../utils/importRecipe';
+import { ImportError, importRecipeFromUrl, type ImportedRecipe } from '../../utils/importRecipe';
 import { parseIngredientLine } from '../../utils/parseIngredient';
+import { looksLikeUrl, parseRecipeText } from '../../utils/parseRecipeText';
 import { normalizeUrl } from '../../utils/url';
 import { BottomSheet } from '../ui/BottomSheet';
 
@@ -44,6 +45,7 @@ function formatIngredientLine(ing: Ingredient): string {
 }
 
 type ImportStatus = 'idle' | 'loading' | 'success' | 'error';
+type ImportSource = 'url' | 'text';
 
 function isNYTCookingUrl(url: string) {
   return /cooking\.nytimes\.com|nytimes\.com\/recipes/i.test(url);
@@ -72,6 +74,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
   const [importUrl, setImportUrl] = useState('');
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
   const [importErrorMessage, setImportErrorMessage] = useState('');
+  const [importSource, setImportSource] = useState<ImportSource>('url');
 
   // Reset the form when the sheet transitions from closed to open, pre-filling
   // it from editingRecipe if we're editing rather than adding.
@@ -102,31 +105,52 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
     onClose();
   }
 
+  function applyImported(imported: ImportedRecipe) {
+    setForm((f) => ({
+      ...f,
+      title: imported.title || f.title,
+      sourceUrl: imported.source_url || f.sourceUrl,
+      image: imported.image ?? f.image,
+      servings: String(imported.servings),
+      ingredientsText: imported.ingredients.map(formatIngredientLine).join('\n'),
+      stepsText: imported.steps.join('\n'),
+      notes: imported.notes,
+    }));
+  }
+
   async function handleImport() {
     const url = importUrl.trim();
     if (!url) return;
 
-    setImportStatus('loading');
     setImportErrorMessage('');
 
+    // Pasted recipe text is read on the spot; only links go out to fetch.
+    if (!looksLikeUrl(url)) {
+      setImportSource('text');
+      try {
+        applyImported(parseRecipeText(importUrl));
+        setImportUrl('');
+        setImportStatus('success');
+      } catch {
+        setImportStatus('error');
+        setImportErrorMessage(
+          "Couldn't find a recipe in that text. Include the ingredients and the steps.",
+        );
+      }
+      return;
+    }
+
+    setImportSource('url');
+    setImportStatus('loading');
+
     try {
-      const imported = await importRecipeFromUrl(url);
-      setForm((f) => ({
-        ...f,
-        title: imported.title || f.title,
-        sourceUrl: imported.source_url,
-        image: imported.image ?? f.image,
-        servings: String(imported.servings),
-        ingredientsText: imported.ingredients.map(formatIngredientLine).join('\n'),
-        stepsText: imported.steps.join('\n'),
-        notes: imported.notes,
-      }));
+      applyImported(await importRecipeFromUrl(url));
       setImportStatus('success');
     } catch (err) {
       setImportStatus('error');
       if (isNYTCookingUrl(url) && !isNYTGiftLink(url)) {
         setImportErrorMessage(
-          'NYT Cooking recipes are paywalled — paste a gift link instead (tap Share → Gift Recipe in the app)',
+          'NYT Cooking recipes are paywalled — paste a gift link (Share → Gift Recipe), or copy the recipe text and paste that',
         );
       } else if (err instanceof ImportError && err.code === 'NO_RECIPE') {
         setImportErrorMessage('No recipe found on this page');
@@ -170,6 +194,10 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
     resetAndClose();
   }
 
+  // A link sits on one line like a normal field; pasted recipe text grows
+  // the box so it stays readable.
+  const isMultiline = importUrl.includes('\n') || (importUrl.length > 200 && /\s/.test(importUrl));
+
   return (
     <BottomSheet
       dialogOnWide
@@ -181,18 +209,19 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
       {step === 'form' ? (
         <div className="flex flex-col gap-4 pb-4">
           <div className="flex flex-col gap-2 rounded-2xl bg-surface-variant p-3">
-            <span className="text-sm font-medium text-ink-variant">Import from URL</span>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                className={`${inputClass} flex-1`}
+            <span className="text-sm font-medium text-ink-variant">Import from URL or text</span>
+            <div className="flex items-start gap-2">
+              <textarea
+                rows={isMultiline ? 6 : 1}
+                wrap={isMultiline ? 'soft' : 'off'}
+                className={`${inputClass} flex-1 resize-none`}
                 value={importUrl}
                 onChange={(e) => {
                   setImportUrl(e.target.value);
                   setImportStatus('idle');
                   setImportErrorMessage('');
                 }}
-                placeholder="Paste a recipe URL"
+                placeholder="Paste a link or the recipe text"
               />
               <button
                 type="button"
@@ -203,11 +232,12 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
                 {importStatus === 'loading' ? <Loader2 size={18} className="animate-spin" /> : 'Import'}
               </button>
             </div>
-            {importStatus === 'idle' && isNYTCookingUrl(importUrl) && !isNYTGiftLink(importUrl) && (
+            {importStatus === 'idle' && isNYTCookingUrl(importUrl) && !isNYTGiftLink(importUrl) && looksLikeUrl(importUrl) && (
               <p className="text-sm text-ink-variant">
                 NYT Cooking requires a gift link.{' '}
                 <span className="font-medium text-ink">Tap Share → Gift Recipe</span> in the NYT
-                Cooking app, then paste that link here.
+                Cooking app and paste that link, or copy the recipe from the page and paste the
+                text here.
               </p>
             )}
             {importStatus === 'loading' && (
@@ -216,7 +246,8 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
             {importStatus === 'success' && (
               <p className="flex items-center gap-1.5 text-sm font-medium text-accent">
                 <CheckCircle2 size={16} />
-                Recipe imported — review and save below
+                {importSource === 'text' ? 'Recipe read from your text' : 'Recipe imported'} — review
+                and save below
               </p>
             )}
             {importStatus === 'error' && (
