@@ -32,7 +32,7 @@ export function HouseholdSetup({ store, user }: { store: Store; user: SignedInUs
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 pb-16">
-      <h1 className="mb-1 text-2xl font-bold text-ink">Welcome to Tandem</h1>
+      <h1 className="mb-1 text-2xl font-bold text-ink">Welcome to Priorities</h1>
       <p className="mb-6 text-sm text-ink-variant">
         One of us starts the household; the other joins with the code it shows.
       </p>

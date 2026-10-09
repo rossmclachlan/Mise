@@ -11,7 +11,7 @@ import {
   isTakenCareOfSoon,
 } from '../lib/horizon';
 import { compareOpen } from '../lib/ops';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { useVisible } from '../state/useVisible';
 import { Header } from './Header';
 import { TakenCareRow, TaskRow } from './bits';
@@ -22,7 +22,7 @@ import { TakenCareOfView } from './TakenCareOfView';
 import { DoneToast, type ToastState } from './DoneToast';
 import { DoneDetailsSheet } from './DoneDetailsSheet';
 
-const FILTER_KEY = 'tandem:filter';
+const FILTER_KEY = 'priorities:filter';
 
 function loadFilter(): Filter {
   try {
@@ -35,7 +35,7 @@ function loadFilter(): Filter {
 }
 
 export function Home() {
-  const { user, nameOf, complete, reopen } = useTandem();
+  const { user, nameOf, complete, reopen } = usePriorities();
   const [filter, setFilter] = useState<Filter>(loadFilter);
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -58,7 +58,7 @@ export function Home() {
   // Taken care of always includes everything shared: seeing that the other
   // person has handled something is the point, whoever it was assigned to.
   const handledPool = useVisible('everything');
-  const { tasks } = useTandem();
+  const { tasks } = usePriorities();
 
   const sections = useMemo(() => {
     const open = visible.filter((t) => !t.done_at);

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Task } from '../types';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { TaskRow } from './bits';
 
 /**
@@ -18,7 +18,7 @@ export function NowList({
   onTick: (t: Task) => void;
   onOpen: (id: string) => void;
 }) {
-  const { update } = useTandem();
+  const { update } = usePriorities();
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [drag, setDrag] = useState<{ from: number; to: number; offset: number } | null>(null);
   const startY = useRef(0);

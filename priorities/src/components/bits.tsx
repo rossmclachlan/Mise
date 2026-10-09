@@ -4,12 +4,12 @@ import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
 import { effectiveDate, isOverdue } from '../lib/horizon';
 import { stepProgress } from '../lib/ops';
 import { describeRepeat } from '../lib/repeat';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { initial, outcomeLine } from '../lib/format';
 
 /** Who a shared task is on: R, E, R+E, or a dashed ? when nobody has it yet. */
 export function OwnerChip({ task }: { task: Task }) {
-  const { nameOf, household } = useTandem();
+  const { nameOf, household } = usePriorities();
   if (task.list !== 'shared') return null;
   if (task.assignee.length === 0) {
     return (
@@ -109,7 +109,7 @@ export function TaskRow({
 }
 
 export function TakenCareRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
-  const { nameOf } = useTandem();
+  const { nameOf } = usePriorities();
   const line = outcomeLine(task) || `Done by ${nameOf(task.done_by)}, ${formatShort(localDay(task.done_at!))}`;
   return (
     <button type="button" onClick={onOpen} className="flex w-full items-start gap-3 py-2.5 text-left">

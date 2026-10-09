@@ -27,7 +27,7 @@ export function LoginScreen({ store }: { store: Store }) {
         <span className="text-5xl" aria-hidden>
           {emojiPairFor()}
         </span>
-        <h1 className="text-4xl font-bold tracking-tight text-accent">Tandem</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-accent">Priorities</h1>
         <p className="text-sm text-ink-variant">Our week, taken care of</p>
       </div>
 

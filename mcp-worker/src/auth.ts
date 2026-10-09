@@ -1,5 +1,5 @@
-// The sign-in step of connecting Claude to Tandem. When someone adds the
-// connector, Claude sends them here; they sign in with their Tandem email and
+// The sign-in step of connecting Claude to Priorities. When someone adds the
+// connector, Claude sends them here; they sign in with their Priorities email and
 // password (checked by Firebase Auth, server-side), and we hand Claude a token
 // for that person. Only the two allowlisted accounts get one.
 
@@ -14,7 +14,7 @@ export interface Props {
 	[key: string]: unknown;
 }
 
-const CSRF_COOKIE = "__Host-tandem_csrf";
+const CSRF_COOKIE = "__Host-priorities_csrf";
 const STATE_TTL_SECONDS = 600;
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -40,7 +40,7 @@ function page(opts: { clientName: string; state: string; csrf: string; error?: s
 	return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connect Claude to Tandem</title>
+<title>Connect Claude to Priorities</title>
 <style>
   body { font: 16px system-ui, sans-serif; background: #F7F6F1; color: #1B1D20; margin: 0; }
   main { max-width: 22rem; margin: 12vh auto; padding: 0 1.25rem; }
@@ -54,8 +54,8 @@ function page(opts: { clientName: string; state: string; csrf: string; error?: s
 </style></head>
 <body><main>
   <div style="font-size:2.2rem">🐧🐧</div>
-  <h1>Connect to Tandem</h1>
-  <p>${escape(opts.clientName)} wants to read and update your Tandem list as you. Sign in with your Tandem email and password.</p>
+  <h1>Connect to Priorities</h1>
+  <p>${escape(opts.clientName)} wants to read and update your Priorities list as you. Sign in with your Priorities email and password.</p>
   ${opts.error ? `<div class="error">${escape(opts.error)}</div>` : ""}
   <form method="post" action="/authorize">
     <input type="hidden" name="state" value="${escape(opts.state)}">
@@ -111,7 +111,7 @@ app.post("/authorize", async (c) => {
 	const allowed = c.env.ALLOWED_UIDS.split(",").map((s) => s.trim());
 	if (!allowed.includes(account.uid)) {
 		console.log(JSON.stringify({ event: "not_allowlisted", uid: account.uid }));
-		return retry("This account isn't one of the two Tandem accounts.");
+		return retry("This account isn't one of the two Priorities accounts.");
 	}
 
 	await c.env.OAUTH_KV.delete(`authreq:${state}`);
@@ -129,7 +129,7 @@ app.post("/authorize", async (c) => {
 	});
 });
 
-app.get("/", (c) => c.text("Tandem MCP server. Add https://<this host>/mcp as a custom connector in Claude."));
+app.get("/", (c) => c.text("Priorities MCP server. Add https://<this host>/mcp as a custom connector in Claude."));
 
 /** Checks the email and password with Firebase Auth's REST API and returns the account. */
 async function firebaseSignIn(env: Env, email: string, password: string): Promise<{ uid: string; email: string }> {

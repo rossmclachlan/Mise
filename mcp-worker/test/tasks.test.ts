@@ -2,16 +2,16 @@
 // (firebase emulators:exec starts it and sets FIRESTORE_EMULATOR_HOST).
 import { beforeEach, describe, expect, it } from "vitest";
 import { Firestore } from "../src/firestore";
-import { NotFound, TandemData } from "../src/tasks";
+import { NotFound, PrioritiesData } from "../src/tasks";
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
-const PROJECT = "demo-tandem";
+const PROJECT = "demo-priorities";
 const db = new Firestore({ projectId: PROJECT, emulatorHost: host });
 const NOW = "2026-10-07"; // a Wednesday
 const AT = "2026-10-07T18:00:00.000Z";
 const H = "house1";
 
-const as = (uid: string) => new TandemData(db, uid, NOW, AT);
+const as = (uid: string) => new PrioritiesData(db, uid, NOW, AT);
 
 async function reset() {
 	await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: "DELETE" });
@@ -31,7 +31,7 @@ async function reset() {
 	]);
 }
 
-describe.skipIf(!host)("TandemData against the Firestore emulator", () => {
+describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 	beforeEach(reset);
 
 	it("never shows the other person's personal list", async () => {
@@ -142,6 +142,6 @@ describe.skipIf(!host)("TandemData against the Firestore emulator", () => {
 	});
 
 	it("reports a missing household clearly", async () => {
-		await expect(as("stranger").visibleTasks()).rejects.toThrow(/No Tandem household/);
+		await expect(as("stranger").visibleTasks()).rejects.toThrow(/No Priorities household/);
 	});
 });

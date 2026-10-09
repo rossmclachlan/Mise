@@ -2,7 +2,7 @@
 // rules. The rules themselves live in the household document once edited (via
 // update_house_rules), so both our Claude accounts read the same copy.
 
-export const SERVER_INSTRUCTIONS = `Tandem is Ross and Emily's shared to-do list. You act as the person who connected you; tasks you add or change are labeled "via Claude" in their app.
+export const SERVER_INSTRUCTIONS = `Priorities is Ross and Emily's shared to-do list. You act as the person who connected you; tasks you add or change are labeled "via Claude" in their app.
 
 How the list works:
 - Lists: "shared" (both see it; each task is on Ross, Emily, both, or unclaimed) and "personal" (only the owner sees it; you only ever see the connected person's personal list).
@@ -44,7 +44,7 @@ export const DEFAULT_HOUSE_RULES = `HOUSE RULES (starting draft; edit with updat
 
 5. Household context. (To fill in: who's in the family, regular commitments, school calendar, birthdays, yearly renewals.)`;
 
-export const PLAN_MY_WEEK = `Let's plan my week in Tandem.
+export const PLAN_MY_WEEK = `Let's plan my week in Priorities.
 
 1. Call get_house_rules and get_overview. If you have access to my calendar and email, check this week and next for events and deadlines too.
 2. Tell me, briefly: what's in Now for each of us, what's overdue, what's unclaimed, and what's already taken care of.

@@ -3,11 +3,11 @@ import { Copy, LogOut, UtensilsCrossed } from 'lucide-react';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { emojiPairFor } from '../lib/emoji';
 import { formatDate, today } from '../lib/dates';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { initial } from '../lib/format';
 
 export function Header() {
-  const { user, household, nameOf, store } = useTandem();
+  const { user, household, nameOf, store } = usePriorities();
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [emoji] = useState(() => emojiPairFor());
@@ -28,7 +28,7 @@ export function Header() {
     <>
       <header className="z-40 flex shrink-0 items-center justify-between border-b border-outline bg-surface px-4 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.625rem)]">
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl" role="img" aria-label="Tandem">
+          <span className="text-2xl" role="img" aria-label="Priorities">
             {emoji}
           </span>
           <span className="text-sm text-ink-variant">{formatDate(today())}</span>

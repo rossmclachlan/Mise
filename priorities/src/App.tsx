@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Household, Task } from './types';
 import type { SignedInUser, Store } from './data/store';
 import { usePWAUpdate } from '../../src/hooks/usePWAUpdate';
-import { TandemProvider } from './state/TandemContext';
+import { PrioritiesProvider } from './state/PrioritiesContext';
 import { LoginScreen } from './components/LoginScreen';
 import { HouseholdSetup } from './components/HouseholdSetup';
 import { Home } from './components/Home';
@@ -22,7 +22,7 @@ function ErrorScreen({ error, store }: { error: Error; store: Store }) {
   const code = (error as { code?: string }).code;
   return (
     <div className="flex h-full flex-col justify-center gap-4 px-6 pb-16">
-      <h1 className="text-xl font-bold text-ink">Tandem couldn't load</h1>
+      <h1 className="text-xl font-bold text-ink">Priorities couldn't load</h1>
       <p className="text-sm text-ink-variant">
         {code === 'permission-denied'
           ? 'Firebase refused access. Check the Firestore rules are published and this account is on the allowlist.'
@@ -64,9 +64,9 @@ function SignedIn({ store, user }: { store: Store; user: SignedInUser }) {
   if (!household) return <HouseholdSetup store={store} user={user} />;
   if (!tasks) return <Spinner />;
   return (
-    <TandemProvider store={store} user={user} household={household} tasks={tasks}>
+    <PrioritiesProvider store={store} user={user} household={household} tasks={tasks}>
       <Home />
-    </TandemProvider>
+    </PrioritiesProvider>
   );
 }
 

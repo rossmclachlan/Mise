@@ -1,11 +1,11 @@
 ---
-name: tandem
-description: Ross and Emily's shared to-do list (the Tandem app). Use whenever the conversation is about our family or life-admin tasks, what's on this week, planning or prioritizing the week, who's doing what, something that needs booking, paying, renewing or remembering, or whether something has been taken care of, even if Tandem isn't named. Also use when an email or calendar event implies something one of us needs to do.
+name: priorities
+description: Ross and Emily's shared to-do list (the Priorities app). Use whenever the conversation is about our family or life-admin tasks, what's on this week, planning or prioritizing the week, who's doing what, something that needs booking, paying, renewing or remembering, or whether something has been taken care of, even if the app isn't named. Also use when an email or calendar event implies something one of us needs to do.
 ---
 
-# Tandem
+# Priorities
 
-Tandem is our shared to-do list. Its connector (the Tandem MCP server) is how you read and change it.
+Priorities is our shared to-do list. Its connector (the Priorities MCP server) is how you read and change it.
 The tools describe themselves; this skill says when to reach for them and how we like it done.
 
 ## Always

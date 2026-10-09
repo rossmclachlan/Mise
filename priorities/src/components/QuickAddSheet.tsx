@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Horizon, ListKind } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 
 /** Title, when, whose. Everything else can be filled in later, or by Claude. */
 export function QuickAddSheet({
@@ -21,7 +21,7 @@ export function QuickAddSheet({
 }
 
 function Form({ onClose, defaultList }: { onClose: () => void; defaultList: ListKind }) {
-  const { addTask, user } = useTandem();
+  const { addTask, user } = usePriorities();
   const [title, setTitle] = useState('');
   const [horizon, setHorizon] = useState<Horizon>('now');
   const [list, setList] = useState<ListKind>(defaultList);

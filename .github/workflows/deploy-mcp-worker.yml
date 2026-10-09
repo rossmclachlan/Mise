@@ -1,12 +1,12 @@
-name: Deploy Tandem MCP Worker
+name: Deploy Priorities MCP Worker
 
 on:
   push:
     branches: [main]
     paths:
       - "mcp-worker/**"
-      - "tandem/src/lib/**"
-      - "tandem/src/types.ts"
+      - "priorities/src/lib/**"
+      - "priorities/src/types.ts"
       - ".github/workflows/deploy-mcp-worker.yml"
   workflow_dispatch:
 
@@ -59,10 +59,10 @@ jobs:
       - name: Find or create the OAuth KV namespace
         if: steps.creds.outputs.ready == 'true'
         run: |
-          find_id() { npx wrangler kv namespace list 2>/dev/null | jq -r '.[] | select(.title=="tandem-mcp-oauth") | .id'; }
+          find_id() { npx wrangler kv namespace list 2>/dev/null | jq -r '.[] | select(.title=="priorities-mcp-oauth") | .id'; }
           id=$(find_id)
           if [ -z "$id" ]; then
-            npx wrangler kv namespace create tandem-mcp-oauth
+            npx wrangler kv namespace create priorities-mcp-oauth
             id=$(find_id)
           fi
           test -n "$id"

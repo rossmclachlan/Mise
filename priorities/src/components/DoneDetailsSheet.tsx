@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Task } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { DateField } from './DateField';
 
 /**
@@ -17,7 +17,7 @@ export function DoneDetailsSheet({ task, onClose }: { task: Task | null; onClose
 }
 
 function Form({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { complete, update } = useTandem();
+  const { complete, update } = usePriorities();
   const [note, setNote] = useState(task.outcome_note ?? '');
   const [when, setWhen] = useState(task.when);
   const [busy, setBusy] = useState(false);

@@ -11,15 +11,15 @@
   transiently, retrigger with an empty commit — the integration token can't
   re-run Actions jobs directly.
 
-## Tandem
+## Priorities
 
-- Mise is served at `/Mise/meals/` and Tandem (`tandem/`, the shared to-do
-  app) at `/Mise/tandem/`. Keep their scopes side by side: nested scopes made
+- Mise is served at `/Mise/meals/` and Priorities (`priorities/`, the shared to-do
+  app) at `/Mise/priorities/`. Keep their scopes side by side: nested scopes made
   Chrome on Android treat them as one app. `/Mise/` is only `root/` (a
   redirect plus a worker-removal `sw.js`); keep that `sw.js` deployed. `npm run build` builds both; `npm test` runs its logic tests.
 - `firestore.rules` covers both apps. Changing it means redeploying the rules
   (console or Firebase CLI); `deploy.yml` does not deploy them.
-- `mcp-worker/` is Tandem's MCP server (Cloudflare Worker), deployed by
-  `deploy-mcp-worker.yml`. It imports the app's logic from `tandem/src/lib`, so
+- `mcp-worker/` is Priorities' MCP server (Cloudflare Worker), deployed by
+  `deploy-mcp-worker.yml`. It imports the app's logic from `priorities/src/lib`, so
   changes there affect both; run `npm run type-check` in `mcp-worker/` too.
-  `skills/tandem/SKILL.md` is the matching Claude skill.
+  `skills/priorities/SKILL.md` is the matching Claude skill.

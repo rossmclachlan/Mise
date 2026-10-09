@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-// Mise lives at /Mise/meals/ and Tandem at /Mise/tandem/: side-by-side
+// Mise lives at /Mise/meals/ and Priorities at /Mise/priorities/: side-by-side
 // scopes, so each installs as its own app and neither captures the other's
 // pages. /Mise/ itself only redirects here (see root/).
 export default defineConfig({

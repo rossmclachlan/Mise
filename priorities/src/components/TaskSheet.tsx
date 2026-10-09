@@ -6,7 +6,7 @@ import { formatDate, formatShort, localDay, today } from '../lib/dates';
 import { effectiveHorizon } from '../lib/horizon';
 import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
-import { useTandem } from '../state/TandemContext';
+import { usePriorities } from '../state/PrioritiesContext';
 import { HORIZON_NAMES, initial } from '../lib/format';
 import { DateField } from './DateField';
 
@@ -44,7 +44,7 @@ function presetIndex(rule: RepeatRule | null): number {
 }
 
 function Body({ task, onClose, onDone }: { task: Task; onClose: () => void; onDone: (t: Task) => void }) {
-  const t = useTandem();
+  const t = usePriorities();
   const { household, user, nameOf, update } = t;
   const [title, setTitle] = useState(task.title);
   const [note, setNote] = useState('');

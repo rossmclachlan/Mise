@@ -1,12 +1,12 @@
-// What the MCP tools do, on top of the same logic the Tandem app uses
-// (../../tandem/src/lib), so a task Claude adds or ticks behaves exactly like
+// What the MCP tools do, on top of the same logic the Priorities app uses
+// (../../priorities/src/lib), so a task Claude adds or ticks behaves exactly like
 // one added or ticked in the app.
 //
 // The Worker reads Firestore as a service account, which bypasses security
 // rules, so visibility is enforced here: a person sees the shared list and
 // their own personal list, never the other person's.
 
-import { addDays, localDay, weekEnd } from "../../tandem/src/lib/dates";
+import { addDays, localDay, weekEnd } from "../../priorities/src/lib/dates";
 import {
 	MONTH_DAYS,
 	effectiveDate,
@@ -15,7 +15,7 @@ import {
 	isDoneThisWeek,
 	isOverdue,
 	moveToHorizon,
-} from "../../tandem/src/lib/horizon";
+} from "../../priorities/src/lib/horizon";
 import {
 	buildTask,
 	compareOpen,
@@ -26,10 +26,10 @@ import {
 	skipOccurrence,
 	stepProgress,
 	type Actor,
-} from "../../tandem/src/lib/ops";
-import { describeRepeat } from "../../tandem/src/lib/repeat";
-import { canSee, isOnMe } from "../../tandem/src/lib/visibility";
-import type { DateString, Household, Horizon, RepeatRule, Step, Task } from "../../tandem/src/types";
+} from "../../priorities/src/lib/ops";
+import { describeRepeat } from "../../priorities/src/lib/repeat";
+import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
+import type { DateString, Household, Horizon, RepeatRule, Step, Task } from "../../priorities/src/types";
 import type { Doc, Firestore, Write } from "./firestore";
 
 export type OwnerWord = "me" | "partner" | "both" | "unclaimed";
@@ -73,7 +73,7 @@ export interface TaskChanges {
 
 export class NotFound extends Error {}
 
-export class TandemData {
+export class PrioritiesData {
 	private household?: Household | null;
 
 	constructor(
@@ -95,7 +95,7 @@ export class TandemData {
 			this.household = doc ? { ...doc.data, id: doc.id } : null;
 		}
 		if (!this.household) {
-			throw new Error("No Tandem household yet. Open the Tandem app and start or join one first.");
+			throw new Error("No Priorities household yet. Open the Priorities app and start or join one first.");
 		}
 		return this.household;
 	}

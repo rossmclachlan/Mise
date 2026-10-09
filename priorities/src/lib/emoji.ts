@@ -1,4 +1,4 @@
-// Mise shows a food emoji in its header; Tandem shows a pair of animals,
+// Mise shows a food emoji in its header; Priorities shows a pair of animals,
 // a different pair each day.
 const PAIRS = [
   '🐧🐧', '🦦🦦', '🦢🦢', '🦩🦩', '🐢🐇', '🦊🐻', '🐝🐞', '🐑🐐',

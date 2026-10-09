@@ -73,8 +73,8 @@ export function TopAppBar({ user }: TopAppBarProps) {
             </span>
           </div>
 
-          <a href="/Mise/tandem/" className="btn-outlined w-full">
-            <ListChecks size={18} /> Open Tandem (to-dos)
+          <a href="/Mise/priorities/" className="btn-outlined w-full">
+            <ListChecks size={18} /> Open Priorities (to-dos)
           </a>
 
           <button type="button" onClick={() => signOut(auth)} className="btn-danger w-full">

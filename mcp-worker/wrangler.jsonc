@@ -1,10 +1,10 @@
 /**
- * Tandem's MCP server: lets each of our Claude accounts read and update Tandem.
+ * Priorities' MCP server: lets each of our Claude accounts read and update Priorities.
  * Setup and deploy: see README.md.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tandem-mcp",
+  "name": "priorities-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
@@ -16,14 +16,14 @@
     // Same Firebase project as the apps. Neither value is secret: both ship in the apps' web config.
     "FIREBASE_PROJECT_ID": "<firebase-project-id>",
     "FIREBASE_API_KEY": "<firebase-web-api-key>",
-    // The two Tandem accounts (must match firestore.rules).
+    // The two Priorities accounts (must match firestore.rules).
     "ALLOWED_UIDS": "NTMWruQo2AYj4bWBvVPxwnPeA8u1,Bo4TkhRHmcXowr2l1DnfEU5WaJq1",
     // "Today" and "this week" are counted in this time zone.
     "TIMEZONE": "America/Los_Angeles"
   },
-  "migrations": [{ "new_sqlite_classes": ["TandemMCP"], "tag": "v1" }],
+  "migrations": [{ "new_sqlite_classes": ["PrioritiesMCP"], "tag": "v1" }],
   "durable_objects": {
-    "bindings": [{ "class_name": "TandemMCP", "name": "MCP_OBJECT" }]
+    "bindings": [{ "class_name": "PrioritiesMCP", "name": "MCP_OBJECT" }]
   },
   "kv_namespaces": [
     {

@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Rules for the whole Firebase project: Mise and Tandem share it.
+// Rules for the whole Firebase project: Mise and Priorities share it.
 // Deploy: paste into Firebase console -> Firestore -> Rules, or
 //   npx firebase-tools deploy --only firestore:rules --project <project-id>
 service cloud.firestore {
@@ -14,7 +14,7 @@ service cloud.firestore {
                          && userId == "OY6CbOwlq9aXV5tiJ6FdDdSYMB12";
     }
 
-    // ── Tandem ────────────────────────────────────────────────────────────
+    // ── Priorities ────────────────────────────────────────────────────────────
     // Only our two personal accounts. Anyone can create a Firebase account
     // with the public web config, so being signed in is not enough.
     function signedIn() {

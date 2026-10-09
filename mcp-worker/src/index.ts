@@ -2,11 +2,11 @@ import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import { z } from "zod";
-import { setTimeZone, today } from "../../tandem/src/lib/dates";
+import { setTimeZone, today } from "../../priorities/src/lib/dates";
 import { AuthHandler, type Props } from "./auth";
 import { Firestore, type ServiceAccount } from "./firestore";
 import { DEFAULT_HOUSE_RULES, PLAN_MY_WEEK, SERVER_INSTRUCTIONS } from "./guidance";
-import { TandemData } from "./tasks";
+import { PrioritiesData } from "./tasks";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -31,8 +31,8 @@ const step = z.object({
 	owner: stepOwner.optional().describe("Shared tasks: who does this step"),
 });
 
-export class TandemMCP extends McpAgent<Env, Record<string, never>, Props> {
-	server = new McpServer({ name: "Tandem", version: "0.1.0" }, { instructions: SERVER_INSTRUCTIONS });
+export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
+	server = new McpServer({ name: "Priorities", version: "0.1.0" }, { instructions: SERVER_INSTRUCTIONS });
 
 	private db(): Firestore {
 		const emulatorHost = this.env.FIRESTORE_EMULATOR_HOST;
@@ -44,13 +44,13 @@ export class TandemMCP extends McpAgent<Env, Record<string, never>, Props> {
 	}
 
 	/** A fresh view for one tool call: dates are "now" in our time zone. */
-	private data(): TandemData {
+	private data(): PrioritiesData {
 		setTimeZone(this.env.TIMEZONE);
-		return new TandemData(this.db(), this.props!.uid, today(), new Date().toISOString());
+		return new PrioritiesData(this.db(), this.props!.uid, today(), new Date().toISOString());
 	}
 
 	/** Logs the call (never secrets) and turns failures into a readable tool error. */
-	private async run(tool: string, args: unknown, fn: (d: TandemData) => Promise<unknown>): Promise<ToolResult> {
+	private async run(tool: string, args: unknown, fn: (d: PrioritiesData) => Promise<unknown>): Promise<ToolResult> {
 		const started = Date.now();
 		try {
 			const result = await fn(this.data());
@@ -277,7 +277,7 @@ export class TandemMCP extends McpAgent<Env, Record<string, never>, Props> {
 }
 
 export default new OAuthProvider({
-	apiHandler: TandemMCP.serve("/mcp"),
+	apiHandler: PrioritiesMCP.serve("/mcp"),
 	apiRoute: "/mcp",
 	authorizeEndpoint: "/authorize",
 	clientRegistrationEndpoint: "/register",

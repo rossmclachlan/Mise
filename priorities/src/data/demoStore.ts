@@ -3,8 +3,8 @@ import { addDays, today, weekStart } from '../lib/dates';
 import { buildTask, type Actor } from '../lib/ops';
 import type { SignedInUser, Store } from './store';
 
-// In-memory backend for local development (`npm run dev:tandem`, then open
-// /Mise/tandem/?demo). Dev builds only; never bundled into production.
+// In-memory backend for local development (`npm run dev:priorities`, then open
+// /Mise/priorities/?demo). Dev builds only; never bundled into production.
 
 const ROSS = 'demo-ross';
 const EMILY = 'demo-emily';

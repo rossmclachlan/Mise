@@ -15,7 +15,7 @@ import {
   type NewTaskInput,
 } from '../lib/ops';
 
-export interface Tandem {
+export interface Priorities {
   user: SignedInUser;
   household: Household;
   tasks: Task[];
@@ -34,16 +34,16 @@ export interface Tandem {
   setSteps(task: Task, steps: Step[], what?: string): Promise<void>;
 }
 
-const Ctx = createContext<Tandem | null>(null);
+const Ctx = createContext<Priorities | null>(null);
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function useTandem(): Tandem {
+export function usePriorities(): Priorities {
   const v = useContext(Ctx);
-  if (!v) throw new Error('useTandem outside provider');
+  if (!v) throw new Error('usePriorities outside provider');
   return v;
 }
 
-export function TandemProvider({
+export function PrioritiesProvider({
   store,
   user,
   household,
@@ -75,7 +75,7 @@ export function TandemProvider({
     [store, hid, actor],
   );
 
-  const value: Tandem = {
+  const value: Priorities = {
     user,
     household,
     tasks,
