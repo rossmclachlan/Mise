@@ -91,6 +91,7 @@ export function ItemListSection({
       ) : null}
 
       <BottomSheet
+        dialogOnWide
         isOpen={categoryPickerId !== null}
         onClose={() => setCategoryPickerId(null)}
         title="Category"

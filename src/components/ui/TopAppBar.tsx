@@ -69,7 +69,7 @@ export function TopAppBar({ user }: TopAppBarProps) {
         </button>
       </header>
 
-      <BottomSheet isOpen={menuOpen} onClose={() => setMenuOpen(false)} title="Settings">
+      <BottomSheet dialogOnWide isOpen={menuOpen} onClose={() => setMenuOpen(false)} title="Settings">
         <div className="flex flex-col gap-4 pb-4">
           <LookPicker />
 

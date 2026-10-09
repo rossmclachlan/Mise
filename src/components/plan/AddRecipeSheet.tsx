@@ -172,6 +172,7 @@ export function AddRecipeSheet({ isOpen, onClose, onSave, editingRecipe }: AddRe
 
   return (
     <BottomSheet
+      dialogOnWide
       isOpen={isOpen}
       onClose={resetAndClose}
       title={step === 'form' ? (editingRecipe ? 'Edit Recipe' : 'Add Recipe') : 'Confirm Ingredients'}

@@ -283,6 +283,7 @@ export function ChecklistSection({
       )}
 
       <BottomSheet
+        dialogOnWide
         isOpen={categoryPickerTarget !== null}
         onClose={() => setCategoryPickerTarget(null)}
         title="Category"

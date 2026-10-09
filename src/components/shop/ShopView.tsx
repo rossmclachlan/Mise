@@ -226,106 +226,113 @@ export function GroceryView({
 
   return (
     <div className="relative h-full overflow-hidden">
-      <div className="h-full overflow-y-auto px-4 pb-40 pt-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="heading-page">Grocery</h1>
-          <button
-            type="button"
-            onClick={clearChecked}
-            disabled={!hasChecked}
-            className="btn-tonal px-4 py-2.5 text-sm"
-          >
-            Clear checked
-          </button>
-        </div>
-
-        <div className="space-y-5">
-          {staples.length > 0 && (
-            <ChecklistSection
-              title="Staples"
-              items={staples}
-              onToggle={toggleStaple}
-              onRemove={removeStaple}
-              onEdit={editStapleText}
-              emptyText="No staples yet."
-              large
-            />
-          )}
-
-          {groceryByCategory.map(({ category, items }) => (
-            <ChecklistSection
-              key={category}
-              title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
-              accent={CATEGORY_ACCENT[category]}
-              items={items}
-              onToggle={toggleItem}
-              onRemove={removeItem}
-              onEdit={editItemText}
-              onCategoryChange={changeItemCategory}
-              onStock={moveGroceryItemToSupplies}
-              large
-              supplyItems={supplies}
-            />
-          ))}
-
-          {supplies.length > 0 && <h1 className="heading-page pt-2">Supplies</h1>}
-
-          {suppliesByCategory.map(({ category, items }) => (
-            <ItemListSection
-              key={category}
-              title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
-              accent={CATEGORY_ACCENT[category]}
-              items={items}
-              onRemove={removeSupplyItem}
-              onMoveToList={moveSupplyItemToList}
-              onCategoryChange={changeSupplyCategory}
-            />
-          ))}
-
-          <div className="card overflow-hidden">
+      <div className="h-full overflow-y-auto px-4 pb-40 pt-4 md:px-8 md:pt-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="heading-page">Grocery</h1>
             <button
               type="button"
-              onClick={() => setCostcoOpen((prev) => !prev)}
-              aria-expanded={costcoOpen}
-              className="flex w-full items-center justify-between px-4 py-3"
+              onClick={clearChecked}
+              disabled={!hasChecked}
+              className="btn-tonal px-4 py-2.5 text-sm"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <Warehouse size={16} />
-                Costco list{costco.length > 0 ? ` (${costco.length})` : ''}
-              </span>
-              <ChevronDown size={18} className={`transition-transform ${costcoOpen ? 'rotate-180' : ''}`} />
+              Clear checked
             </button>
+          </div>
 
-            {costcoOpen && (
-              <div className="space-y-4 border-t border-outline/60 px-3 pb-3 pt-3">
-                {costcoByCategory.map(({ category, items }) => (
-                  <ChecklistSection
-                    key={category}
-                    title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
-                    accent={CATEGORY_ACCENT[category]}
-                    items={items}
-                    onToggle={toggleCostcoItem}
-                    onRemove={removeCostcoItem}
-                    onEdit={editCostcoItemText}
-                    onCategoryChange={changeCostcoItemCategory}
-                  />
-                ))}
+          {/* One column on phones; on wide screens Supplies sits beside the grocery list. */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:items-start md:gap-8">
+            <div className="space-y-5">
+              {staples.length > 0 && (
                 <ChecklistSection
-                  items={[]}
-                  onToggle={toggleCostcoItem}
-                  onAdd={addCostcoItem}
-                  showCategoryPreview
-                  addPlaceholder="Add a Costco item"
-                  emptyText={costco.length === 0 ? 'No Costco items yet.' : undefined}
+                  title="Staples"
+                  items={staples}
+                  onToggle={toggleStaple}
+                  onRemove={removeStaple}
+                  onEdit={editStapleText}
+                  emptyText="No staples yet."
+                  large
                 />
+              )}
+
+              {groceryByCategory.map(({ category, items }) => (
+                <ChecklistSection
+                  key={category}
+                  title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
+                  accent={CATEGORY_ACCENT[category]}
+                  items={items}
+                  onToggle={toggleItem}
+                  onRemove={removeItem}
+                  onEdit={editItemText}
+                  onCategoryChange={changeItemCategory}
+                  onStock={moveGroceryItemToSupplies}
+                  large
+                  supplyItems={supplies}
+                />
+              ))}
+            </div>
+
+            <div className="space-y-5">
+              {supplies.length > 0 && <h1 className="heading-page pt-2 md:pt-0">Supplies</h1>}
+
+              {suppliesByCategory.map(({ category, items }) => (
+                <ItemListSection
+                  key={category}
+                  title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
+                  accent={CATEGORY_ACCENT[category]}
+                  items={items}
+                  onRemove={removeSupplyItem}
+                  onMoveToList={moveSupplyItemToList}
+                  onCategoryChange={changeSupplyCategory}
+                />
+              ))}
+
+              <div className="card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setCostcoOpen((prev) => !prev)}
+                  aria-expanded={costcoOpen}
+                  className="flex w-full items-center justify-between px-4 py-3"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-ink">
+                    <Warehouse size={16} />
+                    Costco list{costco.length > 0 ? ` (${costco.length})` : ''}
+                  </span>
+                  <ChevronDown size={18} className={`transition-transform ${costcoOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {costcoOpen && (
+                  <div className="space-y-4 border-t border-outline/60 px-3 pb-3 pt-3">
+                    {costcoByCategory.map(({ category, items }) => (
+                      <ChecklistSection
+                        key={category}
+                        title={`${CATEGORY_EMOJI[category]} ${GROCERY_CATEGORY_LABELS[category]}`}
+                        accent={CATEGORY_ACCENT[category]}
+                        items={items}
+                        onToggle={toggleCostcoItem}
+                        onRemove={removeCostcoItem}
+                        onEdit={editCostcoItemText}
+                        onCategoryChange={changeCostcoItemCategory}
+                      />
+                    ))}
+                    <ChecklistSection
+                      items={[]}
+                      onToggle={toggleCostcoItem}
+                      onAdd={addCostcoItem}
+                      showCategoryPreview
+                      addPlaceholder="Add a Costco item"
+                      emptyText={costco.length === 0 ? 'No Costco items yet.' : undefined}
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
 
       {addBarOpen ? (
-        <div className="absolute inset-x-0 bottom-0 z-30 border-t border-outline bg-surface px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-2px_12px_rgba(28,20,5,0.06)]">
+        <div className="absolute inset-x-0 bottom-0 z-30 border-t border-outline bg-surface px-4 md:inset-x-auto md:left-1/2 md:w-full md:max-w-2xl md:-translate-x-1/2 md:rounded-t-2xl md:border-x pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-2px_12px_rgba(28,20,5,0.06)]">
           <div className="mb-1 flex items-center justify-between">
             <span className="label-section">Add item</span>
             <button
@@ -410,6 +417,7 @@ export function GroceryView({
       )}
 
       <BottomSheet
+        dialogOnWide
         isOpen={categoryPickerOpen}
         onClose={() => setCategoryPickerOpen(false)}
         title="Category"

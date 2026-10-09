@@ -50,7 +50,7 @@ export function CookView({ recipe, onBack }: CookViewProps) {
   const showCountdown = timer.secondsLeft > 0 || timer.isRunning;
 
   return (
-    <div className="flex min-h-full flex-col px-4 pb-4 pt-4">
+    <div className="mx-auto flex min-h-full max-w-2xl flex-col px-4 pb-4 pt-4 md:px-8 md:pb-8 md:pt-6">
       <button
         type="button"
         onClick={onBack}
