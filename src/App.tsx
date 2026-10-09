@@ -16,7 +16,7 @@ import {
 } from './hooks/useFirestore';
 import { categoriseItem } from './utils/categorise';
 import { SEED_RECIPES, SEED_STAPLES, SEED_SUPPLIES } from './utils/seedData';
-import { BottomNav } from './components/ui/BottomNav';
+import { BottomNav, SideNav } from './components/ui/BottomNav';
 import { TopAppBar } from './components/ui/TopAppBar';
 import { RecipeDetail } from './components/plan/RecipeDetail';
 import { AddRecipeSheet } from './components/plan/AddRecipeSheet';
@@ -280,7 +280,10 @@ function AuthenticatedApp({ user }: { user: User }) {
   return (
     <>
       <TopAppBar user={user} />
-      <div className="relative flex-1 overflow-y-auto">{content}</div>
+      <div className="flex min-h-0 flex-1">
+        <SideNav active={mode} onChange={handleModeChange} onAddRecipe={() => setShowAddRecipe(true)} />
+        <main className="relative min-w-0 flex-1 overflow-y-auto">{content}</main>
+      </div>
       <BottomNav active={mode} onChange={handleModeChange} />
       <AddRecipeSheet
         isOpen={showAddRecipe}
@@ -302,13 +305,16 @@ function App() {
   const { needsRefresh, installUpdate } = usePWAUpdate();
 
   return (
-    <div className="paper fixed inset-0 mx-auto flex max-w-[480px] flex-col bg-bg text-ink">
+    <div className="paper fixed inset-0 flex flex-col bg-bg text-ink">
       {authLoading ? (
         <Spinner />
       ) : user ? (
         <AuthenticatedApp user={user} />
       ) : (
-        <LoginScreen />
+        // Sign-in stays phone-width, centered on wide screens.
+        <div className="mx-auto flex h-full w-full max-w-[480px] flex-col">
+          <LoginScreen />
+        </div>
       )}
       {needsRefresh && (
         <div className="flex items-center justify-between border-t-[1.5px] border-ink bg-sun-container px-4 py-2.5">

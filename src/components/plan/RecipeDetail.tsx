@@ -68,12 +68,12 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
   }
 
   return (
-    <div className="px-4 pb-8 pt-4">
+    <div className="mx-auto max-w-5xl px-4 pb-8 pt-4 md:px-8 md:pt-6">
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 text-sm font-medium text-ink-variant"
+          className="flex items-center gap-1 text-sm font-medium text-ink-variant hover:text-ink"
         >
           <ArrowLeft size={18} /> Back
         </button>
@@ -82,105 +82,116 @@ export function RecipeDetail({ recipe, onBack, onDelete, onAddToGroceryList, onC
         </button>
       </div>
 
-      <RecipeImage
-        src={recipe.image}
-        alt={recipe.title}
-        seed={recipe.title}
-        className="mb-4 h-40 w-full rounded-2xl"
-        iconSize={40}
-      />
+      {/* On wide screens the photo sits beside the title, and ingredients beside the steps. */}
+      <div className="md:flex md:items-end md:gap-6">
+        <RecipeImage
+          src={recipe.image}
+          alt={recipe.title}
+          seed={recipe.title}
+          className="mb-4 h-40 w-full rounded-2xl md:mb-0 md:h-48 md:w-72 md:shrink-0"
+          iconSize={40}
+        />
 
-      <h1 className="heading-page">{recipe.title}</h1>
-      {recipe.source_url && (
-        <a
-          href={recipe.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-sm text-accent"
-        >
-          {domain ?? recipe.source_url}
-          <ExternalLink size={14} />
-        </a>
-      )}
+        <div className="min-w-0 flex-1">
+          <h1 className="heading-page">{recipe.title}</h1>
+          {recipe.source_url && (
+            <a
+              href={recipe.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-sm text-accent"
+            >
+              {domain ?? recipe.source_url}
+              <ExternalLink size={14} />
+            </a>
+          )}
 
-      <div className="card mt-4 flex items-center gap-3 p-3">
-        <span className="font-medium">Servings</span>
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setServings((s) => Math.max(1, s - 1))}
-            aria-label="Decrease servings"
-            className="btn-icon"
-          >
-            <Minus size={16} />
-          </button>
-          <span className="w-6 text-center font-semibold">{servings}</span>
-          <button
-            type="button"
-            onClick={() => setServings((s) => s + 1)}
-            aria-label="Increase servings"
-            className="btn-icon"
-          >
-            <Plus size={16} />
-          </button>
+          <div className="card mt-4 flex items-center gap-3 p-3 md:max-w-xs">
+            <span className="font-medium">Servings</span>
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setServings((s) => Math.max(1, s - 1))}
+                aria-label="Decrease servings"
+                className="btn-icon"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-6 text-center font-semibold">{servings}</span>
+              <button
+                type="button"
+                onClick={() => setServings((s) => s + 1)}
+                aria-label="Increase servings"
+                className="btn-icon"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <section className="mt-4">
-        <h2 className="mb-2 text-lg font-semibold">Ingredients</h2>
-        <ul className="card p-3">
-          {recipe.ingredients.map((ing, i) => (
-            <li
-              key={i}
-              className={`flex justify-between gap-3 py-1.5 text-sm ${
-                i > 0 ? 'border-t border-outline/60' : ''
-              }`}
-            >
-              <span>{ing.name}</span>
-              <span className="shrink-0 text-ink-variant">
-                {formatAmount(scaleAmount(ing.amount, ratio), ing.unit)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-4">
-        <h2 className="mb-2 text-lg font-semibold">Steps</h2>
-        <ol className="space-y-2">
-          {recipe.steps.map((step, i) => (
-            <li key={i} className="card p-3 text-sm">
-              <span className="mr-2 font-semibold text-accent">{i + 1}.</span>
-              {step}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {recipe.notes && (
-        <section className="mt-4">
-          <h2 className="mb-2 text-lg font-semibold">Notes</h2>
-          <p className="card p-3 text-sm">{recipe.notes}</p>
+      <div className="md:mt-6 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start md:gap-6">
+        <section className="mt-4 md:mt-0">
+          <h2 className="mb-2 text-lg font-semibold">Ingredients</h2>
+          <ul className="card p-3">
+            {recipe.ingredients.map((ing, i) => (
+              <li
+                key={i}
+                className={`flex justify-between gap-3 py-1.5 text-sm ${
+                  i > 0 ? 'border-t border-outline/60' : ''
+                }`}
+              >
+                <span>{ing.name}</span>
+                <span className="shrink-0 text-ink-variant">
+                  {formatAmount(scaleAmount(ing.amount, ratio), ing.unit)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
-      )}
 
-      {onCook && (
-        <button type="button" onClick={onCook} className="btn-filled mt-6 w-full">
-          Start Cooking
+        <div>
+          <section className="mt-4 md:mt-0">
+            <h2 className="mb-2 text-lg font-semibold">Steps</h2>
+            <ol className="space-y-2">
+              {recipe.steps.map((step, i) => (
+                <li key={i} className="card p-3 text-sm">
+                  <span className="mr-2 font-semibold text-accent">{i + 1}.</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {recipe.notes && (
+            <section className="mt-4">
+              <h2 className="mb-2 text-lg font-semibold">Notes</h2>
+              <p className="card p-3 text-sm">{recipe.notes}</p>
+            </section>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 md:flex-row">
+        {onCook && (
+          <button type="button" onClick={onCook} className="btn-filled w-full md:w-auto">
+            Start Cooking
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={openConfirm}
+          className={`w-full md:w-auto ${onCook ? 'btn-tonal' : 'btn-filled'}`}
+        >
+          Add to Grocery List
         </button>
-      )}
 
-      <button
-        type="button"
-        onClick={openConfirm}
-        className={`w-full ${onCook ? 'btn-tonal mt-3' : 'btn-filled mt-6'}`}
-      >
-        Add to Grocery List
-      </button>
-
-      <button type="button" onClick={handleDelete} className="btn-danger mt-3 w-full">
-        <Trash2 size={18} /> Delete Recipe
-      </button>
+        <button type="button" onClick={handleDelete} className="btn-danger w-full md:ml-auto md:w-auto">
+          <Trash2 size={18} /> Delete Recipe
+        </button>
+      </div>
 
       <BottomSheet
         isOpen={confirmOpen}

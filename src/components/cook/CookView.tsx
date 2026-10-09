@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ChevronDown,
@@ -47,14 +47,25 @@ export function CookView({ recipe, onBack }: CookViewProps) {
     timer.reset();
   }
 
+  // Arrow keys step through the recipe on a keyboard.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea')) return;
+      if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === 'ArrowRight') goNext();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   const showCountdown = timer.secondsLeft > 0 || timer.isRunning;
 
   return (
-    <div className="flex min-h-full flex-col px-4 pb-4 pt-4">
+    <div className="mx-auto flex min-h-full max-w-3xl flex-col px-4 pb-4 pt-4 md:px-8 md:pb-8 md:pt-6">
       <button
         type="button"
         onClick={onBack}
-        className="mb-3 flex items-center gap-1 self-start text-sm font-medium text-ink-variant"
+        className="mb-3 flex items-center gap-1 self-start text-sm font-medium text-ink-variant hover:text-ink"
       >
         <ArrowLeft size={18} /> Back
       </button>
@@ -120,7 +131,7 @@ export function CookView({ recipe, onBack }: CookViewProps) {
             <span className="label-section text-accent">
               Step {stepIndex + 1} of {totalSteps}
             </span>
-            <p className="mt-3 text-2xl font-semibold leading-snug">{currentStep}</p>
+            <p className="mt-3 text-2xl font-semibold leading-snug md:text-3xl">{currentStep}</p>
 
             {duration !== null && (
               <div className="mt-6 flex flex-col items-center gap-3">

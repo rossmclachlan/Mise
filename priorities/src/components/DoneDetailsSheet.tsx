@@ -11,7 +11,6 @@ import { DateField } from './DateField';
 export function DoneDetailsSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
   return (
     <BottomSheet
-      dialogOnWide
       isOpen={task !== null}
       onClose={onClose}
       title={task?.done_at ? 'Details' : task?.kind === 'check' ? 'We’re covered' : 'Mark done'}

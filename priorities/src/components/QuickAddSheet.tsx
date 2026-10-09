@@ -16,7 +16,7 @@ export function QuickAddSheet({
   defaultList: ListKind;
 }) {
   return (
-    <BottomSheet dialogOnWide isOpen={isOpen} onClose={onClose} title="Add a task">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Add a task">
       {isOpen && <Form onClose={onClose} defaultList={defaultList} />}
     </BottomSheet>
   );

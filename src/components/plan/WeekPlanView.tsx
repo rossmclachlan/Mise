@@ -254,7 +254,7 @@ export function WeekPlanView({
   );
 
   return (
-    <div className="px-4 pb-8 pt-4">
+    <div className="mx-auto max-w-3xl px-4 pb-8 pt-4 md:px-8 md:pt-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="heading-page">This week</h1>
         <button

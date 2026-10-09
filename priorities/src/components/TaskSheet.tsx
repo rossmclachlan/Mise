@@ -22,7 +22,7 @@ export function TaskSheet({
   onDone: (t: Task) => void;
 }) {
   return (
-    <BottomSheet dialogOnWide isOpen={task !== null} onClose={onClose} tall>
+    <BottomSheet isOpen={task !== null} onClose={onClose} tall>
       {task && <Body key={task.id} task={task} onClose={onClose} onDone={onDone} />}
     </BottomSheet>
   );

@@ -49,7 +49,7 @@ export function Header({ onHouseRules }: { onHouseRules: () => void }) {
         </button>
       </header>
 
-      <BottomSheet dialogOnWide isOpen={menuOpen} onClose={() => setMenuOpen(false)} title={myName}>
+      <BottomSheet isOpen={menuOpen} onClose={() => setMenuOpen(false)} title={myName}>
         <div className="flex flex-col gap-4 pb-4">
           <p className="truncate text-sm text-ink-variant">{user.email}</p>
 
