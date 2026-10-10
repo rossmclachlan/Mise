@@ -178,13 +178,13 @@ describe('visibility', () => {
     }
   });
 
-  it('shows the tasks on whoever is picked, or everyone\'s when nobody is', () => {
+  it('shows the tasks on whoever is picked, and nothing when nobody is', () => {
     const all = [mine, hers, sharedRoss, sharedBoth, sharedEmily];
     const pick = (f: string[]) => all.filter((t) => matchesFilter(t, f, ROSS));
     expect(pick([ROSS])).toEqual([mine, sharedRoss, sharedBoth]);
     expect(pick([EMILY])).toEqual([sharedBoth, sharedEmily]);
     expect(pick([ROSS, EMILY])).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
-    expect(pick([])).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
+    expect(pick([])).toEqual([]);
   });
 });
 

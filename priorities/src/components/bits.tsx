@@ -223,7 +223,7 @@ export function WhoPicker({
   );
 }
 
-/** One chip per person; tap to show or hide their tasks. None on = everyone's. */
+/** One chip per person; tap to show or hide their tasks. None on = nothing shown. */
 export function PeopleChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const { household, nameOf } = usePriorities();
   return (

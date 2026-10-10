@@ -6,6 +6,7 @@ import { WINDOW_DAYS, isHandledAhead } from '../lib/horizon';
 import { HANDLED_EMOJI, HANDLED_NAME } from '../lib/format';
 import { PeopleChips, TakenCareRow } from './bits';
 import { useVisible } from '../state/useVisible';
+import { usePriorities } from '../state/PrioritiesContext';
 
 function groupBy<T>(items: T[], key: (t: T) => string): [string, T[]][] {
   const groups = new Map<string, T[]>();
@@ -29,7 +30,8 @@ function matches(task: Task, q: string): boolean {
  */
 export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
   const [q, setQ] = useState('');
-  const [filter, setFilter] = useState<Filter>([]);
+  const { user } = usePriorities();
+  const [filter, setFilter] = useState<Filter>(() => [user.uid]);
   const visible = useVisible(filter);
   const now = today();
 
@@ -69,7 +71,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       </div>
 
-      {empty && <p className="py-8 text-center text-sm text-ink-variant">{q ? 'No matches.' : 'Nothing done yet.'}</p>}
+      {empty && <p className="py-8 text-center text-sm text-ink-variant">{filter.length === 0 ? 'Turn on a name above to see their tasks.' : q ? 'No matches.' : 'Nothing done yet.'}</p>}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
         {comingUp.length > 0 && (

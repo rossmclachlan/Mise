@@ -19,7 +19,6 @@ import { BottomNav, SideNav, type Section } from './Nav';
 import { DoneToast, type ToastState } from './DoneToast';
 import { DoneDetailsSheet } from './DoneDetailsSheet';
 
-const FILTER_KEY = 'priorities:filter';
 const SECTION_KEY = 'priorities:section';
 
 function loadSection(): Section {
@@ -31,36 +30,16 @@ function loadSection(): Section {
   }
 }
 
-function loadFilter(uid: string): Filter {
-  try {
-    const v = localStorage.getItem(FILTER_KEY);
-    if (v === 'mine') return [uid];
-    if (v === 'everything' || v === 'shared') return [];
-    const parsed: unknown = v ? JSON.parse(v) : null;
-    if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) return parsed;
-  } catch {
-    // Storage can be unavailable (private mode), or hold something old; fall back to the default.
-  }
-  return [uid];
-}
-
 export function Home() {
   const { user, nameOf, complete, reopen } = usePriorities();
-  const [filter, setFilter] = useState<Filter>(() => loadFilter(user.uid));
+  // Always opens on your own tasks.
+  const [filter, setFilter] = useState<Filter>(() => [user.uid]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [section, setSection] = useState<Section>(loadSection);
   const [expanded, setExpanded] = useState<Record<'month' | 'later', boolean>>({ month: false, later: false });
   const [toast, setToast] = useState<ToastState | null>(null);
   const [detailsId, setDetailsId] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify(filter));
-    } catch {
-      // See loadFilter.
-    }
-  }, [filter]);
 
   // The undo toast dismisses itself; a newer toast restarts the clock.
   useEffect(() => {
@@ -73,7 +52,7 @@ export function Home() {
     try {
       localStorage.setItem(SECTION_KEY, section);
     } catch {
-      // See loadFilter.
+      // Storage can be unavailable (private mode).
     }
   }, [section]);
 
@@ -124,7 +103,9 @@ export function Home() {
         {sections.now.length > 0 && <span className="count-badge">{sections.now.length}</span>}
         {countFor && <span className="ml-auto text-sm text-ink-variant">{countFor}</span>}
       </div>
-      {sections.now.length === 0 ? (
+      {filter.length === 0 ? (
+        <p className="card px-4 py-6 text-center text-sm text-ink-variant">Turn on a name above to see their tasks.</p>
+      ) : sections.now.length === 0 ? (
         <div className="card flex flex-col items-center gap-2 px-4 py-6 text-center">
           <Seal emoji="☀️" size={56} tone="sun" />
           <p className="font-display text-xl text-ink">Nothing on this week</p>
