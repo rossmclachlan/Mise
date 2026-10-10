@@ -228,7 +228,7 @@ export function WeekPlanView({
   }
 
   async function handleShare() {
-    const text = formatWeekPlanText(weekPlan, recipes);
+    const text = formatWeekPlanText(weekPlan, recipes, groceryList);
     if (navigator.share) {
       try {
         await navigator.share({ text });
