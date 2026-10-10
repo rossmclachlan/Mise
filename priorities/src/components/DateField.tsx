@@ -1,6 +1,17 @@
 import { X } from 'lucide-react';
 import type { DateString } from '../types';
 
+// When a phone's date picker closes, the tap that closed it can land on
+// whatever now sits under the finger (often the Done button, which widens
+// as the task moves out of this week). Buttons that act on a task ignore
+// taps for a moment after a date is picked.
+let lastPick = 0;
+const markPick = () => {
+  lastPick = Date.now();
+};
+// eslint-disable-next-line react-refresh/only-export-components
+export const justPickedDate = () => Date.now() - lastPick < 800;
+
 /** A labelled date input that can be cleared. */
 export function DateField({
   label,
@@ -20,7 +31,10 @@ export function DateField({
         <input
           type="date"
           value={value ?? ''}
-          onChange={(e) => onChange(e.target.value || null)}
+          onChange={(e) => {
+            markPick();
+            onChange(e.target.value || null);
+          }}
           className={`input-field w-full min-w-0 py-2 text-[15px] ${value ? 'pr-9' : ''}`}
         />
         {value && (

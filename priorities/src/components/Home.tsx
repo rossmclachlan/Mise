@@ -71,6 +71,10 @@ export function Home() {
     };
   }, [visible, now]);
 
+  // A done toast hides once its task is reopened some other way.
+  const toastTask = toast ? tasks.find((t) => t.id === toast.taskId) : null;
+  const toastStale = toast !== null && (!toastTask || !toastTask.done_at);
+
   const openTask = tasks.find((t) => t.id === openId) ?? null;
   const detailsTask = tasks.find((t) => t.id === detailsId) ?? null;
 
@@ -190,7 +194,7 @@ export function Home() {
         <Plus size={26} />
       </button>
 
-      {toast && (
+      {toast && !toastStale && (
         <DoneToast
           toast={toast}
           onUndo={undo}

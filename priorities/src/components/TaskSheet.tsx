@@ -8,7 +8,7 @@ import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
 import { GAPS_EMOJI, formatWhen } from '../lib/format';
-import { DateField } from './DateField';
+import { DateField, justPickedDate } from './DateField';
 import { WhoPicker } from './bits';
 
 export function TaskSheet({
@@ -196,21 +196,21 @@ function Body({
 
       <div className="flex flex-wrap gap-2">
         {done ? (
-          <button type="button" className="btn-outlined flex-1" onClick={() => t.reopen(task)}>
+          <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.reopen(task)}>
             Reopen
           </button>
         ) : (
           <>
-            <button type="button" className="btn-filled flex-1" onClick={() => onDone(task)}>
+            <button type="button" className="btn-filled flex-1" onClick={() => !justPickedDate() && onDone(task)}>
               <Check size={18} /> Done
             </button>
             {effectiveHorizon(task, now) === 'now' && (
-              <button type="button" className="btn-outlined flex-1" onClick={() => t.notThisWeek(task)}>
+              <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.notThisWeek(task)}>
                 Not this week
               </button>
             )}
             {task.repeat && (
-              <button type="button" className="btn-outlined flex-1" onClick={() => t.skip(task)}>
+              <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.skip(task)}>
                 Skip this time
               </button>
             )}
