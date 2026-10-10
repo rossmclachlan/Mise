@@ -1,22 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
 import type { Filter, Horizon, Task } from '../types';
-import { PillToggle } from '../../../src/components/ui/PillToggle';
-import { addDays, today, weekEnd } from '../lib/dates';
-import {
-  WINDOW_DAYS,
-  effectiveHorizon,
-  isDoneThisWeek,
-  isHandledAhead,
-  isHandledSoon,
-} from '../lib/horizon';
+import { today } from '../lib/dates';
+import { effectiveHorizon } from '../lib/horizon';
 import { compareOpen } from '../lib/ops';
-import { HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
+import { HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
 import { Seal } from '../../../src/components/ui/Seal';
 import { usePriorities } from '../state/PrioritiesContext';
 import { useVisible } from '../state/useVisible';
 import { Header } from './Header';
-import { TakenCareRow } from './bits';
+import { PeopleChips } from './bits';
 import { ReorderList } from './ReorderList';
 import { HouseRulesView } from './HouseRulesView';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -38,21 +31,22 @@ function loadSection(): Section {
   }
 }
 
-function loadFilter(): Filter {
+function loadFilter(uid: string): Filter {
   try {
     const v = localStorage.getItem(FILTER_KEY);
-    if (v === 'mine' || v === 'everything') return v;
-    // The old Shared filter is part of Everyone now.
-    if (v === 'shared') return 'everything';
+    if (v === 'mine') return [uid];
+    if (v === 'everything' || v === 'shared') return [];
+    const parsed: unknown = v ? JSON.parse(v) : null;
+    if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) return parsed;
   } catch {
-    // Storage can be unavailable (private mode); fall back to the default.
+    // Storage can be unavailable (private mode), or hold something old; fall back to the default.
   }
-  return 'mine';
+  return [uid];
 }
 
 export function Home() {
   const { user, nameOf, complete, reopen } = usePriorities();
-  const [filter, setFilter] = useState<Filter>(loadFilter);
+  const [filter, setFilter] = useState<Filter>(() => loadFilter(user.uid));
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [section, setSection] = useState<Section>(loadSection);
@@ -62,7 +56,7 @@ export function Home() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(FILTER_KEY, filter);
+      localStorage.setItem(FILTER_KEY, JSON.stringify(filter));
     } catch {
       // See loadFilter.
     }
@@ -85,27 +79,18 @@ export function Home() {
 
   const now = today();
   const visible = useVisible(filter);
-  // Already handled always includes everything shared: seeing that the other
-  // person has handled something is the point, whoever it was assigned to.
-  const handledPool = useVisible('everything');
   const { tasks } = usePriorities();
 
   const sections = useMemo(() => {
     // Potential gaps sit among the rest, by date, marked with a ⚠️.
     const open = visible.filter((t) => !t.done_at);
     const by = (h: Horizon) => open.filter((t) => effectiveHorizon(t, now) === h).sort(compareOpen);
-    const ahead = handledPool.filter((t) => isHandledAhead(t, now));
-    const windowEnd = addDays(now, WINDOW_DAYS);
     return {
       now: by('now'),
       month: by('month'),
       later: by('later'),
-      soon: handledPool.filter((t) => isHandledSoon(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1)),
-      doneThisWeek: handledPool.filter((t) => isDoneThisWeek(t, now)).length,
-      handledMonth: ahead.filter((t) => t.when! > weekEnd(now) && t.when! <= windowEnd).length,
-      handledLater: ahead.filter((t) => t.when! > windowEnd).length,
     };
-  }, [visible, handledPool, now]);
+  }, [visible, now]);
 
   const openTask = tasks.find((t) => t.id === openId) ?? null;
   const detailsTask = tasks.find((t) => t.id === detailsId) ?? null;
@@ -122,18 +107,11 @@ export function Home() {
     setToast(null);
   }
 
-  const countFor = filter === 'mine' ? `for ${nameOf(user.uid)}` : null;
+  const countFor = filter.length === 1 ? `for ${nameOf(filter[0])}` : null;
 
   const filterToggle = (
     <div className="flex justify-center md:justify-start">
-      <PillToggle
-        options={[
-          { label: 'Mine', value: 'mine' },
-          { label: 'Everyone', value: 'everything' },
-        ]}
-        value={filter}
-        onChange={(v) => setFilter(v as Filter)}
-      />
+      <PeopleChips value={filter} onChange={setFilter} />
     </div>
   );
 
@@ -158,36 +136,9 @@ export function Home() {
     </section>
   );
 
-  const takenCareOf = (
-    <section>
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="heading-section">
-          {HANDLED_EMOJI} {HANDLED_NAME}
-        </h2>
-        <button type="button" onClick={() => setSection('done')} className="text-sm text-ink-variant">
-          {sections.doneThisWeek > 0 && `${sections.doneThisWeek} done this week · `}
-          <span className="font-semibold text-accent">See all</span>
-        </button>
-      </div>
-      {sections.soon.length === 0 ? (
-        <p className="rounded-2xl border-[1.5px] border-dashed border-good bg-good-container/70 px-4 py-4 text-sm text-ink-variant">
-          Nothing booked for the next six weeks yet. When you finish something with a date ahead, like an
-          appointment or a camp, it shows here.
-        </p>
-      ) : (
-        <div className="divide-y divide-good/20 rounded-2xl border-[1.5px] border-dashed border-good bg-good-container/70 px-3">
-          {sections.soon.map((t) => (
-            <TakenCareRow key={t.id} task={t} onOpen={() => setOpenId(t.id)} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-
   const laterSections = (['month', 'later'] as const).map((h) => {
     const list = sections[h];
-    const handled = h === 'month' ? sections.handledMonth : sections.handledLater;
-    const counts = [`${list.length} to do`, handled > 0 ? `${handled} handled` : null].filter(Boolean).join(' · ');
+    const counts = `${list.length} to do`;
     return (
       <section key={h} className="card px-4">
         <button
@@ -235,10 +186,7 @@ export function Home() {
                   <div className="space-y-6">
                     {nowSection}
                   </div>
-                  <div className="space-y-6">
-                    {takenCareOf}
-                    {laterSections}
-                  </div>
+                  <div className="space-y-6">{laterSections}</div>
                 </div>
               </div>
             ) : section === 'done' ? (

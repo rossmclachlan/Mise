@@ -14,12 +14,8 @@ export function isOnMe(task: Task, uid: string): boolean {
   return task.assignee.includes(uid);
 }
 
+/** Visible to this person, and on any of the people picked (none picked = everyone's). */
 export function matchesFilter(task: Task, filter: Filter, uid: string): boolean {
   if (!canSee(task, uid)) return false;
-  switch (filter) {
-    case 'mine':
-      return isOnMe(task, uid);
-    case 'everything':
-      return true;
-  }
+  return filter.length === 0 || filter.some((p) => isOnMe(task, p));
 }

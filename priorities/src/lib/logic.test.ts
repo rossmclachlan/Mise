@@ -173,16 +173,18 @@ describe('visibility', () => {
 
   it('never shows another person\'s personal list', () => {
     expect(canSee(hers, ROSS)).toBe(false);
-    for (const f of ['mine', 'everything'] as const) {
+    for (const f of [[ROSS], [ROSS, EMILY], [EMILY], []]) {
       expect(matchesFilter(hers, f, ROSS)).toBe(false);
     }
   });
 
-  it('filters Mine and Everyone', () => {
+  it('shows the tasks on whoever is picked, or everyone\'s when nobody is', () => {
     const all = [mine, hers, sharedRoss, sharedBoth, sharedEmily];
-    const pick = (f: 'mine' | 'everything') => all.filter((t) => matchesFilter(t, f, ROSS));
-    expect(pick('mine')).toEqual([mine, sharedRoss, sharedBoth]);
-    expect(pick('everything')).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
+    const pick = (f: string[]) => all.filter((t) => matchesFilter(t, f, ROSS));
+    expect(pick([ROSS])).toEqual([mine, sharedRoss, sharedBoth]);
+    expect(pick([EMILY])).toEqual([sharedBoth, sharedEmily]);
+    expect(pick([ROSS, EMILY])).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
+    expect(pick([])).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
   });
 });
 

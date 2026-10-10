@@ -24,6 +24,14 @@ interface SealProps {
   pair?: boolean;
 }
 
+/** Splits a string into what a reader sees as single characters, so 🐻‍❄️ stays one emoji. */
+function graphemes(text: string): string[] {
+  if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
+    return [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)].map((s) => s.segment);
+  }
+  return Array.from(text);
+}
+
 export function Seal({ emoji, size, tone, label, pair }: SealProps) {
   return (
     <span
@@ -37,12 +45,22 @@ export function Seal({ emoji, size, tone, label, pair }: SealProps) {
         <path className="seal-shadow" d={PATH} />
         <path className={`seal-path ${tone === 'sun' ? 'fill-sun' : 'fill-accent'}`} d={PATH} />
       </svg>
-      <span
-        className="relative leading-none"
-        style={{ fontSize: size * (pair ? 0.34 : 0.5), letterSpacing: pair ? '-0.1em' : undefined }}
-      >
-        {emoji}
-      </span>
+      {pair ? (
+        // Each emoji in its own box, side by side and never wrapping: iOS draws emoji wider
+        // than other systems, and a pair left to flow as text can break onto a second line
+        // outside the seal.
+        <span className="relative flex items-center justify-center whitespace-nowrap leading-none">
+          {graphemes(emoji).map((g, i) => (
+            <span key={i} className="block text-center" style={{ fontSize: size * 0.3, width: size * 0.34 }}>
+              {g}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="relative whitespace-nowrap leading-none" style={{ fontSize: size * 0.5 }}>
+          {emoji}
+        </span>
+      )}
     </span>
   );
 }

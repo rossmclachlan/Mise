@@ -222,3 +222,29 @@ export function WhoPicker({
     </div>
   );
 }
+
+/** One chip per person; tap to show or hide their tasks. None on = everyone's. */
+export function PeopleChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const { household, nameOf } = usePriorities();
+  return (
+    <div className="flex gap-2" role="group" aria-label="Whose tasks">
+      {household.members.map((m, i) => {
+        const on = value.includes(m);
+        return (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(on ? value.filter((x) => x !== m) : [...value, m])}
+            className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-sm font-bold transition-colors ${
+              on ? (MEMBER_CHIP[i] ?? 'border-ink bg-accent text-white') : 'border-outline bg-surface text-ink-variant'
+            }`}
+          >
+            {on && <Check size={14} strokeWidth={3} />}
+            {nameOf(m)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

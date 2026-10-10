@@ -132,4 +132,5 @@ export interface Household {
   schema?: number;
 }
 
-export type Filter = 'mine' | 'everything';
+/** Whose tasks to show: their uids. Empty = everyone's. */
+export type Filter = string[];

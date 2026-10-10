@@ -4,8 +4,7 @@ import type { Filter, Task } from '../types';
 import { addDays, formatShort, localDay, today, weekEnd, weekStart } from '../lib/dates';
 import { WINDOW_DAYS, isHandledAhead } from '../lib/horizon';
 import { HANDLED_EMOJI, HANDLED_NAME } from '../lib/format';
-import { PillToggle } from '../../../src/components/ui/PillToggle';
-import { TakenCareRow } from './bits';
+import { PeopleChips, TakenCareRow } from './bits';
 import { useVisible } from '../state/useVisible';
 
 function groupBy<T>(items: T[], key: (t: T) => string): [string, T[]][] {
@@ -30,7 +29,7 @@ function matches(task: Task, q: string): boolean {
  */
 export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
   const [q, setQ] = useState('');
-  const [filter, setFilter] = useState<Filter>('everything');
+  const [filter, setFilter] = useState<Filter>([]);
   const visible = useVisible(filter);
   const now = today();
 
@@ -66,14 +65,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
           />
         </label>
         <div className="flex justify-center">
-          <PillToggle
-            options={[
-              { label: 'Everyone', value: 'everything' },
-              { label: 'Mine', value: 'mine' },
-            ]}
-            value={filter}
-            onChange={(v) => setFilter(v as Filter)}
-          />
+          <PeopleChips value={filter} onChange={setFilter} />
         </div>
       </div>
 
