@@ -201,34 +201,38 @@ export function WhoPicker({
           </button>
         ))}
       </div>
-      {justMe && (
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isPrivate}
-          onClick={() => onChange(assignee, !isPrivate)}
-          className="flex items-center justify-between gap-3 text-left text-sm text-ink"
-        >
-          <span className="flex items-center gap-1.5">
-            <Lock size={14} /> Private, only I can see it
-          </span>
-          <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isPrivate ? 'bg-accent' : 'bg-outline'}`}>
-            <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface transition-[left] ${isPrivate ? 'left-[1.125rem]' : 'left-0.5'}`}
-            />
-          </span>
-        </button>
-      )}
+      {/* Always offered: making a task private moves it onto you. */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isPrivate}
+        onClick={() => onChange(isPrivate ? assignee : [user.uid], !isPrivate)}
+        className="flex items-center justify-between gap-3 text-left text-sm text-ink"
+      >
+        <span className="flex items-center gap-1.5">
+          <Lock size={14} /> Private, only I can see it
+          {!justMe && <span className="text-ink-variant">(moves it to you)</span>}
+        </span>
+        <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isPrivate ? 'bg-accent' : 'bg-outline'}`}>
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface transition-[left] ${isPrivate ? 'left-[1.125rem]' : 'left-0.5'}`}
+          />
+        </span>
+      </button>
     </div>
   );
 }
 
 /** One chip per person; tap to show or hide their tasks. None on = nothing shown. */
 export function PeopleChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
-  const { household, nameOf } = usePriorities();
+  const { household, user, nameOf } = usePriorities();
+  // You first, then the other person; each keeps their own colour.
+  const people = household.members
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => Number(b.m === user.uid) - Number(a.m === user.uid));
   return (
     <div className="flex gap-2" role="group" aria-label="Whose tasks">
-      {household.members.map((m, i) => {
+      {people.map(({ m, i }) => {
         const on = value.includes(m);
         return (
           <button
