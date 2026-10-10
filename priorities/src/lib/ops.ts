@@ -23,8 +23,8 @@ export interface NewTaskInput {
   title: string;
   list: Task['list'];
   owner_uid?: string | null;
+  /** Who it's on. Defaults to whoever adds it; a personal task is always on its owner. */
   assignee?: string[];
-  horizon?: Task['horizon'];
   do_by?: DateString | null;
   deadline?: DateString | null;
   repeat?: Task['repeat'];
@@ -38,13 +38,13 @@ export interface NewTaskInput {
 
 export function buildTask(input: NewTaskInput, actor: Actor, at: IsoString): Task {
   const personal = input.list === 'personal';
+  const owner = personal ? (input.owner_uid ?? actor.uid) : null;
   return {
     id: newId(),
     title: input.title.trim(),
     list: input.list,
-    owner_uid: personal ? (input.owner_uid ?? actor.uid) : null,
-    assignee: personal ? [] : (input.assignee ?? [actor.uid]),
-    horizon: input.horizon ?? 'now',
+    owner_uid: owner,
+    assignee: owner ? [owner] : input.assignee?.length ? input.assignee : [actor.uid],
     do_by: input.do_by ?? null,
     deadline: input.deadline ?? null,
     kind: input.kind ?? 'task',
@@ -113,7 +113,7 @@ export function completeTask(
       when_end: null,
       order: null,
       radar_key: null,
-      steps: task.steps.map((s) => ({ ...s, done_at: null, do_by: null })),
+      steps: task.steps.map((s) => ({ id: s.id, title: s.title, done_at: null })),
       series_id: seriesId,
       notes: [],
       created_at: at,

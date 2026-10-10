@@ -8,12 +8,11 @@ export type Horizon = 'now' | 'month' | 'later';
 export type Via = 'app' | 'mcp';
 export type TaskKind = 'task' | 'check';
 
+/** A plain checklist item. (Older steps may still carry an assignee and date; both are ignored.) */
 export interface Step {
   id: string;
   title: string;
   done_at: IsoString | null;
-  assignee: string | null;
-  do_by: DateString | null;
 }
 
 export interface Note {
@@ -44,13 +43,13 @@ export interface Task {
   list: ListKind;
   /** Personal tasks only: whose list it is on. */
   owner_uid: string | null;
-  /** Shared tasks only: who it's on. Empty = unclaimed; both uids = both of us. */
+  /** Who it's on: always at least one person; both uids = both of us. A personal task is on its owner. */
   assignee: string[];
-  /** Where the task sits when it has no date. Dated tasks place themselves. */
-  horizon: Horizon;
+  /** "Start by": when to start, for things with lead time. Places the task when set. */
   do_by: DateString | null;
+  /** "Due": the date it needs to be done by. */
   deadline: DateString | null;
-  /** 'check': a potential gap the radar found ("no childcare on Oct 12?"), shown under Potential gaps until answered. */
+  /** 'check': a potential gap the radar raised ("Confirm childcare for Oct 12"), shown with a ⚠️. Ticked when confirmed. */
   kind?: TaskKind;
   /**
    * Manual position within its section, lower first; null = by date. Set by
@@ -129,6 +128,8 @@ export interface Household {
   radar_runs?: RadarRun[];
   /** Who started this week's shared sweep, so the other person's radar skips it. */
   radar_claim?: { uid: string; at: IsoString };
+  /** 2 once existing tasks were moved to the simpler model (every task has a person; dates place tasks). */
+  schema?: number;
 }
 
-export type Filter = 'mine' | 'shared' | 'everything';
+export type Filter = 'mine' | 'everything';

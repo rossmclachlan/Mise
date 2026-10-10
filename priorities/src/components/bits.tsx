@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Check, GripVertical, Link2, Lock, Plus, Repeat, StickyNote, Users } from 'lucide-react';
+import { Check, GripVertical, Link2, Lock, Repeat, StickyNote } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDate, formatShort, localDay, relativeDate } from '../lib/dates';
-import { effectiveDate, isOverdue } from '../lib/horizon';
 import { stepProgress } from '../lib/ops';
 import { describeRepeat } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
-import { formatWhen, initial, outcomeLine } from '../lib/format';
+import { GAPS_EMOJI, initial, outcomeLine } from '../lib/format';
 
 // Each household member keeps one colour: the first sun, the second lilac.
 const MEMBER_CHIP = [
@@ -14,25 +13,18 @@ const MEMBER_CHIP = [
   'border-on-second-container bg-second-container text-on-second-container',
 ];
 
-/** Who can see a task, and whose it is: a lock for Just me; R, E, R+E, or a dashed ? on shared ones. */
+/** Whose a task is: a lock for a private one; R, E or R+E on shared ones. */
 export function OwnerChip({ task }: { task: Task }) {
   const { nameOf, household } = usePriorities();
   if (task.list !== 'shared') {
     return (
       <span
         role="img"
-        aria-label="Just me"
-        title="Just me: only you can see this"
+        aria-label="Private"
+        title="Private: only you can see this"
         className="flex h-6 min-w-7 items-center justify-center rounded-full border border-outline px-2 text-ink-variant"
       >
         <Lock size={13} strokeWidth={2.5} />
-      </span>
-    );
-  }
-  if (task.assignee.length === 0) {
-    return (
-      <span className="flex h-6 min-w-7 items-center justify-center rounded-full border border-dashed border-ink-variant px-2 text-xs font-semibold text-ink-variant">
-        ?
       </span>
     );
   }
@@ -51,14 +43,20 @@ export function OwnerChip({ task }: { task: Task }) {
   );
 }
 
-/** The quiet line under a task's title: date, rhythm, steps. */
+/** The quiet line under a task's title: when to start, when it's due, rhythm, steps. */
 export function TaskMeta({ task, now }: { task: Task; now: string }) {
   const parts: { text: string; late?: boolean }[] = [];
-  const date = effectiveDate(task);
-  if (date) {
-    if (isOverdue(task, now)) parts.push({ text: `Was due ${formatDate(date)}`, late: true });
-    else if (!task.do_by && task.deadline === date) parts.push({ text: `Due ${relativeDate(date, now)}` });
-    else parts.push({ text: relativeDate(date, now) });
+  const rel = (d: string) => {
+    const r = relativeDate(d, now);
+    return r === 'Today' || r === 'Tomorrow' ? r.toLowerCase() : r;
+  };
+  const { do_by: start, deadline: due } = task;
+  if (start && (!due || start < due) && !(due && due < now)) {
+    parts.push(start < now ? { text: `Start by ${formatShort(start)}`, late: true } : { text: `Start ${rel(start)}` });
+  }
+  if (due) {
+    const lead = parts.length ? 'due' : 'Due';
+    parts.push(due < now ? { text: `Was due ${formatDate(due)}`, late: true } : { text: `${lead} ${rel(due)}` });
   }
   if (task.repeat) parts.push({ text: describeRepeat(task.repeat, task.do_by ?? task.deadline) });
   const steps = stepProgress(task);
@@ -71,7 +69,7 @@ export function TaskMeta({ task, now }: { task: Task; now: string }) {
   const hasContext = task.notes.length > 0 || task.source_url;
   if (parts.length === 0 && !hasContext) return null;
   return (
-    <span className="flex min-w-0 items-center gap-1 text-[13px] text-ink-variant">
+    <span className="flex w-full min-w-0 items-center gap-1 text-[13px] text-ink-variant">
       <span className="truncate">
         {parts.map((p, i) => (
           <span key={i} className={p.late ? 'text-late' : undefined}>
@@ -132,6 +130,7 @@ export function TaskRow({
       )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col items-start text-left">
         <span className={`line-clamp-2 w-full break-words text-[15px] font-semibold transition-colors ${sprout ? 'text-ink-variant' : 'text-ink'}`}>
+          {task.kind === 'check' && <span aria-label="Potential gap">{GAPS_EMOJI} </span>}
           {task.title}
         </span>
         <TaskMeta task={task} now={now} />
@@ -167,57 +166,59 @@ export function TakenCareRow({ task, onOpen }: { task: Task; onOpen: () => void 
   );
 }
 
-/** A potential gap the radar raised: the question, its date, and the two answers. */
-export function GapRow({ task, onOpen, onCovered }: { task: Task; onOpen: () => void; onCovered: () => void }) {
-  const { update } = usePriorities();
+/**
+ * Who a task is on: me, the other person, or both of us. When it's just me,
+ * it can also be private (only I can see it).
+ */
+export function WhoPicker({
+  assignee,
+  isPrivate,
+  onChange,
+}: {
+  assignee: string[];
+  isPrivate: boolean;
+  onChange: (assignee: string[], isPrivate: boolean) => void;
+}) {
+  const { user, otherUid, nameOf } = usePriorities();
+  const options: { label: string; value: string[] }[] = [
+    { label: nameOf(user.uid), value: [user.uid] },
+    ...(otherUid ? [{ label: nameOf(otherUid), value: [otherUid] }, { label: 'Both', value: [user.uid, otherUid] }] : []),
+  ];
+  const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
+  const justMe = same(assignee, [user.uid]);
   return (
-    <div className="flex flex-col gap-2 py-3">
-      <button type="button" onClick={onOpen} className="flex min-w-0 items-start gap-2 text-left">
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[15px] font-semibold text-ink">{task.title}</span>
-          <span className="text-[13px] text-ink-variant">
-            {[task.when && formatWhen(task.when, task.when_end), task.notes[0]?.text].filter(Boolean).join(' · ')}
-          </span>
-        </span>
-        <OwnerChip task={task} />
-      </button>
+    <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <button type="button" onClick={onCovered} className="chip flex-1 bg-surface">
-          <Check size={15} /> We’re covered
-        </button>
+        {options.map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            aria-pressed={same(o.value, assignee)}
+            className={`chip flex-1 ${same(o.value, assignee) ? 'chip-on' : ''}`}
+            onClick={() => onChange(o.value, same(o.value, [user.uid]) && isPrivate)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {justMe && (
         <button
           type="button"
-          onClick={() => update(task, { kind: 'task', deadline: task.deadline ?? task.when, order: null }, 'added to the list')}
-          className="chip flex-1 bg-surface"
+          role="switch"
+          aria-checked={isPrivate}
+          onClick={() => onChange(assignee, !isPrivate)}
+          className="flex items-center justify-between gap-3 text-left text-sm text-ink"
         >
-          <Plus size={15} /> Needs doing
+          <span className="flex items-center gap-1.5">
+            <Lock size={14} /> Private, only I can see it
+          </span>
+          <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isPrivate ? 'bg-accent' : 'bg-outline'}`}>
+            <span
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface transition-[left] ${isPrivate ? 'left-[1.125rem]' : 'left-0.5'}`}
+            />
+          </span>
         </button>
-      </div>
-    </div>
-  );
-}
-
-/** Just me or Both of us, with a line saying who can see it. */
-export function VisibilityPicker({ value, onChange }: { value: Task['list']; onChange: (v: Task['list']) => void }) {
-  const { otherUid, nameOf } = usePriorities();
-  const chip = (on: boolean) => `chip ${on ? 'chip-on' : ''}`;
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex gap-2">
-        <button type="button" className={chip(value === 'personal')} onClick={() => onChange('personal')} aria-pressed={value === 'personal'}>
-          <Lock size={15} /> Just me
-        </button>
-        <button type="button" className={chip(value === 'shared')} onClick={() => onChange('shared')} aria-pressed={value === 'shared'}>
-          <Users size={15} /> Both of us
-        </button>
-      </div>
-      <p className="text-xs text-ink-variant">
-        {value === 'personal'
-          ? 'Only you and your Claude can see this.'
-          : otherUid
-            ? `${nameOf(otherUid)} (and ${nameOf(otherUid)}’s Claude) can see this too.`
-            : 'Anyone who joins the household can see this too.'}
-      </p>
+      )}
     </div>
   );
 }

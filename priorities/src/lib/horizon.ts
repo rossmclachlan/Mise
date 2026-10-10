@@ -4,24 +4,14 @@ import { addDays, localDay, weekEnd, weekStart } from './dates';
 /** How far ahead the radar looks: Coming up, and Already handled on the home screen. */
 export const WINDOW_DAYS = 42;
 
-/** A potential gap the radar raised, not yet answered. */
+/** A potential gap the radar raised (shown with a ⚠️), not yet confirmed. */
 export function isOpenCheck(task: Task): boolean {
   return task.kind === 'check' && !task.done_at;
 }
 
-/**
- * The date that places an open task: the earliest of its do-by date (or its
- * deadline, when no do-by is set) and its open steps' dates.
- */
-export function effectiveDate(task: Task): DateString | null {
-  const dates: DateString[] = [];
-  const own = task.do_by ?? task.deadline;
-  if (own) dates.push(own);
-  for (const step of task.steps) {
-    if (!step.done_at && step.do_by) dates.push(step.do_by);
-  }
-  if (dates.length === 0) return null;
-  return dates.reduce((a, b) => (a < b ? a : b));
+/** The date that places an open task: its start-by date, or its due date when there's none. */
+export function effectiveDate(task: Pick<Task, 'do_by' | 'deadline'>): DateString | null {
+  return task.do_by ?? task.deadline ?? null;
 }
 
 export function horizonForDate(date: DateString, now: DateString): Horizon {
@@ -30,10 +20,10 @@ export function horizonForDate(date: DateString, now: DateString): Horizon {
   return 'later';
 }
 
-/** Where an open task shows: dated tasks place themselves, undated ones stay where they were put. */
-export function effectiveHorizon(task: Task, now: DateString): Horizon {
+/** Where an open task shows. Its dates decide; a task with no date sits in Needs action now. */
+export function effectiveHorizon(task: Pick<Task, 'do_by' | 'deadline'>, now: DateString): Horizon {
   const date = effectiveDate(task);
-  return date ? horizonForDate(date, now) : task.horizon;
+  return date ? horizonForDate(date, now) : 'now';
 }
 
 export function isOverdue(task: Task, now: DateString): boolean {
@@ -41,23 +31,18 @@ export function isOverdue(task: Task, now: DateString): boolean {
   return !task.done_at && date !== null && date < now;
 }
 
+/** Next Monday: where "Not this week" puts a task. */
+export function nextMonday(now: DateString): DateString {
+  return addDays(weekStart(now), 7);
+}
+
 /**
- * The fields to write when someone moves a task to a horizon by hand. A dated
- * task's date is what places it, so moving it means moving its do-by date.
+ * Pushes a task back by moving its start-by date (its due date stays): to next
+ * week ('month'), past the radar's six weeks ('later'), or to a given day.
  */
-export function moveToHorizon(task: Task, to: Horizon, now: DateString): Partial<Task> {
-  // A moved task takes its place by date in its new section, not its old manual position.
-  const dated = effectiveDate(task) !== null;
-  if (!dated) return { horizon: to, order: null };
-  const nextMonday = addDays(weekStart(now), 7);
-  switch (to) {
-    case 'now':
-      return { horizon: to, do_by: now, order: null };
-    case 'month':
-      return { horizon: to, do_by: nextMonday, order: null };
-    case 'later':
-      return { horizon: to, do_by: addDays(now, WINDOW_DAYS + 7), order: null };
-  }
+export function deferTo(to: 'month' | 'later' | DateString, now: DateString): Partial<Task> {
+  const date = to === 'month' ? nextMonday(now) : to === 'later' ? addDays(now, WINDOW_DAYS + 7) : to;
+  return { do_by: date, order: null };
 }
 
 /** The last day a done task covers: the end of its range, or its date. */
@@ -81,7 +66,7 @@ export function overlaps(task: Task, from: DateString, to: DateString): boolean 
   const ranges: [DateString, DateString][] = [];
   if (task.when) ranges.push([task.when, lastDay(task)!]);
   if (!task.done_at) {
-    for (const d of [task.do_by, task.deadline, ...task.steps.filter((s) => !s.done_at).map((s) => s.do_by)]) {
+    for (const d of [task.do_by, task.deadline]) {
       if (d) ranges.push([d, d]);
     }
   }

@@ -28,24 +28,24 @@ function seed(): Task[] {
     t({ title: 'Pay water bill', list: 'personal', do_by: addDays(now, 1) }),
     t({ title: 'Put trash out', list: 'shared', assignee: [ROSS, EMILY], do_by: thursday >= now ? thursday : addDays(thursday, 7),
       repeat: { every: 1, unit: 'week', mode: 'schedule' } }),
-    t({ title: 'Renew passports', list: 'shared', assignee: [ROSS], deadline: addDays(now, 69) }, {
+    t({ title: 'Renew passports', list: 'shared', assignee: [ROSS], do_by: addDays(now, 2), deadline: addDays(now, 69) }, {
       steps: [
-        { id: 's1', title: 'Get photos', done_at: null, assignee: ROSS, do_by: addDays(now, 2) },
-        { id: 's2', title: 'Fill in forms', done_at: null, assignee: EMILY, do_by: addDays(now, 39) },
-        { id: 's3', title: 'Mail applications', done_at: null, assignee: null, do_by: addDays(now, 69) },
+        { id: 's1', title: 'Get photos', done_at: null },
+        { id: 's2', title: 'Fill in forms', done_at: null },
+        { id: 's3', title: 'Mail applications', done_at: null },
       ],
     }, claude),
     t({ title: 'Sign field trip permission slip', list: 'shared', assignee: [EMILY], do_by: addDays(now, 2) }),
-    t({ title: 'Book dentist', list: 'shared', assignee: [], do_by: addDays(now, 12) }),
+    t({ title: 'Book dentist', list: 'shared', assignee: [EMILY], deadline: addDays(now, 12) }),
     t({ title: 'Renew car registration', list: 'shared', assignee: [ROSS], do_by: addDays(now, 25), deadline: addDays(now, 36) }),
-    t({ title: 'Plan garden for spring', list: 'shared', assignee: [], horizon: 'later' }),
+    t({ title: 'Plan garden for spring', list: 'shared', assignee: [ROSS, EMILY], do_by: addDays(now, 60) }),
     t({ title: 'Book kids\' checkups', list: 'shared', assignee: [ROSS] }, {
       done_at: addDays(now, -2) + 'T17:00:00.000Z', done_by: ROSS, when: addDays(now, 13),
       outcome_note: 'Dr. Alvarez, 3:30pm, both kids back to back. Confirmation #48213.',
       repeat: { every: 1, unit: 'year', mode: 'schedule' },
       steps: [
-        { id: 'c1', title: 'Call pediatrician\'s office', done_at: at, assignee: ROSS, do_by: null },
-        { id: 'c2', title: 'Fill in school health form', done_at: at, assignee: EMILY, do_by: null },
+        { id: 'c1', title: 'Call pediatrician\'s office', done_at: at },
+        { id: 'c2', title: 'Fill in school health form', done_at: at },
       ],
       notes: [
         { id: 'n2', text: 'From the school email: checkups due by Nov 1.', uid: EMILY, via: 'mcp', at },
@@ -60,12 +60,12 @@ function seed(): Task[] {
       done_at: addDays(now, -5) + 'T17:00:00.000Z', done_by: EMILY, when: addDays(now, 47), when_end: addDays(now, 49),
       outcome_note: 'Flights booked, kids\' camp booked for Nov 26–29.',
     }),
-    t({ title: "No childcare visible for Indigenous Peoples' Day", list: 'shared', assignee: [], kind: 'check',
-      when: addDays(now, 3), radar_key: 'childcare:' + addDays(now, 3) }, {
+    t({ title: "Confirm childcare for Indigenous Peoples' Day", list: 'shared', assignee: [EMILY], kind: 'check',
+      do_by: now, deadline: addDays(now, 3), when: addDays(now, 3), radar_key: 'childcare:' + addDays(now, 3) }, {
       notes: [{ id: 'n4', text: 'No school (school calendar). No camp or sitter booking found in email or calendar.', uid: EMILY, via: 'mcp', at }],
     }, claude),
-    t({ title: 'Thanksgiving break: Nov 23–24 not covered?', list: 'shared', assignee: [], kind: 'check',
-      when: addDays(now, 45), when_end: addDays(now, 46) }, {
+    t({ title: 'Confirm childcare for the first two days of Thanksgiving break', list: 'shared', assignee: [EMILY], kind: 'check',
+      do_by: addDays(now, 3), deadline: addDays(now, 45), when: addDays(now, 45), when_end: addDays(now, 46) }, {
       notes: [{ id: 'n5', text: 'Camp covers the 25th to 27th; nothing seen for the first two days.', uid: EMILY, via: 'mcp', at }],
     }, claude),
     t({ title: 'Return library books', list: 'personal' }, { done_at: addDays(now, -1) + 'T09:00:00.000Z', done_by: ROSS }),

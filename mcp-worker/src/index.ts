@@ -15,9 +15,8 @@ type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "use YYYY-MM-DD");
 const taskId = z.string().min(1).describe("Task id, from list_tasks, search_tasks or get_overview");
 const owner = z
-	.enum(["me", "partner", "both", "unclaimed"])
-	.describe("Who it's on, from the connected person's point of view: me, partner, both, or unclaimed");
-const stepOwner = z.enum(["me", "partner", "unclaimed"]);
+	.enum(["me", "partner", "both"])
+	.describe("Who it's on, from the connected person's point of view. Every task is on someone.");
 const repeat = z
 	.object({
 		every: z.number().int().min(1).max(365),
@@ -27,11 +26,7 @@ const repeat = z
 			.describe("schedule: stays on the calendar (trash every Thursday). after_done: counted from when it was last done (filter every 3 months)."),
 	})
 	.describe("How the task repeats. Ticking it creates the next one.");
-const step = z.object({
-	title: z.string().min(1).max(200),
-	do_by: date.optional(),
-	owner: stepOwner.optional().describe("Shared tasks: who does this step"),
-});
+const step = z.object({ title: z.string().min(1).max(200) }).describe("A checklist item");
 
 const radarKey = z
 	.string()
@@ -90,7 +85,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"get_overview",
 			{
 				description:
-					"Start here when answering 'what's on'. Today's date, each person's counts per section (Needs action now, Coming up, Not yet) and their Needs action now titles in order (the first 3 are their top 3), overdue tasks, unclaimed shared tasks, potential gaps, what's already handled in the next 6 weeks, and what got done this week. For the weekly radar, use start_radar instead.",
+					"Start here when answering 'what's on'. Today's date, each person's counts per section (Needs action now, Coming up, Not yet) and their Needs action now titles in order (the first 3 are their top 3), overdue tasks, open tasks with no date yet, potential gaps, what's already handled in the next 6 weeks, and what got done this week. For the weekly radar, use start_radar instead.",
 				annotations: { readOnlyHint: true },
 			},
 			async () => this.run("get_overview", {}, (d) => d.overview()),
@@ -100,14 +95,14 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"list_tasks",
 			{
 				description:
-					"List tasks with full details (steps, notes, outcome). Defaults to all open tasks (not potential gaps). Each section comes in its order in the app: by date unless someone dragged a task.",
+					"List tasks with full details (steps, notes, outcome). Defaults to all open tasks, potential gaps included (marked potential_gap). Each section comes in its order in the app: by date unless someone dragged a task.",
 				inputSchema: {
-					list: z.enum(["mine", "shared", "all"]).optional().describe("mine = my personal list + shared tasks on me (default all)"),
+					list: z.enum(["mine", "all"]).optional().describe("mine = tasks on me, private ones included (default all)"),
 					horizon: z
 						.enum(["now", "month", "later", "gaps", "handled", "done"])
 						.optional()
 						.describe(
-							"now = 🔴 Needs action now (this week + overdue); month = 🟡 Coming up (next 6 weeks); later = ⚪ Not yet; gaps = ⚠️ Potential gaps; handled = 🟢 Already handled (done, date still ahead); done = finished tasks",
+							"now = 🔴 Needs action now (this week, overdue or undated); month = 🟡 Coming up (next 6 weeks); later = ⚪ Not yet; gaps = ⚠️ open potential gaps only; handled = 🟢 Already handled (done, date still ahead); done = finished tasks",
 						),
 					owner: owner.optional(),
 					done_since: date.optional().describe("Only tasks finished on or after this date"),
@@ -135,35 +130,33 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"add_tasks",
 			{
 				description:
-					"Add tasks, or potential gaps (kind: check). Propose bulk adds first, except a scheduled radar run may add potential gaps on its own. Set dates whenever they exist, put the source or evidence in note or source_url, and break big jobs into steps. Items with a radar_key that's already in use are skipped and reported.",
+					"Add tasks, or potential gaps (kind: check). Fill everything in yourself from what you were told and the house rules, rather than asking: the due date from context (Halloween costumes are due Oct 31), a start_by date from the house rules' lead times, and the owner from 'who usually owns what' (else me). Ask only when you genuinely can't tell. Propose bulk adds first, except a scheduled radar run may add potential gaps on its own. Put the source or evidence in note or source_url. Items with a radar_key that's already in use are skipped and reported.",
 				inputSchema: {
 					tasks: z
 						.array(
 							z.object({
 								title: z.string().min(1).max(200).describe("Starts with a verb"),
-								list: z.enum(["shared", "personal"]).describe("personal = only the connected person sees it"),
-								owner: owner.optional().describe("Shared tasks only (default unclaimed). Ask if unsure."),
-								horizon: z
-									.enum(["now", "month", "later"])
+								owner: owner.optional().describe("Default me. From the house rules when they say who owns this kind of thing."),
+								private: z.boolean().optional().describe("Only I can see it (default false: both of us see it). Only for things that are clearly personal."),
+								due: date.optional().describe("When it needs to be done by. Places the task; with no date it sits in Needs action now."),
+								start_by: date
 									.optional()
-									.describe("For undated tasks only (default now): now = Needs action now, month = Coming up, later = Not yet"),
-								do_by: date.optional().describe("When to act; places the task"),
-								deadline: date.optional().describe("The hard date"),
+									.describe("When to start, for things with lead time (booking, ordering, paperwork): the due date minus the house rules' lead time. Places the task when set."),
 								repeat: repeat.optional(),
 								steps: z.array(step).max(20).optional(),
 								note: z.string().max(2000).optional().describe("Context: where it came from, reference numbers"),
 								source_url: z.string().url().optional(),
-									kind: z
-										.enum(["task", "check"])
-										.optional()
-										.describe("check = a potential gap: something that may need doing, and you can't tell whether it's handled. Shown under Potential gaps until someone answers it."),
-									when: date.optional().describe("Checks: the date in question (required for a check)"),
-									when_end: date.optional().describe("Checks: the last day, for a range"),
-									radar_key: radarKey.optional(),
-								}),
-								)
-								.min(1)
-								.max(25),
+								kind: z
+									.enum(["task", "check"])
+									.optional()
+									.describe("check = a potential gap: something that may need doing where you can't confirm it's handled. Title it 'Confirm …'. Shown with a ⚠️ and ticked once confirmed."),
+								when: date.optional().describe("Checks: the date in question (required for a check). Unless you set them, it's due that day and starts 6 weeks before."),
+								when_end: date.optional().describe("Checks: the last day, for a range"),
+								radar_key: radarKey.optional(),
+							}),
+						)
+						.min(1)
+						.max(25),
 				},
 			},
 			async ({ tasks }) => this.run("add_tasks", { count: tasks.length }, (d) => d.add(tasks)),
@@ -173,35 +166,27 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"update_task",
 			{
 				description:
-					"Change a task: title, list, owner, dates, repeat, source, steps (add, update or remove), or for a done task its outcome_note and when. Pass null to clear a date.",
+					"Change a task: title, owner, private, dates, repeat, source, steps (add, tick or remove), or for a done task its outcome_note and when. Pass null to clear a date.",
 				inputSchema: {
 					id: taskId,
 					title: z.string().min(1).max(200).optional(),
-					list: z.enum(["shared", "personal"]).optional(),
 					owner: owner.optional(),
-					do_by: date.nullable().optional(),
-					deadline: date.nullable().optional(),
+					private: z.boolean().optional().describe("true = only I can see it (it's then on me)"),
+					due: date.nullable().optional(),
+					start_by: date.nullable().optional(),
 					repeat: repeat.nullable().optional(),
 					source_url: z.string().url().nullable().optional(),
 					add_steps: z.array(step).max(20).optional(),
 					update_steps: z
-						.array(
-							z.object({
-								id: z.string(),
-								title: z.string().min(1).max(200).optional(),
-								done: z.boolean().optional(),
-								do_by: date.nullable().optional(),
-								owner: stepOwner.optional(),
-							}),
-						)
+						.array(z.object({ id: z.string(), title: z.string().min(1).max(200).optional(), done: z.boolean().optional() }))
 						.optional(),
 					remove_step_ids: z.array(z.string()).optional(),
 					outcome_note: z.string().max(2000).nullable().optional(),
 					when: date.nullable().optional(),
 					when_end: date.nullable().optional().describe("Last day, when 'when' is a range"),
-					kind: z.enum(["task", "check"]).optional().describe("task turns a potential gap into a normal task"),
-					},
-					},
+					kind: z.enum(["task", "check"]).optional().describe("check marks it as a ⚠️ potential gap; task removes the mark"),
+				},
+			},
 			async ({ id, ...changes }) => this.run("update_task", { id, fields: Object.keys(changes) }, (d) => d.update(id, changes)),
 		);
 
@@ -218,7 +203,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"complete_task",
 			{
 				description:
-					"Mark a task done, or answer a potential gap as covered. Record the outcome (who, when, where, confirmation number; for a gap, how it's covered or why it's not needed) and set 'when' (and when_end for a range like camp Nov 25-27) to the dates it covers, so it shows under Already handled until then. A repeating task also gets its next occurrence.",
+					"Mark a task done, or a potential gap as confirmed. Record the outcome (who, when, where, confirmation number; for a gap, how it's covered or why it's not needed) and set 'when' (and when_end for a range like camp Nov 25-27) to the dates it covers, so it shows under Already handled until then. A repeating task also gets its next occurrence.",
 					inputSchema: {
 						id: taskId,
 						outcome_note: z.string().max(2000).optional(),
@@ -259,7 +244,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"defer_tasks",
 			{
 				description:
-					"Push tasks out of Needs action now: to 'month' (Coming up, from next Monday), 'later' (Not yet, past the 6-week window), or to a specific do-by date, e.g. the month to revisit. Propose first.",
+					"Push tasks back by moving their start_by date (the due date stays): 'month' = next Monday (Coming up), 'later' = past the 6-week window (Not yet), or a specific date, e.g. the month to revisit. Propose first.",
 				inputSchema: {
 					ids: z.array(z.string()).min(1).max(30),
 					to: z.union([z.enum(["month", "later"]), date]),

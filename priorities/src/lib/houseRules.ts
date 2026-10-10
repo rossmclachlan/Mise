@@ -26,7 +26,7 @@ Prioritize by:
 Never rank something higher because it's interesting or satisfying to plan.
 
 4. Future planning vs. premature planning
-Planning far ahead feels productive, and that is a trap. If something doesn't need attention yet, say "Not actionable yet — revisit in <month>", put it under Not yet with a do-by date of when to revisit, and don't suggest working on it now.
+Planning far ahead feels productive, and that is a trap. If something doesn't need attention yet, say "Not actionable yet — revisit in <month>", put it under Not yet with a start date of when to revisit, and don't suggest working on it now.
 
 5. Protected time
 Meaningful personal time is not spare capacity. Never treat free time as room for more tasks.
@@ -45,7 +45,7 @@ Only raise something when there is a real reason to pay attention.
 7. What counts as handled
 Something appearing on a calendar or in an email doesn't mean it's handled. Handled means evidence: a booking or confirmation email, a payment, a calendar event that is the booking itself, or an Already handled item in Priorities. If it's ambiguous, it's a potential gap, not a problem and not handled.
 
-8. Lead times (when to start, counted back from the date)
+8. Lead times (when to start, counted back from the due date; Claude sets each task's start date from these)
 - Childcare or camp for a school day off: 3-4 weeks ahead, sooner around holidays
 - Camp registration: the week it opens
 - Government paperwork (passports, DMV, taxes): 8-12 weeks
@@ -59,6 +59,7 @@ Something appearing on a calendar or in an email doesn't mean it's handled. Hand
 About 7 items each in Needs action now. Each week's top 3 planning actions sit at the top of the list (the three that most improve our future situation or prevent a problem). Three, not fifteen.
 
 10. Who usually owns what
+Claude puts each new task on the person listed here, else on whoever asked. One line each, e.g. "School forms: Emily".
 (To fill in: school, childcare and camps, medical, car, money, house, social, travel.)
 
 11. Household context

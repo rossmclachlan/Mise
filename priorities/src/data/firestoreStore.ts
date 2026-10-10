@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import type { Household, Task } from '../types';
 import { newId } from '../lib/ops';
+import { normalizeTask } from '../lib/migrate';
 import { auth, db } from './firebase';
 import type { Store } from './store';
 
@@ -72,7 +73,7 @@ export const firestoreStore: Store = {
     let personal: Task[] = [];
     const emit = () => cb([...shared, ...personal]);
     const toTasks = (docs: { id: string; data(): unknown }[]) =>
-      docs.map((d) => ({ ...(d.data() as object), id: d.id }) as Task);
+      docs.map((d) => normalizeTask({ ...(d.data() as object), id: d.id } as Task));
 
     // Two queries, because Firestore rules only let each person read their own
     // personal tasks: a single query over everything would be refused.

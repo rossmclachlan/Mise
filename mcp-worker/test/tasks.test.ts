@@ -24,11 +24,11 @@ async function reset() {
 		},
 	]);
 	const emily = as("emily");
-	await emily.add([{ title: "Emily's secret", list: "personal" }]);
+	await emily.add([{ title: "Emily's secret", private: true }]);
 	await as("ross").add([
-		{ title: "Ross's own thing", list: "personal", do_by: "2026-10-08" },
-		{ title: "Call plumber", list: "shared", owner: "me", do_by: "2026-10-06" },
-		{ title: "Book dentist", list: "shared", do_by: "2026-10-20" },
+		{ title: "Ross's own thing", private: true, due: "2026-10-08" },
+		{ title: "Call plumber", owner: "me", due: "2026-10-06" },
+		{ title: "Book dentist", owner: "partner", due: "2026-10-20" },
 	]);
 }
 
@@ -51,23 +51,23 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		const [t] = await ross.add([
 			{
 				title: "Renew passports",
-				list: "shared",
 				owner: "both",
-				deadline: "2026-12-15",
-				steps: [
-					{ title: "Get photos", do_by: "2026-10-09", owner: "me" },
-					{ title: "Fill in forms", owner: "partner" },
-				],
+				due: "2026-12-15",
+				start_by: "2026-10-09",
+				steps: [{ title: "Get photos" }, { title: "Fill in forms" }],
 				note: "From the State Dept email",
 			},
 		]);
 		expect(t.owner).toBe("Ross & Emily");
-		expect(t.horizon).toBe("now"); // earliest open step is this week
-		expect(t.steps!.items.map((s) => s.owner)).toEqual(["Ross", "Emily"]);
+		expect(t.horizon).toBe("now"); // starts this week
+		expect(t.steps!.items.map((s) => s.title)).toEqual(["Get photos", "Fill in forms"]);
 		expect(t.notes![0].by).toBe("Ross via Claude");
-		await expect(ross.add([{ title: "x", list: "personal", owner: "partner" }])).rejects.toThrow(/own list/);
-		const [r] = await ross.add([{ title: "Change filter", list: "shared", repeat: { every: 3, unit: "month", mode: "after_done" } }]);
-		expect(r.do_by).toBe(NOW); // a repeat gets a date to count from
+		await expect(ross.add([{ title: "x", private: true, owner: "partner" }])).rejects.toThrow(/only be yours/);
+		const [mine] = await ross.add([{ title: "No owner given" }]);
+		expect(mine.owner).toBe("Ross"); // on whoever adds it, never unclaimed
+		expect(mine.horizon).toBe("now"); // undated sits in Needs action now
+		const [r] = await ross.add([{ title: "Change filter", repeat: { every: 3, unit: "month", mode: "after_done" } }]);
+		expect(r.due).toBe(NOW); // a repeat gets a date to count from
 		expect(r.repeat).toBe("every 3 months after done");
 	});
 
@@ -77,7 +77,7 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		expect(now.map((t) => t.title).sort()).toEqual(["Call plumber", "Ross's own thing"]);
 		expect(now.find((t) => t.title === "Call plumber")!.overdue).toBe(true);
 		expect((await ross.list({ horizon: "month" })).map((t) => t.title)).toEqual(["Book dentist"]);
-		expect((await ross.list({ owner: "unclaimed" })).map((t) => t.title)).toEqual(["Book dentist"]);
+		expect((await ross.list({ owner: "partner" })).map((t) => t.title)).toEqual(["Book dentist"]);
 		const ids = now.map((t) => t.id).reverse();
 		await ross.reorderNow(ids);
 		expect((await ross.list({ horizon: "now" })).map((t) => t.id)).toEqual(ids);
@@ -86,11 +86,11 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 	it("completes with an outcome, keeps it under Taken care of, and repeats", async () => {
 		const ross = as("ross");
 		const [t] = await ross.add([
-			{ title: "Book kids' checkups", list: "shared", owner: "me", do_by: "2026-10-09", repeat: { every: 1, unit: "year", mode: "schedule" } },
+			{ title: "Book kids' checkups", owner: "me", start_by: "2026-10-09", repeat: { every: 1, unit: "year", mode: "schedule" } },
 		]);
 		const res = await ross.complete(t.id, { outcome_note: "Dr. Alvarez, 3:30pm, #48213", when: "2026-10-20" });
 		expect(res.done.section).toBe("🟢 Already handled");
-		expect(res.next_occurrence!.do_by).toBe("2027-10-09");
+		expect(res.next_occurrence!.start_by).toBe("2027-10-09");
 		const emily = as("emily");
 		const tco = await emily.list({ horizon: "handled" });
 		expect(tco.map((x) => x.outcome_note)).toEqual(["Dr. Alvarez, 3:30pm, #48213"]);
@@ -106,27 +106,28 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 	it("updates steps, owners and dates, and defers", async () => {
 		const ross = as("ross");
 		const dentist = (await ross.list({})).find((t) => t.title === "Book dentist")!;
-		const u = await ross.update(dentist.id, { owner: "partner", add_steps: [{ title: "Call office" }], deadline: "2026-11-01" });
-		expect(u.owner).toBe("Emily");
+		const u = await ross.update(dentist.id, { owner: "both", add_steps: [{ title: "Call office" }], due: "2026-11-01" });
+		expect(u.owner).toBe("Ross & Emily");
 		const stepId = u.steps!.items[0].id;
 		const u2 = await ross.update(dentist.id, { update_steps: [{ id: stepId, done: true }] });
 		expect(u2.steps!.progress).toBe("1 of 1");
 		const plumber = (await ross.list({ horizon: "now" })).find((t) => t.title === "Call plumber")!;
 		const [d] = await ross.defer([plumber.id], "month");
 		expect(d.horizon).toBe("month");
-		expect(d.do_by).toBe("2026-10-12");
+		expect(d.start_by).toBe("2026-10-12");
+		expect(d.due).toBe("2026-10-06"); // deferring keeps the due date
 		const own = (await ross.list({ list: "mine" })).find((t) => t.title === "Ross's own thing")!;
-		await expect(ross.update(own.id, { owner: "partner" })).rejects.toThrow(/personal/);
-		const moved = await ross.update(own.id, { list: "shared", owner: "partner" });
+		await expect(ross.update(own.id, { owner: "partner" })).rejects.toThrow(/private/);
+		const moved = await ross.update(own.id, { private: false, owner: "partner" });
 		expect(moved.owner).toBe("Emily");
 		expect((await as("emily").visibleTasks()).some((t) => t.title === "Ross's own thing")).toBe(true);
 	});
 
 	it("skips a repeat without completing it", async () => {
 		const ross = as("ross");
-		const [t] = await ross.add([{ title: "Trash out", list: "shared", do_by: "2026-10-08", repeat: { every: 1, unit: "week", mode: "schedule" } }]);
+		const [t] = await ross.add([{ title: "Trash out", due: "2026-10-08", repeat: { every: 1, unit: "week", mode: "schedule" } }]);
 		const s = await ross.skip(t.id);
-		expect(s.do_by).toBe("2026-10-15");
+		expect(s.due).toBe("2026-10-15");
 		expect(s.status).toBe("open");
 	});
 
@@ -145,10 +146,12 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 	it("never adds the same radar item twice, even once it's answered", async () => {
 		const emily = as("emily");
 		const ross = as("ross");
-		const gap = { title: "Childcare for Oct 12?", list: "shared" as const, kind: "check" as const, when: "2026-10-12", radar_key: "childcare:2026-10-12" };
-		const [g] = (await emily.add([gap])) as { id: string; section: string }[];
-		expect(g.section).toBe("⚠️ Potential gap");
-		expect((await ross.list({})).some((t) => t.id === g.id)).toBe(false); // not in the open lists
+		const gap = { title: "Confirm childcare for Oct 12", kind: "check" as const, when: "2026-10-12", radar_key: "childcare:2026-10-12" };
+		const [g] = (await emily.add([gap])) as { id: string; potential_gap?: boolean; owner: string; due?: string; start_by?: string }[];
+		expect(g.potential_gap).toBe(true);
+		expect(g.owner).toBe("Emily"); // on whoever's radar found it
+		expect([g.due, g.start_by]).toEqual(["2026-10-12", NOW]); // due that day; six weeks back is past, so now
+		expect((await ross.list({})).some((t) => t.id === g.id)).toBe(true); // among the open tasks, marked
 		expect((await ross.list({ horizon: "gaps" })).map((t) => t.id)).toEqual([g.id]);
 		// Ross's radar finds the same thing: skipped.
 		const again = (await ross.add([{ ...gap, title: "No school Oct 12" }])) as { skipped_already_tracked: unknown[] };
@@ -157,8 +160,8 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		await ross.complete(g.id, { outcome_note: "Grandma has them" });
 		expect(((await emily.add([gap])) as { skipped_already_tracked: unknown[] }).skipped_already_tracked).toHaveLength(1);
 		const cover = await ross.coverage("2026-10-12", "2026-10-12");
-		expect(cover.already_handled.map((t) => t.title)).toEqual(["Childcare for Oct 12?"]);
-		await expect(ross.add([{ title: "Gap", list: "shared", kind: "check" }])).rejects.toThrow(/date in question/);
+		expect(cover.already_handled.map((t) => t.title)).toEqual(["Confirm childcare for Oct 12"]);
+		await expect(ross.add([{ title: "Gap", kind: "check" }])).rejects.toThrow(/date in question/);
 	});
 
 	it("gives the shared sweep to the first radar run of the week", async () => {
@@ -179,7 +182,7 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 
 	it("records ranges and school dates", async () => {
 		const ross = as("ross");
-		const [camp] = (await ross.add([{ title: "Book Thanksgiving camp", list: "shared" }])) as { id: string }[];
+		const [camp] = (await ross.add([{ title: "Book Thanksgiving camp" }])) as { id: string }[];
 		await ross.complete(camp.id, { outcome_note: "Camp Kinder, 9-3", when: "2026-11-25", when_end: "2026-11-27" });
 		await ross.addSchoolDates([{ date: "2026-11-23", end: "2026-11-27", title: "Thanksgiving Break" }]);
 		expect((await ross.addSchoolDates([{ date: "2026-11-23", title: "thanksgiving break" }])).added).toBe(0);
@@ -215,6 +218,40 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		expect(r.errors[0]).toMatch(/Lincoln.*503/);
 		const days = (await new PrioritiesData(db, "ross", NOW, AT).coverage("2026-11-01", "2026-12-31")).school_calendar;
 		expect(days.map((d) => d.title)).toEqual(["Veterans Day", "Winter Break"]);
+	});
+
+	it("moves old tasks to the simpler model once", async () => {
+		await db.commit([
+			{ kind: "update", path: `households/${H}`, data: { schema: 1 } },
+			{
+				kind: "create",
+				path: `households/${H}/tasks/old1`,
+				data: {
+					title: "Old unclaimed gap",
+					list: "shared",
+					owner_uid: null,
+					assignee: [],
+					horizon: "now",
+					do_by: null,
+					deadline: null,
+					kind: "check",
+					when: "2026-12-25",
+					steps: [{ id: "s", title: "Look", done_at: null, assignee: "emily", do_by: "2026-10-09" }],
+					notes: [],
+					history: [],
+					created_at: AT,
+					created_by: { uid: "emily", via: "mcp" },
+					done_at: null,
+				},
+			},
+		]);
+		const [old] = (await as("ross").search("old unclaimed", false)) as { owner: string; due?: string; start_by?: string }[];
+		expect(old.owner).toBe("Emily");
+		expect([old.due, old.start_by]).toEqual(["2026-12-25", "2026-11-13"]);
+		const raw = await db.get<{ assignee: string[]; steps: object[] }>(`households/${H}/tasks/old1`);
+		expect(raw!.data.assignee).toEqual(["emily"]);
+		expect(raw!.data.steps).toEqual([{ id: "s", title: "Look", done_at: null }]);
+		expect((await db.get<{ schema: number }>(`households/${H}`))!.data.schema).toBe(2);
 	});
 
 	it("reports a missing household clearly", async () => {

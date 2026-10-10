@@ -9,13 +9,14 @@ import {
   isHandledAhead,
   isHandledSoon,
   isOpenCheck,
-  moveToHorizon,
+  deferTo,
   overlaps,
 } from './horizon';
 import { completeTask, compareOpen, orderBetween, skipOccurrence, buildTask } from './ops';
 import { classify, factsBetween, factsFromIcs } from './calendar';
 import { describeRepeat, nextOccurrence } from './repeat';
 import { canSee, matchesFilter } from './visibility';
+import { migrateTask, normalizeTask } from './migrate';
 
 const ROSS = 'ross';
 const EMILY = 'emily';
@@ -43,9 +44,8 @@ describe('dates', () => {
 });
 
 describe('effectiveHorizon', () => {
-  it('keeps undated tasks where they were put', () => {
-    expect(effectiveHorizon(task({ horizon: 'later' }), NOW)).toBe('later');
-    expect(effectiveHorizon(task({ horizon: 'now' }), NOW)).toBe('now');
+  it('puts undated tasks in Needs action now', () => {
+    expect(effectiveHorizon(task(), NOW)).toBe('now');
   });
 
   it('places dated tasks by date', () => {
@@ -62,18 +62,9 @@ describe('effectiveHorizon', () => {
     expect(effectiveHorizon(task({ do_by: '2026-11-20', deadline: '2026-10-09' }), NOW)).toBe('later');
   });
 
-  it('pulls a big job forward to its earliest open step', () => {
-    const t = task({
-      do_by: '2026-12-15',
-      steps: [
-        { id: 'a', title: 'Photos', done_at: null, assignee: null, do_by: '2026-10-09' },
-        { id: 'b', title: 'Forms', done_at: null, assignee: null, do_by: '2026-11-25' },
-      ],
-    });
-    expect(effectiveDate(t)).toBe('2026-10-09');
-    expect(effectiveHorizon(t, NOW)).toBe('now');
-    t.steps[0].done_at = AT;
-    expect(effectiveHorizon(t, NOW)).toBe('later');
+  it('ignores step dates', () => {
+    const t = task({ do_by: '2026-12-15', steps: [{ id: 'a', title: 'Photos', done_at: null }] });
+    expect(effectiveDate(t)).toBe('2026-12-15');
   });
 
   it('flags overdue open tasks only', () => {
@@ -82,13 +73,14 @@ describe('effectiveHorizon', () => {
     expect(isOverdue(task({ do_by: '2026-10-06', done_at: AT }), NOW)).toBe(false);
   });
 
-  it('moves dated tasks by moving their do-by date', () => {
-    const t = task({ do_by: '2026-10-08' });
-    const later = { ...t, ...moveToHorizon(t, 'month', NOW) };
+  it('defers by moving the start-by date and keeps the due date', () => {
+    const t = task({ deadline: '2026-10-09' });
+    const later = { ...t, ...deferTo('month', NOW) };
     expect(later.do_by).toBe('2026-10-12');
+    expect(later.deadline).toBe('2026-10-09');
     expect(effectiveHorizon(later, NOW)).toBe('month');
-    const undated = task({ horizon: 'now' });
-    expect(moveToHorizon(undated, 'later', NOW)).toEqual({ horizon: 'later', order: null });
+    expect(deferTo('later', NOW).do_by).toBe('2026-11-25');
+    expect(deferTo('2026-12-01', NOW)).toEqual({ do_by: '2026-12-01', order: null });
   });
 });
 
@@ -141,7 +133,7 @@ describe('repeats', () => {
       do_by: '2026-10-08',
       deadline: '2026-10-10',
       repeat: { every: 1, unit: 'week', mode: 'schedule' },
-      steps: [{ id: 's', title: 'Bins out', done_at: AT, assignee: null, do_by: null }],
+      steps: [{ id: 's', title: 'Bins out', done_at: AT }],
       notes: [{ id: 'n', text: 'hi', uid: ROSS, via: 'app', at: AT }],
     });
     const { update, next } = completeTask(t, actor, '2026-10-08T20:00:00.000Z', {
@@ -173,26 +165,67 @@ describe('repeats', () => {
 });
 
 describe('visibility', () => {
-  const mine = task({ list: 'personal', owner_uid: ROSS, assignee: [] });
-  const hers = task({ list: 'personal', owner_uid: EMILY, assignee: [] });
+  const mine = task({ list: 'personal', owner_uid: ROSS, assignee: [ROSS] });
+  const hers = task({ list: 'personal', owner_uid: EMILY, assignee: [EMILY] });
   const sharedRoss = task({ assignee: [ROSS] });
   const sharedBoth = task({ assignee: [ROSS, EMILY] });
   const sharedEmily = task({ assignee: [EMILY] });
-  const unclaimed = task({ assignee: [] });
 
   it('never shows another person\'s personal list', () => {
     expect(canSee(hers, ROSS)).toBe(false);
-    for (const f of ['mine', 'shared', 'everything'] as const) {
+    for (const f of ['mine', 'everything'] as const) {
       expect(matchesFilter(hers, f, ROSS)).toBe(false);
     }
   });
 
-  it('filters Mine, Shared and Everything', () => {
-    const all = [mine, hers, sharedRoss, sharedBoth, sharedEmily, unclaimed];
-    const pick = (f: 'mine' | 'shared' | 'everything') => all.filter((t) => matchesFilter(t, f, ROSS));
+  it('filters Mine and Everyone', () => {
+    const all = [mine, hers, sharedRoss, sharedBoth, sharedEmily];
+    const pick = (f: 'mine' | 'everything') => all.filter((t) => matchesFilter(t, f, ROSS));
     expect(pick('mine')).toEqual([mine, sharedRoss, sharedBoth]);
-    expect(pick('shared')).toEqual([sharedRoss, sharedBoth, sharedEmily, unclaimed]);
-    expect(pick('everything')).toEqual([mine, sharedRoss, sharedBoth, sharedEmily, unclaimed]);
+    expect(pick('everything')).toEqual([mine, sharedRoss, sharedBoth, sharedEmily]);
+  });
+});
+
+describe('who it is on', () => {
+  it('puts a new task on whoever adds it, and a personal one on its owner', () => {
+    expect(buildTask({ title: 'A', list: 'shared' }, actor, AT).assignee).toEqual([ROSS]);
+    expect(buildTask({ title: 'A', list: 'shared', assignee: [] }, actor, AT).assignee).toEqual([ROSS]);
+    expect(buildTask({ title: 'A', list: 'shared', assignee: [EMILY] }, actor, AT).assignee).toEqual([EMILY]);
+    expect(buildTask({ title: 'A', list: 'personal', assignee: [EMILY] }, actor, AT).assignee).toEqual([ROSS]);
+  });
+
+  it('never reads a task as unclaimed', () => {
+    const old = task({ assignee: [], created_by: { uid: EMILY, via: 'mcp' } });
+    expect(normalizeTask(old).assignee).toEqual([EMILY]);
+    expect(normalizeTask(task({ list: 'personal', owner_uid: ROSS, assignee: [] })).assignee).toEqual([ROSS]);
+  });
+});
+
+describe('migration', () => {
+  const stored = (o: Record<string, unknown>) => ({ ...task(), ...o }) as Parameters<typeof migrateTask>[0];
+
+  it('assigns unclaimed tasks to whoever added them', () => {
+    expect(migrateTask(stored({ assignee: [], created_by: { uid: EMILY, via: 'mcp' } }), NOW)).toEqual({ assignee: [EMILY] });
+  });
+
+  it('dates undated tasks parked in Coming up or Not yet, so they stay put', () => {
+    expect(migrateTask(stored({ horizon: 'month' }), NOW)).toEqual({ do_by: '2026-10-12' });
+    expect(migrateTask(stored({ horizon: 'later' }), NOW)).toEqual({ do_by: '2026-11-25' });
+    expect(migrateTask(stored({ horizon: 'later', deadline: '2026-12-15' }), NOW)).toBeNull();
+    expect(migrateTask(stored({ horizon: 'now' }), NOW)).toBeNull();
+  });
+
+  it('makes an open gap due on its date, starting six weeks before (or now)', () => {
+    const gap = { kind: 'check', when: '2026-12-25', when_end: '2026-12-31' };
+    expect(migrateTask(stored(gap), NOW)).toEqual({ deadline: '2026-12-25', do_by: '2026-11-13' });
+    expect(migrateTask(stored({ ...gap, when: '2026-10-20' }), NOW)).toEqual({ deadline: '2026-10-20', do_by: NOW });
+    expect(migrateTask(stored({ ...gap, done_at: AT }), NOW)).toBeNull();
+  });
+
+  it('turns steps into a plain checklist', () => {
+    const steps = [{ id: 'a', title: 'Photos', done_at: null, assignee: ROSS, do_by: '2026-10-09' }];
+    expect(migrateTask(stored({ steps }), NOW)).toEqual({ steps: [{ id: 'a', title: 'Photos', done_at: null }] });
+    expect(migrateTask(stored({ steps: [{ id: 'a', title: 'Photos', done_at: null }] }), NOW)).toBeNull();
   });
 });
 
@@ -218,7 +251,7 @@ describe('radar', () => {
     expect(overlaps(task({ done_at: AT, do_by: '2026-11-11' }), '2026-11-11', '2026-11-11')).toBe(false);
   });
 
-  it('keeps checks out of the lists until answered', () => {
+  it('marks gaps until they are confirmed', () => {
     const check = buildTask({ title: 'Childcare Oct 12?', list: 'shared', kind: 'check', when: '2026-10-12' }, actor, AT);
     expect(isOpenCheck(check)).toBe(true);
     expect(isOpenCheck({ ...check, done_at: AT })).toBe(false);

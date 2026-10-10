@@ -8,7 +8,7 @@ export function canSee(task: Pick<Task, 'list' | 'owner_uid'>, uid: string): boo
   return task.list === 'shared' || task.owner_uid === uid;
 }
 
-/** Whether a task is "on" a person: their personal task, or a shared one assigned to them. */
+/** Whether a task is "on" a person: their personal task, or a shared one on them (alone or with the other). */
 export function isOnMe(task: Task, uid: string): boolean {
   if (task.list === 'personal') return task.owner_uid === uid;
   return task.assignee.includes(uid);
@@ -19,8 +19,6 @@ export function matchesFilter(task: Task, filter: Filter, uid: string): boolean 
   switch (filter) {
     case 'mine':
       return isOnMe(task, uid);
-    case 'shared':
-      return task.list === 'shared';
     case 'everything':
       return true;
   }

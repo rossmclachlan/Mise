@@ -11,6 +11,7 @@ import { factsBetween } from "../../priorities/src/lib/calendar";
 import { HORIZON_NAMES } from "../../priorities/src/lib/format";
 import {
 	WINDOW_DAYS,
+	deferTo,
 	effectiveDate,
 	effectiveHorizon,
 	isDoneThisWeek,
@@ -18,9 +19,9 @@ import {
 	isOpenCheck,
 	isOverdue,
 	lastDay,
-	moveToHorizon,
 	overlaps,
 } from "../../priorities/src/lib/horizon";
+import { gapDates, migrateTask, normalizeTask } from "../../priorities/src/lib/migrate";
 import {
 	buildTask,
 	compareOpen,
@@ -37,28 +38,29 @@ import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
 import type { CalendarFact, DateString, Household, Horizon, RadarRun, RepeatRule, Step, Task } from "../../priorities/src/types";
 import type { Doc, Firestore, Write } from "./firestore";
 
-export type OwnerWord = "me" | "partner" | "both" | "unclaimed";
-export type ListWord = "mine" | "shared" | "all";
+export type OwnerWord = "me" | "partner" | "both";
+export type ListWord = "mine" | "all";
 export type HorizonWord = Horizon | "gaps" | "handled" | "done";
 
 export interface StepInput {
 	title: string;
-	do_by?: DateString | null;
-	owner?: "me" | "partner" | "unclaimed";
 }
 
 export interface NewTask {
 	title: string;
-	list: "shared" | "personal";
+	/** Only the connected person can see it (and it's on them). */
+	private?: boolean;
+	/** Default: me. */
 	owner?: OwnerWord;
-	horizon?: Horizon;
-	do_by?: DateString | null;
-	deadline?: DateString | null;
+	/** When it needs to be done by; places the task. */
+	due?: DateString | null;
+	/** When to start, for things with lead time; places the task when set. */
+	start_by?: DateString | null;
 	repeat?: RepeatRule | null;
 	steps?: StepInput[];
 	note?: string;
 	source_url?: string | null;
-	/** "check" = a potential gap: the radar can't tell whether it's handled. */
+	/** "check" = a potential gap: the radar can't confirm it's handled. Shown with a ⚠️ until ticked. */
 	kind?: "task" | "check";
 	/** Checks: the date in question (and last day of a range). */
 	when?: DateString | null;
@@ -71,20 +73,20 @@ const SWEEP_DAYS = 5;
 
 export interface TaskChanges {
 	title?: string;
-	list?: "shared" | "personal";
+	private?: boolean;
 	owner?: OwnerWord;
-	do_by?: DateString | null;
-	deadline?: DateString | null;
+	due?: DateString | null;
+	start_by?: DateString | null;
 	repeat?: RepeatRule | null;
 	source_url?: string | null;
 	add_steps?: StepInput[];
-	update_steps?: { id: string; title?: string; done?: boolean; do_by?: DateString | null; owner?: StepInput["owner"] }[];
+	update_steps?: { id: string; title?: string; done?: boolean }[];
 	remove_step_ids?: string[];
 	/** Done tasks only: what happened, and the date it is about. */
 	outcome_note?: string | null;
 	when?: DateString | null;
 	when_end?: DateString | null;
-	/** "task" turns a potential gap into a normal task. */
+	/** "check" marks it as a ⚠️ potential gap; "task" removes the mark. */
 	kind?: "task" | "check";
 }
 
@@ -110,11 +112,34 @@ export class PrioritiesData {
 		if (this.household === undefined) {
 			const [doc] = await this.db.query<Omit<Household, "id">>("households", [["members", "ARRAY_CONTAINS", this.uid]], 1);
 			this.household = doc ? { ...doc.data, id: doc.id } : null;
+			if (this.household && (this.household.schema ?? 1) < 2) await this.migrate(this.household);
 		}
 		if (!this.household) {
 			throw new Error("No Priorities household yet. Open the Priorities app and start or join one first.");
 		}
 		return this.household;
+	}
+
+	/**
+	 * Once per household: brings tasks written before the simpler model up to
+	 * date (every task on someone, dates place tasks, gaps dated, plain steps).
+	 * Covers both personal lists, which only the service account can see.
+	 */
+	private async migrate(h: Household) {
+		const docs = await this.db.query<Omit<Task, "id">>(this.tasksPath(h.id), []);
+		const writes: Write[] = [];
+		for (const doc of docs) {
+			const task = { ...doc.data, id: doc.id, steps: doc.data.steps ?? [] } as Task;
+			const u = migrateTask(task, this.now);
+			if (!u) continue;
+			const history = [...(task.history ?? []), historyEntry(this.actor, "updated for the simpler Priorities", this.at)];
+			writes.push({ kind: "update", path: `${this.tasksPath(h.id)}/${doc.id}`, data: { ...u, history } });
+		}
+		writes.push({ kind: "update", path: `households/${h.id}`, data: { schema: 2 } });
+		// Firestore takes at most 500 writes per commit.
+		for (let i = 0; i < writes.length; i += 400) await this.db.commit(writes.slice(i, i + 400));
+		console.log(JSON.stringify({ event: "migrated", household: h.id, tasks: writes.length - 1 }));
+		h.schema = 2;
 	}
 
 	private tasksPath(hid: string) {
@@ -160,14 +185,7 @@ export class PrioritiesData {
 				return [partner];
 			case "both":
 				return partner ? [this.uid, partner] : [this.uid];
-			case "unclaimed":
-				return [];
 		}
-	}
-
-	private async stepOwner(owner: StepInput["owner"]): Promise<string | null> {
-		if (!owner || owner === "unclaimed") return null;
-		return owner === "me" ? this.uid : await this.partnerUid();
 	}
 
 	async names(): Promise<Record<string, string>> {
@@ -184,30 +202,20 @@ export class PrioritiesData {
 		return {
 			id: task.id,
 			title: task.title,
-			list: task.list,
-			owner:
-				task.list === "personal"
-					? name(task.owner_uid)
-					: task.assignee.length === 0
-						? "unclaimed"
-						: task.assignee.map((u) => name(u)).join(" & "),
+			private: task.list === "personal" || undefined,
+			owner: task.list === "personal" ? name(task.owner_uid) : task.assignee.map((u) => name(u)).join(" & "),
 			section: this.sectionOf(task),
+			potential_gap: isOpenCheck(task) || undefined,
 			status: done ? "done" : "open",
-			horizon: done || isOpenCheck(task) ? undefined : effectiveHorizon(task, this.now),
+			horizon: done ? undefined : effectiveHorizon(task, this.now),
 			overdue: isOverdue(task, this.now) || undefined,
-			do_by: task.do_by ?? undefined,
-			deadline: task.deadline ?? undefined,
+			due: task.deadline ?? undefined,
+			start_by: task.do_by ?? undefined,
 			repeat: task.repeat ? describeRepeat(task.repeat, task.do_by ?? task.deadline) : undefined,
 			steps: task.steps.length
 				? {
 						progress: `${steps.done} of ${steps.total}`,
-						items: task.steps.map((s) => ({
-							id: s.id,
-							title: s.title,
-							done: s.done_at !== null,
-							owner: name(s.assignee) ?? undefined,
-							do_by: s.do_by ?? undefined,
-						})),
+						items: task.steps.map((s) => ({ id: s.id, title: s.title, done: s.done_at !== null })),
 					}
 				: undefined,
 			notes: task.notes.length
@@ -224,9 +232,8 @@ export class PrioritiesData {
 		};
 	}
 
-	/** Emily's categories, as the app shows them. */
+	/** Emily's categories, as the app shows them. Open potential gaps sit in them too, marked ⚠️ (see potential_gap). */
 	private sectionOf(task: Task): string {
-		if (isOpenCheck(task)) return "⚠️ Potential gap";
 		if (task.done_at) return isHandledAhead(task, this.now) ? "🟢 Already handled" : "Done";
 		const h = effectiveHorizon(task, this.now);
 		return `${{ now: "🔴", month: "🟡", later: "⚪" }[h]} ${HORIZON_NAMES[h]}`;
@@ -239,7 +246,6 @@ export class PrioritiesData {
 		let tasks = await this.visibleTasks();
 		const list = opts.list ?? "all";
 		if (list === "mine") tasks = tasks.filter((t) => isOnMe(t, this.uid));
-		if (list === "shared") tasks = tasks.filter((t) => t.list === "shared");
 		if (opts.owner) {
 			const want = (t: Task) => {
 				if (t.list === "personal") return opts.owner === "me";
@@ -250,8 +256,6 @@ export class PrioritiesData {
 						return partner !== null && t.assignee.includes(partner);
 					case "both":
 						return partner !== null && t.assignee.includes(this.uid) && t.assignee.includes(partner);
-					default:
-						return t.assignee.length === 0;
 				}
 			};
 			tasks = tasks.filter(want);
@@ -262,7 +266,7 @@ export class PrioritiesData {
 		else if (h === "done") tasks = tasks.filter((t) => t.done_at && (!opts.done_since || localDay(t.done_at) >= opts.done_since));
 		else if (opts.done_since) tasks = tasks.filter((t) => t.done_at && localDay(t.done_at) >= opts.done_since!);
 		else {
-			tasks = tasks.filter((t) => !t.done_at && !isOpenCheck(t));
+			tasks = tasks.filter((t) => !t.done_at);
 			if (h) tasks = tasks.filter((t) => effectiveHorizon(t, this.now) === h);
 		}
 		tasks.sort(compareOpen);
@@ -280,7 +284,7 @@ export class PrioritiesData {
 	async overview() {
 		const h = await this.getHousehold();
 		const tasks = await this.visibleTasks();
-		const open = tasks.filter((t) => !t.done_at && !isOpenCheck(t));
+		const open = tasks.filter((t) => !t.done_at);
 		const people = h.members.map((uid) => {
 			const on = open.filter((t) => (t.list === "personal" ? t.owner_uid === uid : t.assignee.includes(uid)));
 			const count = (hz: Horizon) => on.filter((t) => effectiveHorizon(t, this.now) === hz).length;
@@ -302,16 +306,14 @@ export class PrioritiesData {
 			week_ends: weekEnd(this.now),
 			radar_window_ends: windowEnd,
 			sections:
-				"🔴 Needs action now = this week and overdue; 🟡 Coming up = through radar_window_ends; ⚪ Not yet = after that; ⚠️ Potential gaps = open checks; 🟢 Already handled = done with a date ahead. The top 3 of each person's Needs action now are their top 3 for the week.",
+				"🔴 Needs action now = start-by or due date this week, overdue, or undated; 🟡 Coming up = through radar_window_ends; ⚪ Not yet = after that; ⚠️ potential gaps sit among them until ticked; 🟢 Already handled = done with a date ahead. The top 3 of each person's Needs action now are their top 3 for the week.",
 			note: "Counts for the other person include only shared tasks; their personal list is private.",
 			people,
 			overdue: open.filter((t) => isOverdue(t, this.now)).map((t) => ({ id: t.id, title: t.title, was_due: effectiveDate(t) })),
-			unclaimed_shared: open
-				.filter((t) => t.list === "shared" && t.assignee.length === 0)
-				.map((t) => ({ id: t.id, title: t.title, horizon: effectiveHorizon(t, this.now) })),
+			undated: open.filter((t) => !effectiveDate(t)).map((t) => ({ id: t.id, title: t.title })),
 			potential_gaps: tasks
 				.filter(isOpenCheck)
-				.map((t) => ({ id: t.id, title: t.title, when: t.when, when_end: t.when_end ?? undefined })),
+				.map((t) => ({ id: t.id, title: t.title, when: t.when, when_end: t.when_end ?? undefined, start_by: t.do_by ?? undefined })),
 			already_handled_next_6_weeks: tasks
 				.filter((t) => isHandledAhead(t, this.now) && t.when! <= windowEnd)
 				.sort((a, b) => (a.when! < b.when! ? -1 : 1))
@@ -332,16 +334,8 @@ export class PrioritiesData {
 		return `${this.tasksPath((await this.getHousehold()).id)}/${id}`;
 	}
 
-	private async buildSteps(inputs: StepInput[] = []): Promise<Step[]> {
-		return Promise.all(
-			inputs.map(async (s) => ({
-				id: newId(),
-				title: s.title.trim(),
-				done_at: null,
-				assignee: await this.stepOwner(s.owner),
-				do_by: s.do_by ?? null,
-			})),
-		);
+	private buildSteps(inputs: StepInput[] = []): Step[] {
+		return inputs.map((s) => ({ id: newId(), title: s.title.trim(), done_at: null }));
 	}
 
 	async add(inputs: NewTask[]) {
@@ -362,17 +356,18 @@ export class PrioritiesData {
 				continue;
 			}
 			if (input.kind === "check" && !input.when) throw new Error(`"${input.title}": a check needs the date in question (when)`);
-			if (input.list === "personal" && input.owner && input.owner !== "me") {
-				throw new Error(`"${input.title}": a personal task can only go on your own list. Use the shared list to give it to someone else.`);
+			if (input.private && input.owner && input.owner !== "me") {
+				throw new Error(`"${input.title}": a private task can only be yours. Leave private off to give it to someone else.`);
 			}
+			// A gap is due on the day in question and, unless told, starts six weeks before it.
+			const gap = input.kind === "check" ? gapDates(input.when!, this.now) : null;
 			const task = buildTask(
 				{
 					title: input.title,
-					list: input.list,
-					assignee: input.list === "shared" ? await this.assigneeFor(input.owner ?? "unclaimed") : [],
-					horizon: input.horizon,
-					do_by: input.do_by,
-					deadline: input.deadline,
+					list: input.private ? "personal" : "shared",
+					assignee: input.private ? [this.uid] : await this.assigneeFor(input.owner ?? "me"),
+					do_by: input.start_by ?? gap?.do_by ?? null,
+					deadline: input.due ?? gap?.deadline ?? null,
 					// A repeat needs a date to count from.
 					repeat: input.repeat ?? null,
 					source_url: input.source_url,
@@ -385,8 +380,8 @@ export class PrioritiesData {
 				this.at,
 			);
 			if (key) keys.set(key, task);
-			if (task.repeat && !task.do_by && !task.deadline) task.do_by = this.now;
-			task.steps = await this.buildSteps(input.steps);
+			if (task.repeat && !task.do_by && !task.deadline) task.deadline = this.now;
+			task.steps = this.buildSteps(input.steps);
 			if (input.note?.trim()) task.notes = [{ id: newId(), text: input.note.trim(), uid: this.uid, via: "mcp", at: this.at }];
 			const { id, ...data } = task;
 			writes.push({ kind: "create", path: await this.taskPath(id), data });
@@ -405,54 +400,63 @@ export class PrioritiesData {
 			u.title = changes.title.trim();
 			what.push("renamed");
 		}
-		if (changes.list && changes.list !== task.list) {
-			Object.assign(u, changes.list === "personal" ? { list: "personal", owner_uid: this.uid, assignee: [] } : { list: "shared", owner_uid: null, assignee: [this.uid] });
-			what.push(`moved to ${changes.list}`);
+		if (changes.private !== undefined && changes.private !== (task.list === "personal")) {
+			Object.assign(
+				u,
+				changes.private
+					? { list: "personal", owner_uid: this.uid, assignee: [this.uid] }
+					: { list: "shared", owner_uid: null, assignee: [this.uid] },
+			);
+			what.push(changes.private ? "made it private" : "shared it");
 		}
 		if (changes.owner) {
 			if ((u.list ?? task.list) === "personal") {
-				if (changes.owner !== "me") throw new Error("A personal task can only be yours. Move it to the shared list first (list: shared).");
+				if (changes.owner !== "me") throw new Error("A private task can only be yours. Set private: false to give it to someone else.");
 			} else {
 				u.assignee = await this.assigneeFor(changes.owner);
 				what.push(`assigned to ${changes.owner}`);
 			}
 		}
-		for (const k of ["do_by", "deadline", "source_url", "outcome_note", "when", "when_end"] as const) {
+		if (changes.due !== undefined) {
+			u.deadline = changes.due;
+			what.push("changed the due date");
+		}
+		if (changes.start_by !== undefined) {
+			u.do_by = changes.start_by;
+			what.push("changed the start date");
+		}
+		for (const k of ["source_url", "outcome_note", "when", "when_end"] as const) {
 			if (changes[k] !== undefined) {
 				(u as Record<string, unknown>)[k] = changes[k];
 				what.push(`changed ${k.replace("_", " ")}`);
 			}
 		}
 		// A dated task re-files by its new date.
-		if (changes.do_by !== undefined || changes.deadline !== undefined) u.order = null;
+		if (changes.due !== undefined || changes.start_by !== undefined) u.order = null;
 		if (changes.kind && changes.kind !== (task.kind ?? "task")) {
 			u.kind = changes.kind;
-			if (changes.kind === "task" && !(u.deadline ?? task.deadline) && task.when) u.deadline = task.when;
-			what.push(changes.kind === "task" ? "added to the list" : "marked as a potential gap");
+			what.push(changes.kind === "task" ? "no longer a potential gap" : "marked as a potential gap");
 		}
 		if (changes.repeat !== undefined) {
 			u.repeat = changes.repeat;
-			if (changes.repeat && !(u.do_by ?? task.do_by) && !(u.deadline ?? task.deadline)) u.do_by = this.now;
+			if (changes.repeat && !(u.do_by ?? task.do_by) && !(u.deadline ?? task.deadline)) u.deadline = this.now;
 			what.push(changes.repeat ? `repeats ${describeRepeat(changes.repeat)}` : "stopped repeating");
 		}
 		if (changes.add_steps || changes.update_steps || changes.remove_step_ids) {
 			let steps = task.steps.filter((s) => !changes.remove_step_ids?.includes(s.id));
 			for (const su of changes.update_steps ?? []) {
 				if (!steps.some((s) => s.id === su.id)) throw new Error(`No step with id ${su.id} on this task`);
-				const owner = su.owner === undefined ? undefined : await this.stepOwner(su.owner);
 				steps = steps.map((s) =>
 					s.id !== su.id
 						? s
 						: {
-								...s,
+								id: s.id,
 								title: su.title?.trim() ?? s.title,
 								done_at: su.done === undefined ? s.done_at : su.done ? (s.done_at ?? this.at) : null,
-								do_by: su.do_by === undefined ? s.do_by : su.do_by,
-								assignee: owner === undefined ? s.assignee : owner,
 							},
 				);
 			}
-			steps = [...steps, ...(await this.buildSteps(changes.add_steps))];
+			steps = [...steps, ...this.buildSteps(changes.add_steps)];
 			u.steps = steps;
 			what.push("updated the steps");
 		}
@@ -522,9 +526,7 @@ export class PrioritiesData {
 		const writes: Write[] = [];
 		const out: Task[] = [];
 		for (const t of tasks) {
-			const u: Partial<Task> =
-				to === "month" || to === "later" ? moveToHorizon(t, to, this.now) : { do_by: to };
-			if (to !== "month" && to !== "later") u.order = null;
+			const u: Partial<Task> = deferTo(to, this.now);
 			u.history = [...t.history, historyEntry(this.actor, `deferred to ${to === "month" ? "Coming up" : to === "later" ? "Not yet" : to}`, this.at)];
 			writes.push({ kind: "update", path: await this.taskPath(t.id), data: u });
 			out.push({ ...t, ...u });
@@ -548,11 +550,11 @@ export class PrioritiesData {
 			id: d.id,
 			title: d.title,
 			section: d.section,
-			list: d.list,
+			private: d.private,
 			owner: d.owner,
 			date: t.done_at || isOpenCheck(t) ? (t.when ?? undefined) : (effectiveDate(t) ?? undefined),
 			when_end: d.when_end,
-			deadline: d.deadline,
+			due: d.due,
 			outcome_note: d.outcome_note,
 			radar_key: d.radar_key,
 		};
@@ -688,18 +690,5 @@ export class PrioritiesData {
 }
 
 function asTask(doc: Doc<Omit<Task, "id">>): Task {
-	const d = doc.data;
-	return {
-		...d,
-		id: doc.id,
-		assignee: d.assignee ?? [],
-		steps: d.steps ?? [],
-		notes: d.notes ?? [],
-		history: d.history ?? [],
-		repeat: d.repeat ?? null,
-		kind: d.kind ?? "task",
-		order: typeof d.order === "number" ? d.order : null,
-		when_end: d.when_end ?? null,
-		radar_key: d.radar_key ?? null,
-	} as Task;
+	return normalizeTask({ ...doc.data, id: doc.id } as Task);
 }

@@ -9,15 +9,14 @@ import {
   isDoneThisWeek,
   isHandledAhead,
   isHandledSoon,
-  isOpenCheck,
 } from '../lib/horizon';
 import { compareOpen } from '../lib/ops';
-import { GAPS_EMOJI, GAPS_NAME, HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
+import { HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES } from '../lib/format';
 import { Seal } from '../../../src/components/ui/Seal';
 import { usePriorities } from '../state/PrioritiesContext';
 import { useVisible } from '../state/useVisible';
 import { Header } from './Header';
-import { GapRow, TakenCareRow } from './bits';
+import { TakenCareRow } from './bits';
 import { ReorderList } from './ReorderList';
 import { HouseRulesView } from './HouseRulesView';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -42,7 +41,9 @@ function loadSection(): Section {
 function loadFilter(): Filter {
   try {
     const v = localStorage.getItem(FILTER_KEY);
-    if (v === 'mine' || v === 'shared' || v === 'everything') return v;
+    if (v === 'mine' || v === 'everything') return v;
+    // The old Shared filter is part of Everyone now.
+    if (v === 'shared') return 'everything';
   } catch {
     // Storage can be unavailable (private mode); fall back to the default.
   }
@@ -90,7 +91,8 @@ export function Home() {
   const { tasks } = usePriorities();
 
   const sections = useMemo(() => {
-    const open = visible.filter((t) => !t.done_at && !isOpenCheck(t));
+    // Potential gaps sit among the rest, by date, marked with a ⚠️.
+    const open = visible.filter((t) => !t.done_at);
     const by = (h: Horizon) => open.filter((t) => effectiveHorizon(t, now) === h).sort(compareOpen);
     const ahead = handledPool.filter((t) => isHandledAhead(t, now));
     const windowEnd = addDays(now, WINDOW_DAYS);
@@ -98,16 +100,12 @@ export function Home() {
       now: by('now'),
       month: by('month'),
       later: by('later'),
-      // A gap is a question for the household: under Mine, show the unclaimed ones too.
-      gaps: (filter === 'mine' ? handledPool.filter((t) => t.list === 'personal' || t.assignee.length === 0 || t.assignee.includes(user.uid)) : visible)
-        .filter(isOpenCheck)
-        .sort((a, b) => ((a.when ?? '') < (b.when ?? '') ? -1 : 1)),
       soon: handledPool.filter((t) => isHandledSoon(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1)),
       doneThisWeek: handledPool.filter((t) => isDoneThisWeek(t, now)).length,
       handledMonth: ahead.filter((t) => t.when! > weekEnd(now) && t.when! <= windowEnd).length,
       handledLater: ahead.filter((t) => t.when! > windowEnd).length,
     };
-  }, [visible, handledPool, now, filter, user.uid]);
+  }, [visible, handledPool, now]);
 
   const openTask = tasks.find((t) => t.id === openId) ?? null;
   const detailsTask = tasks.find((t) => t.id === detailsId) ?? null;
@@ -130,9 +128,8 @@ export function Home() {
     <div className="flex justify-center md:justify-start">
       <PillToggle
         options={[
-          { label: 'On me', value: 'mine' },
-          { label: 'Shared', value: 'shared' },
-          { label: 'Everything', value: 'everything' },
+          { label: 'Mine', value: 'mine' },
+          { label: 'Everyone', value: 'everything' },
         ]}
         value={filter}
         onChange={(v) => setFilter(v as Filter)}
@@ -158,24 +155,6 @@ export function Home() {
       ) : (
         <ReorderList tasks={sections.now} now={now} onTick={tick} onOpen={setOpenId} topThree />
       )}
-    </section>
-  );
-
-  // Only there when the radar has a question.
-  const gapsSection = sections.gaps.length > 0 && (
-    <section>
-      <div className="mb-1 flex items-center gap-2.5">
-        <h2 className="heading-section">
-          {GAPS_EMOJI} {GAPS_NAME}
-        </h2>
-        <span className="count-badge">{sections.gaps.length}</span>
-      </div>
-      <p className="mb-2 text-sm text-ink-variant">The radar couldn’t tell whether these are handled.</p>
-      <div className="divide-y divide-warn/20 rounded-2xl border border-warn/30 bg-warn-container/50 px-3">
-        {sections.gaps.map((t) => (
-          <GapRow key={t.id} task={t} onOpen={() => setOpenId(t.id)} onCovered={() => setDetailsId(t.id)} />
-        ))}
-      </div>
     </section>
   );
 
@@ -255,7 +234,6 @@ export function Home() {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
                   <div className="space-y-6">
                     {nowSection}
-                    {gapsSection}
                   </div>
                   <div className="space-y-6">
                     {takenCareOf}
@@ -294,8 +272,16 @@ export function Home() {
         />
       )}
 
-      <QuickAddSheet isOpen={adding} onClose={() => setAdding(false)} defaultList={filter === 'mine' ? 'personal' : 'shared'} />
-      <TaskSheet task={openTask} onClose={() => setOpenId(null)} onDone={(t) => { setOpenId(null); setDetailsId(t.id); }} />
+      <QuickAddSheet isOpen={adding} onClose={() => setAdding(false)} />
+      <TaskSheet
+        task={openTask}
+        onClose={() => setOpenId(null)}
+        onDone={(t) => {
+          setOpenId(null);
+          tick(t);
+        }}
+        onDetails={(t) => setDetailsId(t.id)}
+      />
       <DoneDetailsSheet task={detailsTask} onClose={() => setDetailsId(null)} />
     </>
   );

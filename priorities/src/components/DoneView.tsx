@@ -68,9 +68,8 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
         <div className="flex justify-center">
           <PillToggle
             options={[
-              { label: 'Everything', value: 'everything' },
-              { label: 'On me', value: 'mine' },
-              { label: 'Shared', value: 'shared' },
+              { label: 'Everyone', value: 'everything' },
+              { label: 'Mine', value: 'mine' },
             ]}
             value={filter}
             onChange={(v) => setFilter(v as Filter)}
