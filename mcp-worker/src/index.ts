@@ -141,31 +141,48 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"add_tasks",
 			{
 				description:
-					"Add tasks, or potential gaps (kind: check). Fill everything in yourself from what you were told and the house rules, rather than asking: the due date from context (Halloween costumes are due Oct 31), a start_by date from the house rules' lead times, and the owner from 'who usually owns what' (else me). Ask only when you genuinely can't tell. Propose bulk adds first, except a scheduled radar run may add potential gaps on its own. Put the source or evidence in note or source_url. Items with a radar_key that's already in use are skipped and reported.",
+					"Add tasks, or potential gaps (kind: check). Fill everything in yourself from what you were told and the house rules, rather than asking: the due date from context (Halloween costumes are due Oct 31), a start_by date from the house rules' lead times, and the owner from 'who usually owns what' (else me). Ask only when you genuinely can't tell. Propose bulk adds first, except a scheduled radar run may add potential gaps on its own. Put the source or evidence in note or source_url. Items with a radar_key that's already in use, or a title close to an open task's, are skipped and reported.",
 				inputSchema: {
 					tasks: z
 						.array(
-							z.object({
-								title: z.string().min(1).max(200).describe("Starts with a verb"),
-								owner: owner.optional().describe("Default me. From the house rules when they say who owns this kind of thing."),
-								private: z.boolean().optional().describe("Only I can see it (default false: both of us see it). Only for things that are clearly personal."),
-								due: date.optional().describe("When it needs to be done by. Places the task; with no date it sits in Needs action now."),
-								start_by: date
-									.optional()
-									.describe("When to start, for things with lead time (booking, ordering, paperwork): the due date minus the house rules' lead time. Places the task when set."),
-								repeat: repeat.optional(),
-								steps: z.array(step).max(20).optional(),
-								note: z.string().max(2000).optional().describe("Context: where it came from, reference numbers"),
-								source_url: z.string().url().optional(),
-								kind: z
-									.enum(["task", "check"])
-									.optional()
-									.describe("check = a potential gap: something that may need doing where you can't confirm it's handled. Title it 'Confirm …'. Shown with a ⚠️ and ticked once confirmed."),
-								when: date.optional().describe("Checks: the date in question (required for a check). Unless you set them, it's due that day and starts 6 weeks before."),
-								when_end: date.optional().describe("Checks: the last day, for a range"),
-								radar_key: radarKey.optional(),
-								remind_at: remindAt.optional(),
-							}),
+							z
+								.object({
+									title: z.string().min(1).max(200).describe("Starts with a verb"),
+									owner: owner.optional().describe("Default me. From the house rules when they say who owns this kind of thing."),
+									private: z
+										.boolean()
+										.optional()
+										.describe("Only I can see it (default false: both of us see it). Only for things that are clearly personal."),
+									due: date.optional().describe("When it needs to be done by. Places the task; with no date it sits in Needs action now."),
+									start_by: date
+										.optional()
+										.describe(
+											"When to start, for things with lead time (booking, ordering, paperwork): the due date minus the house rules' lead time. Places the task when set.",
+										),
+									repeat: repeat.optional(),
+									steps: z.array(step).max(20).optional(),
+									note: z.string().max(2000).optional().describe("Context: where it came from, reference numbers"),
+									source_url: z.string().url().optional(),
+									kind: z
+										.enum(["task", "check"])
+										.optional()
+										.describe(
+											"check = a potential gap: something that may need doing where you can't confirm it's handled. Title it 'Confirm …'. Shown with a ⚠️ and ticked once confirmed.",
+										),
+									when: date
+										.optional()
+										.describe(
+											"The date it's about (an appointment, a trip; the first day of a range). A task with no due date is due then. Required for a check: unless you set them, it's due that day and starts 6 weeks before.",
+										),
+									when_end: date.optional().describe("The last day, for a range"),
+									radar_key: radarKey.optional(),
+									remind_at: remindAt.optional(),
+									allow_duplicate: z
+										.boolean()
+										.optional()
+										.describe("Add it even though an open task has a similar title. Only after checking it's really a different thing."),
+								})
+								.strict(),
 						)
 						.min(1)
 						.max(25),
@@ -178,27 +195,30 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"update_task",
 			{
 				description:
-					"Change a task: title, owner, private, dates, reminder, repeat, source, steps (add, tick or remove), or for a done task its outcome_note and when. Pass null to clear a date.",
-				inputSchema: {
-					id: taskId,
-					title: z.string().min(1).max(200).optional(),
-					owner: owner.optional(),
-					private: z.boolean().optional().describe("true = only I can see it (it's then on me)"),
-					due: date.nullable().optional(),
-					start_by: date.nullable().optional(),
-					repeat: repeat.nullable().optional(),
-					source_url: z.string().url().nullable().optional(),
-					add_steps: z.array(step).max(20).optional(),
-					update_steps: z
-						.array(z.object({ id: z.string(), title: z.string().min(1).max(200).optional(), done: z.boolean().optional() }))
-						.optional(),
-					remove_step_ids: z.array(z.string()).optional(),
-					outcome_note: z.string().max(2000).nullable().optional(),
-					when: date.nullable().optional(),
-					when_end: date.nullable().optional().describe("Last day, when 'when' is a range"),
-					kind: z.enum(["task", "check"]).optional().describe("check marks it as a ⚠️ potential gap; task removes the mark"),
-					remind_at: remindAt.nullable().optional(),
-				},
+					"Change a task: title, owner, private, dates, reminder, repeat, source, steps (add, tick or remove), or for a done task its outcome_note and when. Pass null to clear a date. Changing due alone moves start_by with it, keeping its lead time.",
+				// Strict, so a misnamed field (do_by, deadline) is an error rather than silently ignored.
+				inputSchema: z
+					.object({
+						id: taskId,
+						title: z.string().min(1).max(200).optional(),
+						owner: owner.optional(),
+						private: z.boolean().optional().describe("true = only I can see it (it's then on me)"),
+						due: date.nullable().optional(),
+						start_by: date.nullable().optional(),
+						repeat: repeat.nullable().optional(),
+						source_url: z.string().url().nullable().optional(),
+						add_steps: z.array(step).max(20).optional(),
+						update_steps: z
+							.array(z.object({ id: z.string(), title: z.string().min(1).max(200).optional(), done: z.boolean().optional() }))
+							.optional(),
+						remove_step_ids: z.array(z.string()).optional(),
+						outcome_note: z.string().max(2000).nullable().optional(),
+						when: date.nullable().optional(),
+						when_end: date.nullable().optional().describe("Last day, when 'when' is a range"),
+						kind: z.enum(["task", "check"]).optional().describe("check marks it as a ⚠️ potential gap; task removes the mark"),
+						remind_at: remindAt.nullable().optional(),
+					})
+					.strict(),
 			},
 			async ({ id, ...changes }) => this.run("update_task", { id, fields: Object.keys(changes) }, (d) => d.update(id, changes)),
 		);
@@ -217,21 +237,19 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			{
 				description:
 					"Mark a task done, or a potential gap as confirmed. Record the outcome (who, when, where, confirmation number; for a gap, how it's covered or why it's not needed) and set 'when' (and when_end for a range like camp Nov 25-27) to the dates it covers, so it shows under Already handled until then. A repeating task also gets its next occurrence.",
-					inputSchema: {
-						id: taskId,
-						outcome_note: z.string().max(2000).optional(),
-						when: date.optional().describe("The appointment, trip or due date this covers"),
-						when_end: date.optional().describe("The last day it covers, for a range"),
-					},
-					},
-					async ({ id, outcome_note, when, when_end }) =>
-						this.run("complete_task", { id, when, when_end }, (d) => d.complete(id, { outcome_note, when, when_end })),
+				inputSchema: {
+					id: taskId,
+					outcome_note: z.string().max(2000).optional(),
+					when: date.optional().describe("The appointment, trip or due date this covers"),
+					when_end: date.optional().describe("The last day it covers, for a range"),
+				},
+			},
+			async ({ id, outcome_note, when, when_end }) =>
+				this.run("complete_task", { id, when, when_end }, (d) => d.complete(id, { outcome_note, when, when_end })),
 		);
 
-		s.registerTool(
-			"reopen_task",
-			{ description: "Undo marking a task done.", inputSchema: { id: taskId } },
-			async ({ id }) => this.run("reopen_task", { id }, (d) => d.reopen(id)),
+		s.registerTool("reopen_task", { description: "Undo marking a task done.", inputSchema: { id: taskId } }, async ({ id }) =>
+			this.run("reopen_task", { id }, (d) => d.reopen(id)),
 		);
 
 		s.registerTool(
@@ -393,8 +411,6 @@ export default {
 			ctx.waitUntil(refreshAll(firestoreFor(env), today(), new Date().toISOString()));
 			return;
 		}
-		ctx.waitUntil(
-			(async () => runNotifications({ db: firestoreFor(env), keys: await vapidKeys(env.OAUTH_KV), now: new Date() }))(),
-		);
+		ctx.waitUntil((async () => runNotifications({ db: firestoreFor(env), keys: await vapidKeys(env.OAUTH_KV), now: new Date() }))());
 	},
 } satisfies ExportedHandler<Env>;

@@ -20,6 +20,7 @@ import {
 	isOverdue,
 	lastDay,
 	overlaps,
+	withDue,
 } from "../../priorities/src/lib/horizon";
 import { gapDates, migrateTask, normalizeTask } from "../../priorities/src/lib/migrate";
 import {
@@ -34,7 +35,7 @@ import {
 	type Actor,
 } from "../../priorities/src/lib/ops";
 import { describeRepeat } from "../../priorities/src/lib/repeat";
-import { matchesSearch } from "../../priorities/src/lib/search";
+import { matchesSearch, similarTitles } from "../../priorities/src/lib/search";
 import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
 import type { CalendarFact, DateString, Household, Horizon, RadarRun, RepeatRule, Step, Task } from "../../priorities/src/types";
 import type { Doc, Firestore, Write } from "./firestore";
@@ -63,10 +64,12 @@ export interface NewTask {
 	source_url?: string | null;
 	/** "check" = a potential gap: the radar can't confirm it's handled. Shown with a ⚠️ until ticked. */
 	kind?: "task" | "check";
-	/** Checks: the date in question (and last day of a range). */
+	/** The date it's about (and last day of a range). A task with no due date is due then. */
 	when?: DateString | null;
 	when_end?: DateString | null;
 	radar_key?: string | null;
+	/** Add it even though an open task has a similar title. */
+	allow_duplicate?: boolean;
 	/** Local "YYYY-MM-DDTHH:MM": when to send a reminder notification. */
 	remind_at?: string | null;
 }
@@ -362,14 +365,21 @@ export class PrioritiesData {
 		// Radar keys already used, open or done, so neither of our radars adds the same thing twice
 		// (and a gap someone answered "covered" doesn't come back next week).
 		const keys = new Map<string, Task>();
-		if (inputs.some((i) => i.radar_key)) {
-			for (const t of await this.visibleTasks()) if (t.radar_key) keys.set(t.radar_key, t);
-		}
+		const visible = await this.visibleTasks();
+		for (const t of visible) if (t.radar_key) keys.set(t.radar_key, t);
+		// Open tasks a new one might repeat, under a different wording.
+		const open = visible.filter((t) => !t.done_at);
+		const duplicates: { title: string; similar_to: string }[] = [];
 		for (const input of inputs) {
 			const key = input.radar_key?.trim().toLowerCase() || null;
 			if (key && keys.has(key)) {
 				const t = keys.get(key)!;
 				skipped.push({ title: input.title, radar_key: key, already: `${t.title} (${this.sectionOf(t)}, id ${t.id})` });
+				continue;
+			}
+			const twin = input.allow_duplicate ? undefined : open.find((t) => similarTitles(t.title, input.title));
+			if (twin) {
+				duplicates.push({ title: input.title, similar_to: `${twin.title} (${this.sectionOf(twin)}, id ${twin.id})` });
 				continue;
 			}
 			if (input.kind === "check" && !input.when) throw new Error(`"${input.title}": a check needs the date in question (when)`);
@@ -384,7 +394,8 @@ export class PrioritiesData {
 					list: input.private ? "personal" : "shared",
 					assignee: input.private ? [this.uid] : await this.assigneeFor(input.owner ?? "me"),
 					do_by: input.start_by ?? gap?.do_by ?? null,
-					deadline: input.due ?? gap?.deadline ?? null,
+					// A task about a date (a trip, an appointment) is due then unless told otherwise.
+					deadline: input.due ?? gap?.deadline ?? input.when ?? null,
 					// A repeat needs a date to count from.
 					repeat: input.repeat ?? null,
 					source_url: input.source_url,
@@ -397,6 +408,7 @@ export class PrioritiesData {
 				this.at,
 			);
 			if (key) keys.set(key, task);
+			open.push(task);
 			if (task.repeat && !task.do_by && !task.deadline) task.deadline = this.now;
 			if (input.remind_at) task.remind_at = reminderMoment(input.remind_at, this.at);
 			task.steps = this.buildSteps(input.steps);
@@ -407,7 +419,17 @@ export class PrioritiesData {
 		}
 		if (writes.length) await this.write(writes);
 		const added = await Promise.all(created.map((t) => this.describe(t)));
-		return skipped.length ? { added, skipped_already_tracked: skipped } : added;
+		if (!skipped.length && !duplicates.length) return added;
+		return {
+			added,
+			...(skipped.length ? { skipped_already_tracked: skipped } : {}),
+			...(duplicates.length
+				? {
+						skipped_possible_duplicates: duplicates,
+						note: "Not added: an open task looks like the same thing. Tell us which one it matched; if it's really different, add it again with allow_duplicate: true.",
+					}
+				: {}),
+		};
 	}
 
 	async update(id: string, changes: TaskChanges) {
@@ -436,8 +458,9 @@ export class PrioritiesData {
 			}
 		}
 		if (changes.due !== undefined) {
-			u.deadline = changes.due;
-			what.push("changed the due date");
+			// Unless a new start_by comes with it, the start date keeps its lead time.
+			Object.assign(u, changes.start_by === undefined ? withDue(task, changes.due) : { deadline: changes.due });
+			what.push(u.do_by !== undefined && u.do_by !== task.do_by ? "changed the due date (start date moved with it)" : "changed the due date");
 		}
 		if (changes.start_by !== undefined) {
 			u.do_by = changes.start_by;

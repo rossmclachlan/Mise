@@ -3,6 +3,7 @@ import { Check, ChevronDown, ExternalLink, Plus, Trash2, X } from 'lucide-react'
 import type { RepeatRule, Step, Task } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { formatDate, formatShort, localDay, today } from '../lib/dates';
+import { withDue } from '../lib/horizon';
 import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
@@ -184,7 +185,7 @@ function Body({
 
       {!done && (
         <div className="flex flex-col gap-1">
-          <DateField label="Due" value={task.deadline} onChange={(v) => update(task, { deadline: v, order: null }, 'changed the due date')} />
+          <DateField label="Due" value={task.deadline} onChange={(v) => update(task, withDue(task, v), 'changed the due date')} />
           {task.do_by && (
             <p className={`text-xs ${startLate ? 'text-late' : 'text-ink-variant'}`}>Start by {formatDate(task.do_by)}</p>
           )}

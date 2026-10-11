@@ -12,13 +12,14 @@ import {
   isOpenCheck,
   deferTo,
   overlaps,
+  withDue,
 } from './horizon';
 import { completeTask, compareOpen, orderBetween, skipOccurrence, buildTask } from './ops';
 import { classify, factsBetween, factsFromIcs } from './calendar';
 import { describeRepeat, nextOccurrence } from './repeat';
 import { canSee, matchesFilter } from './visibility';
 import { migrateTask, normalizeTask } from './migrate';
-import { matchesSearch } from './search';
+import { matchesSearch, similarTitles } from './search';
 
 const ROSS = 'ross';
 const EMILY = 'emily';
@@ -388,5 +389,35 @@ describe('matchesSearch', () => {
     expect(matchesSearch(t, 'abc123')).toBe(true);
     expect(matchesSearch(t, 'rainbow passport')).toBe(false);
     expect(matchesSearch(t, '   ')).toBe(false);
+  });
+});
+
+describe('similarTitles', () => {
+  it('catches the same task worded differently', () => {
+    expect(similarTitles('Buy rainbow fish play tix', 'Buy Rainbow Fish tickets')).toBe(true);
+    expect(similarTitles('Book dentist', 'book dentist')).toBe(true);
+    expect(similarTitles('Renew passports', 'Renew passport')).toBe(true);
+  });
+  it('leaves different things alone', () => {
+    expect(similarTitles('Pay water bill', 'Pay electricity bill')).toBe(false);
+    expect(similarTitles('Renew car insurance', 'Renew car registration')).toBe(false);
+    expect(similarTitles('Book camp for Nov 11', 'Buy Halloween costumes')).toBe(false);
+  });
+});
+
+describe('withDue', () => {
+  it('keeps the start date its lead time before the new due date', () => {
+    expect(withDue({ do_by: '2026-10-20', deadline: '2026-11-03' }, '2026-12-01')).toEqual({
+      deadline: '2026-12-01',
+      do_by: '2026-11-17',
+      order: null,
+    });
+  });
+  it('pulls a start-only date back to the due date, and leaves an earlier one', () => {
+    expect(withDue({ do_by: '2026-12-01', deadline: null }, '2026-11-01').do_by).toBe('2026-11-01');
+    expect(withDue({ do_by: '2026-10-20', deadline: null }, '2026-11-01').do_by).toBeUndefined();
+  });
+  it('clearing the due date leaves the start date', () => {
+    expect(withDue({ do_by: '2026-10-20', deadline: '2026-11-03' }, null)).toEqual({ deadline: null, order: null });
   });
 });

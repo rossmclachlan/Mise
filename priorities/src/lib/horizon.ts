@@ -1,5 +1,5 @@
 import type { DateString, Horizon, Task } from '../types';
-import { addDays, localDay, weekEnd, weekStart } from './dates';
+import { addDays, localDay, parseDate, weekEnd, weekStart } from './dates';
 
 /** How far ahead the radar looks: Coming up, and Already handled on the home screen. */
 export const WINDOW_DAYS = 42;
@@ -43,6 +43,22 @@ export function nextMonday(now: DateString): DateString {
 export function deferTo(to: 'month' | 'later' | DateString, now: DateString): Partial<Task> {
   const date = to === 'month' ? nextMonday(now) : to === 'later' ? addDays(now, WINDOW_DAYS + 7) : to;
   return { do_by: date, order: null };
+}
+
+/**
+ * A new due date, with the start-by date kept in step: it keeps its lead time
+ * when the task had both dates, and never sits after the new due date.
+ */
+export function withDue(task: Pick<Task, 'do_by' | 'deadline'>, due: DateString | null): Partial<Task> {
+  const changes: Partial<Task> = { deadline: due, order: null };
+  if (!due || !task.do_by) return changes;
+  if (task.deadline) {
+    const lead = Math.round((parseDate(task.deadline).getTime() - parseDate(task.do_by).getTime()) / 86_400_000);
+    changes.do_by = addDays(due, -lead);
+  } else if (task.do_by > due) {
+    changes.do_by = due;
+  }
+  return changes;
 }
 
 /** The last day a done task covers: the end of its range, or its date. */
