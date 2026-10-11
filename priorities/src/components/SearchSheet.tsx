@@ -21,12 +21,12 @@ const MAX_RESULTS = 50;
 export function SearchSheet({ isOpen, onClose, onOpen }: { isOpen: boolean; onClose: () => void; onOpen: (id: string) => void }) {
   return (
     <BottomSheet dialogOnWide isOpen={isOpen} onClose={onClose} tall>
-      {isOpen && <Body onOpen={onOpen} />}
+      {isOpen && <Body onOpen={onOpen} onClose={onClose} />}
     </BottomSheet>
   );
 }
 
-function Body({ onOpen }: { onOpen: (id: string) => void }) {
+function Body({ onOpen, onClose }: { onOpen: (id: string) => void; onClose: () => void }) {
   const { tasks, user, nameOf } = usePriorities();
   const [q, setQ] = useState('');
   const now = today();
@@ -69,17 +69,22 @@ function Body({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <div className="flex min-h-0 flex-col gap-4 pt-1">
-      <label className="flex items-center gap-2 rounded-xl border border-outline bg-surface px-3">
-        <Search size={18} className="text-ink-variant" />
-        <input
-          autoFocus
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search all tasks: titles, notes, steps"
-          className="min-w-0 flex-1 bg-transparent py-2.5 text-base focus:outline-none"
-        />
-      </label>
+      <div className="flex items-center gap-2">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-outline bg-surface px-3">
+          <Search size={18} className="text-ink-variant" />
+          <input
+            autoFocus
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search all tasks"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-base focus:outline-none"
+          />
+        </label>
+        <button type="button" onClick={onClose} className="btn-outlined shrink-0 px-4">
+          Close
+        </button>
+      </div>
 
       {q.trim() && results.length === 0 && <p className="py-6 text-center text-sm text-ink-variant">No matches.</p>}
 
