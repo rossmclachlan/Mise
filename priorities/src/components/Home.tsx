@@ -18,6 +18,7 @@ import { DoneView } from './DoneView';
 import { BottomNav, SideNav, type Section } from './Nav';
 import { DoneToast, type ToastState } from './DoneToast';
 import { DoneDetailsSheet } from './DoneDetailsSheet';
+import { SearchSheet } from './SearchSheet';
 
 const SECTION_KEY = 'priorities:section';
 
@@ -37,6 +38,7 @@ export function Home() {
   // A notification opens its task: ./?task=<id>.
   const [openId, setOpenId] = useState<string | null>(() => new URLSearchParams(location.search).get('task'));
   const [adding, setAdding] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [section, setSection] = useState<Section>(() => (openId ? 'open' : loadSection()));
   const [expanded, setExpanded] = useState<Record<'month' | 'later', boolean>>({ month: false, later: false });
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -167,7 +169,7 @@ export function Home() {
 
   return (
     <>
-      <Header onHouseRules={() => setSection('rules')} where={section} />
+      <Header onHouseRules={() => setSection('rules')} onSearch={() => setSearching(true)} where={section} />
       <div className="flex min-h-0 flex-1">
         <SideNav active={section} onChange={setSection} openCount={sections.now.length} onAdd={() => setAdding(true)} />
         <main className="relative min-w-0 flex-1 overflow-y-auto">
@@ -215,6 +217,14 @@ export function Home() {
       )}
 
       <QuickAddSheet isOpen={adding} onClose={() => setAdding(false)} />
+      <SearchSheet
+        isOpen={searching}
+        onClose={() => setSearching(false)}
+        onOpen={(id) => {
+          setSearching(false);
+          setOpenId(id);
+        }}
+      />
       <TaskSheet
         task={openTask}
         onClose={() => setOpenId(null)}

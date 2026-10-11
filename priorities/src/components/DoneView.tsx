@@ -4,6 +4,7 @@ import type { Filter, Task } from '../types';
 import { addDays, formatShort, localDay, today, weekEnd, weekStart } from '../lib/dates';
 import { WINDOW_DAYS, isHandledAhead } from '../lib/horizon';
 import { HANDLED_EMOJI, HANDLED_NAME } from '../lib/format';
+import { matchesSearch } from '../lib/search';
 import { PeopleChips, TakenCareRow } from './bits';
 import { useVisible } from '../state/useVisible';
 import { usePriorities } from '../state/PrioritiesContext';
@@ -17,12 +18,6 @@ function groupBy<T>(items: T[], key: (t: T) => string): [string, T[]][] {
   return [...groups];
 }
 
-function matches(task: Task, q: string): boolean {
-  const hay = [task.title, task.outcome_note ?? '', ...task.notes.map((n) => n.text), ...task.steps.map((s) => s.title)]
-    .join(' ')
-    .toLowerCase();
-  return hay.includes(q.toLowerCase());
-}
 
 /**
  * The Done section: everything handled. Already handled (done, its date
@@ -36,7 +31,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
   const now = today();
 
   const { comingUp, history } = useMemo(() => {
-    const done = visible.filter((t) => t.done_at && (!q || matches(t, q)));
+    const done = visible.filter((t) => t.done_at && (!q.trim() || matchesSearch(t, q)));
     const up = done.filter((t) => isHandledAhead(t, now)).sort((a, b) => (a.when! < b.when! ? -1 : 1));
     const past = done.filter((t) => !isHandledAhead(t, now)).sort((a, b) => (a.done_at! > b.done_at! ? -1 : 1));
     const upLabel = (t: Task) =>

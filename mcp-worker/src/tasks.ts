@@ -34,6 +34,7 @@ import {
 	type Actor,
 } from "../../priorities/src/lib/ops";
 import { describeRepeat } from "../../priorities/src/lib/repeat";
+import { matchesSearch } from "../../priorities/src/lib/search";
 import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
 import type { CalendarFact, DateString, Household, Horizon, RadarRun, RepeatRule, Step, Task } from "../../priorities/src/types";
 import type { Doc, Firestore, Write } from "./firestore";
@@ -293,10 +294,7 @@ export class PrioritiesData {
 	}
 
 	async search(query: string, includeDone: boolean) {
-		const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-		const hay = (t: Task) =>
-			[t.title, t.outcome_note ?? "", ...t.notes.map((n) => n.text), ...t.steps.map((s) => s.title)].join(" ").toLowerCase();
-		const tasks = (await this.visibleTasks()).filter((t) => (includeDone || !t.done_at) && words.every((w) => hay(t).includes(w)));
+		const tasks = (await this.visibleTasks()).filter((t) => (includeDone || !t.done_at) && matchesSearch(t, query));
 		return Promise.all(tasks.map((t) => this.describe(t)));
 	}
 

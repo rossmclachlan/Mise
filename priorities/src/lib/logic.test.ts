@@ -18,6 +18,7 @@ import { classify, factsBetween, factsFromIcs } from './calendar';
 import { describeRepeat, nextOccurrence } from './repeat';
 import { canSee, matchesFilter } from './visibility';
 import { migrateTask, normalizeTask } from './migrate';
+import { matchesSearch } from './search';
 
 const ROSS = 'ross';
 const EMILY = 'emily';
@@ -370,5 +371,22 @@ describe('notifications', () => {
     expect(update.remind_at).toBeUndefined();
     const pending = task({ do_by: NOW, remind_at: '2026-10-08T16:00:00.000Z' });
     expect(completeTask(pending, actor, AT).update.remind_at).toBeNull();
+  });
+});
+
+describe('matchesSearch', () => {
+  it('matches every word across title, notes, steps and outcome, any case', () => {
+    const t = task({
+      title: 'Buy Rainbow Fish tickets',
+      notes: [{ id: 'n', text: 'Saturday matinee', uid: ROSS, via: 'app', at: AT }],
+      steps: [{ id: 's', title: 'Check the seating plan', done_at: null }],
+      outcome_note: 'Confirmation ABC123',
+    });
+    expect(matchesSearch(t, 'rainbow fish')).toBe(true);
+    expect(matchesSearch(t, 'matinee')).toBe(true);
+    expect(matchesSearch(t, 'seating')).toBe(true);
+    expect(matchesSearch(t, 'abc123')).toBe(true);
+    expect(matchesSearch(t, 'rainbow passport')).toBe(false);
+    expect(matchesSearch(t, '   ')).toBe(false);
   });
 });

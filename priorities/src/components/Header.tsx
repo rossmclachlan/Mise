@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookText, Copy, LogOut, MessageSquareWarning, UtensilsCrossed } from 'lucide-react';
+import { BookText, Copy, LogOut, MessageSquareWarning, Search, UtensilsCrossed } from 'lucide-react';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { FeedbackSheet } from '../../../src/components/ui/FeedbackSheet';
 import { feedbackId } from '../../../src/components/ui/feedback';
@@ -11,7 +11,7 @@ import { usePriorities } from '../state/PrioritiesContext';
 import { initial } from '../lib/format';
 import { NotificationSettings } from './NotificationSettings';
 
-export function Header({ onHouseRules, where }: { onHouseRules: () => void; where: string }) {
+export function Header({ onHouseRules, onSearch, where }: { onHouseRules: () => void; onSearch: () => void; where: string }) {
   const { user, household, nameOf, store } = usePriorities();
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -42,15 +42,25 @@ export function Header({ onHouseRules, where }: { onHouseRules: () => void; wher
             <span className="mt-0.5 text-xs font-semibold text-ink-variant">{formatDate(today())}</span>
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Menu"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-ink bg-accent-container font-extrabold text-on-accent-container active:opacity-80"
-        >
-          {initial(myName)}
-          {alone && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-[1.5px] border-ink bg-sun" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onSearch}
+            aria-label="Search tasks"
+            className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-outline text-ink active:opacity-80"
+          >
+            <Search size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Menu"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-ink bg-accent-container font-extrabold text-on-accent-container active:opacity-80"
+          >
+            {initial(myName)}
+            {alone && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-[1.5px] border-ink bg-sun" />}
+          </button>
+        </div>
       </header>
 
       <BottomSheet dialogOnWide isOpen={menuOpen} onClose={() => setMenuOpen(false)} title={myName}>
@@ -63,14 +73,10 @@ export function Header({ onHouseRules, where }: { onHouseRules: () => void; wher
 
           <div className="rounded-2xl bg-surface-variant p-3">
             <p className="text-sm font-semibold text-ink">
-              {alone
-                ? 'Invite your partner'
-                : `Household: ${household.members.map(nameOf).join(' & ')}`}
+              {alone ? 'Invite your partner' : `Household: ${household.members.map(nameOf).join(' & ')}`}
             </p>
             <p className="mt-1 text-xs text-ink-variant">
-              {alone
-                ? 'They sign in, choose “Join with a code” and enter:'
-                : 'Household code:'}
+              {alone ? 'They sign in, choose “Join with a code” and enter:' : 'Household code:'}
             </p>
             <button
               type="button"

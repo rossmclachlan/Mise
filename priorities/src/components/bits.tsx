@@ -182,7 +182,10 @@ export function WhoPicker({
   const { user, otherUid, nameOf } = usePriorities();
   const options: { label: string; value: string[] }[] = [
     { label: nameOf(user.uid), value: [user.uid] },
-    ...(otherUid ? [{ label: nameOf(otherUid), value: [otherUid] }, { label: 'Both', value: [user.uid, otherUid] }] : []),
+    // A private task can only be on you, so it offers no one else.
+    ...(otherUid && !isPrivate
+      ? [{ label: nameOf(otherUid), value: [otherUid] }, { label: 'Both', value: [user.uid, otherUid] }]
+      : []),
   ];
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
   const justMe = same(assignee, [user.uid]);
