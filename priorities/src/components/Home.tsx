@@ -34,12 +34,21 @@ export function Home() {
   const { user, nameOf, complete, reopen } = usePriorities();
   // Always opens on your own tasks.
   const [filter, setFilter] = useState<Filter>(() => [user.uid]);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // A notification opens its task: ./?task=<id>.
+  const [openId, setOpenId] = useState<string | null>(() => new URLSearchParams(location.search).get('task'));
   const [adding, setAdding] = useState(false);
-  const [section, setSection] = useState<Section>(loadSection);
+  const [section, setSection] = useState<Section>(() => (openId ? 'open' : loadSection()));
   const [expanded, setExpanded] = useState<Record<'month' | 'later', boolean>>({ month: false, later: false });
   const [toast, setToast] = useState<ToastState | null>(null);
   const [detailsId, setDetailsId] = useState<string | null>(null);
+
+  // Drop ?task= once it's opened, so a reload doesn't open it again.
+  useEffect(() => {
+    const url = new URL(location.href);
+    if (!url.searchParams.has('task')) return;
+    url.searchParams.delete('task');
+    history.replaceState(null, '', url);
+  }, []);
 
   // The undo toast dismisses itself; a newer toast restarts the clock.
   useEffect(() => {

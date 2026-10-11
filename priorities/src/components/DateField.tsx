@@ -6,7 +6,8 @@ import type { DateString } from '../types';
 // as the task moves out of this week). Buttons that act on a task ignore
 // taps for a moment after a date is picked.
 let lastPick = 0;
-const markPick = () => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const markPick = () => {
   lastPick = Date.now();
 };
 // eslint-disable-next-line react-refresh/only-export-components

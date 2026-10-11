@@ -24,6 +24,8 @@ export default defineConfig({
       // version (and an old app identity) until someone tapped Install.
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
+      // Shows and opens notifications (public/push-sw.js).
+      workbox: { importScripts: ['push-sw.js'] },
       manifest: {
         id: '/Mise/priorities/',
         name: 'Priorities',

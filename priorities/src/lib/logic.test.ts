@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../types';
-import { addMonths, weekEnd, weekStart } from './dates';
+import { addDaysToMoment, addMonths, localTime, setTimeZone, weekEnd, weekStart, zonedMoment } from './dates';
+import { digestFor, reminderRecipients } from './notify';
 import {
   effectiveDate,
   effectiveHorizon,
@@ -323,5 +324,51 @@ describe('school calendar', () => {
   it('finds facts touching a window', () => {
     const facts = factsFromIcs(ics, 'Lincoln', NOW);
     expect(factsBetween(facts, '2026-11-25', '2026-11-30').map((f) => f.title)).toEqual(['Thanksgiving Break']);
+  });
+});
+
+describe('notifications', () => {
+  it('converts local times in our zone, across daylight saving', () => {
+    setTimeZone('America/Los_Angeles');
+    try {
+      expect(zonedMoment('2026-10-07', '09:00')).toBe('2026-10-07T16:00:00.000Z');
+      expect(zonedMoment('2026-11-02', '09:00')).toBe('2026-11-02T17:00:00.000Z');
+      // Same time of day after the clocks change.
+      expect(addDaysToMoment('2026-10-30T16:00:00.000Z', 7)).toBe('2026-11-06T17:00:00.000Z');
+      expect(localTime('2026-10-07T14:05:00.000Z')).toEqual({ date: '2026-10-07', hour: 7, minute: 5 });
+    } finally {
+      setTimeZone(undefined);
+    }
+  });
+
+  it('builds a digest of what is on someone this week, top 3 first', () => {
+    const tasks = [
+      task({ title: 'Overdue', assignee: [ROSS], do_by: '2026-10-05' }),
+      task({ title: 'Today', assignee: [ROSS, EMILY], do_by: NOW }),
+      task({ title: 'Undated', assignee: [ROSS] }),
+      task({ title: 'Friday', assignee: [ROSS], do_by: '2026-10-09' }),
+      task({ title: 'Next month', assignee: [ROSS], do_by: '2026-11-20' }),
+      task({ title: 'Emily only', assignee: [EMILY], do_by: NOW }),
+      task({ title: 'Done', assignee: [ROSS], do_by: NOW, done_at: AT }),
+    ];
+    const d = digestFor(tasks, ROSS, NOW)!;
+    expect(d.title).toBe('Priorities: 4 this week, 1 today, 1 overdue');
+    expect(d.body).toBe('• Overdue\n• Today\n• Undated\n+1 more'); // the app's order: undated by when added
+    expect(digestFor(tasks.slice(4), ROSS, NOW)).toBeNull();
+  });
+
+  it('reminds whoever is on a task, and only its owner for a private one', () => {
+    expect(reminderRecipients(task({ assignee: [EMILY] }), ROSS)).toEqual([EMILY]);
+    expect(reminderRecipients(task({ assignee: [] }), ROSS)).toEqual([ROSS]);
+    expect(reminderRecipients(task({ list: 'personal', owner_uid: EMILY, assignee: [] }), ROSS)).toEqual([EMILY]);
+  });
+
+  it("moves a repeating task's reminder with it", () => {
+    const t = task({ do_by: NOW, repeat: { every: 1, unit: 'week', mode: 'schedule' }, reminded_at: '2026-10-07T16:00:00.000Z' });
+    const { update, next } = completeTask(t, actor, AT);
+    expect(next!.remind_at).toBe(addDaysToMoment('2026-10-07T16:00:00.000Z', 7));
+    expect(update.remind_at).toBeUndefined();
+    const pending = task({ do_by: NOW, remind_at: '2026-10-08T16:00:00.000Z' });
+    expect(completeTask(pending, actor, AT).update.remind_at).toBeNull();
   });
 });

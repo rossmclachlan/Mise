@@ -9,6 +9,7 @@ import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
 import { GAPS_EMOJI, formatWhen } from '../lib/format';
 import { DateField, justPickedDate } from './DateField';
+import { ReminderField } from './ReminderField';
 import { WhoPicker } from './bits';
 
 export function TaskSheet({
@@ -193,6 +194,8 @@ function Body({
           )}
         </div>
       )}
+
+      {!done && <ReminderField task={task} />}
 
       <div className="flex flex-wrap gap-2">
         {done ? (

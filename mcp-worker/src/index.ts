@@ -7,8 +7,12 @@ import { DEFAULT_HOUSE_RULES } from "../../priorities/src/lib/houseRules";
 import { AuthHandler, type Props } from "./auth";
 import { refreshAll, refreshHousehold } from "./calendar";
 import { Firestore, type ServiceAccount } from "./firestore";
+import { runNotifications, vapidKeys } from "./notifications";
 import { SERVER_INSTRUCTIONS, WEEKLY_RADAR } from "./guidance";
 import { PrioritiesData } from "./tasks";
+
+/** Must match the calendar cron in wrangler.jsonc. */
+const CALENDAR_CRON = "15 13 * * *";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -27,6 +31,13 @@ const repeat = z
 	})
 	.describe("How the task repeats. Ticking it creates the next one.");
 const step = z.object({ title: z.string().min(1).max(200) }).describe("A checklist item");
+
+const remindAt = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "use YYYY-MM-DDTHH:MM")
+	.describe(
+		"When to send a reminder notification to whoever's on the task (their phones, if they've turned notifications on), as local time YYYY-MM-DDTHH:MM. For 'remind me Thursday morning', pick a sensible time like 09:00.",
+	);
 
 const radarKey = z
 	.string()
@@ -153,6 +164,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 								when: date.optional().describe("Checks: the date in question (required for a check). Unless you set them, it's due that day and starts 6 weeks before."),
 								when_end: date.optional().describe("Checks: the last day, for a range"),
 								radar_key: radarKey.optional(),
+								remind_at: remindAt.optional(),
 							}),
 						)
 						.min(1)
@@ -166,7 +178,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 			"update_task",
 			{
 				description:
-					"Change a task: title, owner, private, dates, repeat, source, steps (add, tick or remove), or for a done task its outcome_note and when. Pass null to clear a date.",
+					"Change a task: title, owner, private, dates, reminder, repeat, source, steps (add, tick or remove), or for a done task its outcome_note and when. Pass null to clear a date.",
 				inputSchema: {
 					id: taskId,
 					title: z.string().min(1).max(200).optional(),
@@ -185,6 +197,7 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 					when: date.nullable().optional(),
 					when_end: date.nullable().optional().describe("Last day, when 'when' is a range"),
 					kind: z.enum(["task", "check"]).optional().describe("check marks it as a ⚠️ potential gap; task removes the mark"),
+					remind_at: remindAt.nullable().optional(),
 				},
 			},
 			async ({ id, ...changes }) => this.run("update_task", { id, fields: Object.keys(changes) }, (d) => d.update(id, changes)),
@@ -372,9 +385,16 @@ const oauth = new OAuthProvider({
 
 export default {
 	fetch: (request, env, ctx) => oauth.fetch(request, env, ctx),
-	// Daily (see triggers in wrangler.jsonc): re-read the school calendar feeds.
-	async scheduled(_controller, env, ctx) {
+	// See triggers in wrangler.jsonc: daily, re-read the school calendar feeds;
+	// every few minutes, send notifications that have come due.
+	async scheduled(controller, env, ctx) {
 		setTimeZone(env.TIMEZONE);
-		ctx.waitUntil(refreshAll(firestoreFor(env), today(), new Date().toISOString()));
+		if (controller.cron === CALENDAR_CRON) {
+			ctx.waitUntil(refreshAll(firestoreFor(env), today(), new Date().toISOString()));
+			return;
+		}
+		ctx.waitUntil(
+			(async () => runNotifications({ db: firestoreFor(env), keys: await vapidKeys(env.OAUTH_KV), now: new Date() }))(),
+		);
 	},
 } satisfies ExportedHandler<Env>;

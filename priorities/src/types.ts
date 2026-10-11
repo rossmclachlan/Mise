@@ -70,6 +70,10 @@ export interface Task {
   radar_key?: string | null;
   steps: Step[];
   repeat: RepeatRule | null;
+  /** When to send a reminder notification to whoever's on the task. Cleared once sent. */
+  remind_at?: IsoString | null;
+  /** The last reminder sent, so a repeating task's next occurrence can be reminded at the same time of day. */
+  reminded_at?: IsoString | null;
   /** Links the occurrences of a repeating task. */
   series_id: string | null;
   source_url: string | null;
@@ -113,6 +117,22 @@ export interface RadarRun {
   summary: string;
 }
 
+/** One phone or browser that gets notifications. The id is derived from the endpoint. */
+export interface PushSubscriptionRecord {
+  uid: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: IsoString;
+  /** "Android", "iPhone": shown in settings. */
+  device: string;
+}
+
+export interface NotifyPrefs {
+  /** Local hour (0-23) for the morning digest; null = no digest. Absent = the default (DIGEST_HOUR). */
+  digest_hour?: number | null;
+}
+
 export interface Household {
   id: string;
   name: string;
@@ -130,6 +150,12 @@ export interface Household {
   radar_claim?: { uid: string; at: IsoString };
   /** 2 once existing tasks were moved to the simpler model (every task has a person; dates place tasks). */
   schema?: number;
+  /** Notifications: the Worker publishes its VAPID public key here; phones subscribe with it. */
+  push_public_key?: string;
+  push_subscriptions?: Record<string, PushSubscriptionRecord>;
+  notify?: Record<string, NotifyPrefs>;
+  /** The day each person's digest last went out, so it's sent once a day. Written by the Worker. */
+  digest_sent?: Record<string, DateString>;
 }
 
 /** Whose tasks to show: their uids. Empty = everyone's. */

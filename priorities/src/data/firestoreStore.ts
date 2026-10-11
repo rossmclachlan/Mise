@@ -3,6 +3,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   query,
@@ -66,6 +67,12 @@ export const firestoreStore: Store = {
   },
   async updateHousehold(hid, update) {
     await updateDoc(doc(db, 'households', hid), update as Record<string, unknown>);
+  },
+  async setPushSubscription(hid, id, sub) {
+    await updateDoc(doc(db, 'households', hid), { [`push_subscriptions.${id}`]: sub ?? deleteField() });
+  },
+  async setNotifyPrefs(hid, uid, prefs) {
+    await updateDoc(doc(db, 'households', hid), { [`notify.${uid}`]: prefs });
   },
 
   onTasks(hid, uid, cb, onError) {

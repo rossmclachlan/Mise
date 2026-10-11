@@ -121,11 +121,15 @@ async function accessToken(sa: ServiceAccount, fetcher: typeof fetch): Promise<s
 
 // ── Client ─────────────────────────────────────────────────────────────────
 
-export type FieldFilter = [field: string, op: "EQUAL" | "ARRAY_CONTAINS", value: unknown];
+export type FieldFilter = [field: string, op: "EQUAL" | "ARRAY_CONTAINS" | "LESS_THAN_OR_EQUAL", value: unknown];
 
 export type Write =
 	| { kind: "create"; path: string; data: Record<string, unknown> }
-	| { kind: "update"; path: string; data: Record<string, unknown> }
+	/**
+	 * Sets the fields in data. mask, if given, names exactly which (dotted) field
+	 * paths to write instead; a path in mask that data leaves out is deleted.
+	 */
+	| { kind: "update"; path: string; data: Record<string, unknown>; mask?: string[] }
 	/** Writes whether or not the document exists: replaces it, or with merge only touches these fields. */
 	| { kind: "set"; path: string; data: Record<string, unknown>; merge?: boolean }
 	| { kind: "delete"; path: string };
@@ -207,7 +211,7 @@ export class Firestore {
 				}
 				return {
 					update: { name: name(w.path), fields },
-					updateMask: { fieldPaths: Object.keys(fields).map(quoteFieldPath) },
+					updateMask: { fieldPaths: w.mask ? w.mask.map((p) => p.split(".").map(quoteFieldPath).join(".")) : Object.keys(fields).map(quoteFieldPath) },
 					currentDocument: { exists: true },
 				};
 			}),

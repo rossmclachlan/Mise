@@ -1,6 +1,7 @@
 import type { DateString, HistoryEntry, IsoString, Task, Via } from '../types';
 import { addDays, localDay } from './dates';
 import { effectiveDate } from './horizon';
+import { nextReminder } from './notify';
 import { daysBetween, nextOccurrence } from './repeat';
 
 // Pure functions that turn an action into the writes it needs. The app and
@@ -93,6 +94,7 @@ export function completeTask(
     when_end: details.when_end !== undefined ? details.when_end : (task.when_end ?? null),
     history: [...task.history, historyEntry(actor, 'done', at)],
   };
+  if (task.remind_at) update.remind_at = null;
 
   let next: Task | null = null;
   if (task.repeat) {
@@ -115,6 +117,8 @@ export function completeTask(
       radar_key: null,
       steps: task.steps.map((s) => ({ id: s.id, title: s.title, done_at: null })),
       series_id: seriesId,
+      remind_at: nextReminder(task, due, nextDue, at),
+      reminded_at: null,
       notes: [],
       created_at: at,
       created_by: { uid: actor.uid, via: actor.via },
@@ -137,11 +141,13 @@ export function skipOccurrence(task: Task, actor: Actor, at: IsoString): Partial
   if (!task.repeat) return {};
   const due = task.do_by ?? task.deadline ?? localDay(at);
   const nextDue = nextOccurrence({ ...task.repeat, mode: 'schedule' }, due, localDay(at));
-  return {
+  const update: Partial<Task> = {
     do_by: nextDue,
     deadline: task.deadline ? addDays(nextDue, daysBetween(due, task.deadline)) : null,
     history: [...task.history, historyEntry(actor, 'skipped this time', at)],
   };
+  if (task.remind_at || task.reminded_at) update.remind_at = nextReminder(task, due, nextDue, at);
+  return update;
 }
 
 /** Steps progress, e.g. { done: 1, total: 3, next: 'Get photos' }. */

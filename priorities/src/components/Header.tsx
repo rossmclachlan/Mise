@@ -7,6 +7,7 @@ import { emojiPairFor } from '../lib/emoji';
 import { formatDate, today } from '../lib/dates';
 import { usePriorities } from '../state/PrioritiesContext';
 import { initial } from '../lib/format';
+import { NotificationSettings } from './NotificationSettings';
 
 export function Header({ onHouseRules }: { onHouseRules: () => void }) {
   const { user, household, nameOf, store } = usePriorities();
@@ -54,6 +55,8 @@ export function Header({ onHouseRules }: { onHouseRules: () => void }) {
           <p className="truncate text-sm text-ink-variant">{user.email}</p>
 
           <LookPicker />
+
+          <NotificationSettings />
 
           <div className="rounded-2xl bg-surface-variant p-3">
             <p className="text-sm font-semibold text-ink">

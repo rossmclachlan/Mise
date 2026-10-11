@@ -124,6 +124,17 @@ export const demoStore: Store = {
     household = { ...household, ...update };
     householdSubs.forEach((f) => f(household));
   },
+  async setPushSubscription(_hid, id, sub) {
+    const subs = { ...household.push_subscriptions };
+    if (sub) subs[id] = sub;
+    else delete subs[id];
+    household = { ...household, push_subscriptions: subs };
+    householdSubs.forEach((f) => f(household));
+  },
+  async setNotifyPrefs(_hid, uid, prefs) {
+    household = { ...household, notify: { ...household.notify, [uid]: prefs } };
+    householdSubs.forEach((f) => f(household));
+  },
   onTasks(_hid, uid, cb) {
     const emit = () =>
       cb(tasks.filter((t) => t.list === 'shared' || t.owner_uid === uid).map((t) => ({ ...t })));

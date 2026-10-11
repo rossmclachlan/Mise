@@ -1,4 +1,4 @@
-import type { Household, Task } from '../types';
+import type { Household, NotifyPrefs, PushSubscriptionRecord, Task } from '../types';
 
 export interface SignedInUser {
   uid: string;
@@ -17,6 +17,10 @@ export interface Store {
   joinHousehold(hid: string, uid: string, displayName: string): Promise<void>;
   /** House rules and calendar settings; never membership. */
   updateHousehold(hid: string, update: Partial<Omit<Household, 'id' | 'members' | 'member_names'>>): Promise<void>;
+
+  /** Adds (or, with null, removes) one phone's notification subscription. */
+  setPushSubscription(hid: string, id: string, sub: PushSubscriptionRecord | null): Promise<void>;
+  setNotifyPrefs(hid: string, uid: string, prefs: NotifyPrefs): Promise<void>;
 
   /** Shared tasks plus this person's personal tasks, kept live. */
   onTasks(hid: string, uid: string, cb: (tasks: Task[]) => void, onError: (e: Error) => void): () => void;

@@ -94,3 +94,53 @@ export function formatMonthYear(s: DateString): string {
   const d = parseDate(s);
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
+
+// ── Moments (date and time) ─────────────────────────────────────────────────
+
+/** The local date, hour and minute of a moment, in our time zone. */
+export function localTime(moment: Date | string): { date: DateString; hour: number; minute: number } {
+  const d = typeof moment === 'string' ? new Date(moment) : moment;
+  if (!zone) return { date: toDateString(d), hour: d.getHours(), minute: d.getMinutes() };
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
+}
+
+/** The moment (ISO) of a local date and "HH:MM" time in our time zone. */
+export function zonedMoment(date: DateString, time: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  if (!zone) return new Date(y, m - 1, d, hh, mm).toISOString();
+  // Guess as if the zone were UTC, then correct by the zone's offset at that moment (twice, for DST edges).
+  const wall = Date.UTC(y, m - 1, d, hh, mm);
+  let t = wall;
+  for (let i = 0; i < 2; i++) {
+    const lt = localTime(new Date(t));
+    const [ly, lm, ld] = lt.date.split('-').map(Number);
+    t += wall - Date.UTC(ly, lm - 1, ld, lt.hour, lt.minute);
+  }
+  return new Date(t).toISOString();
+}
+
+/** A moment moved by whole days, keeping its local time of day. */
+export function addDaysToMoment(moment: string, n: number): string {
+  const { date, hour, minute } = localTime(moment);
+  return zonedMoment(addDays(date, n), `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+}
+
+/** "9:00 am", "2:30 pm" */
+export function formatClock(hour: number, minute = 0): string {
+  const h = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`;
+}

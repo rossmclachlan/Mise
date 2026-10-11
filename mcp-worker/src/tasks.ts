@@ -6,7 +6,7 @@
 // rules, so visibility is enforced here: a person sees the shared list and
 // their own personal list, never the other person's.
 
-import { addDays, localDay, weekEnd } from "../../priorities/src/lib/dates";
+import { addDays, localDay, localTime, weekEnd, zonedMoment } from "../../priorities/src/lib/dates";
 import { factsBetween } from "../../priorities/src/lib/calendar";
 import { HORIZON_NAMES } from "../../priorities/src/lib/format";
 import {
@@ -66,6 +66,8 @@ export interface NewTask {
 	when?: DateString | null;
 	when_end?: DateString | null;
 	radar_key?: string | null;
+	/** Local "YYYY-MM-DDTHH:MM": when to send a reminder notification. */
+	remind_at?: string | null;
 }
 
 /** A radar run counts as this week's shared sweep for this long. */
@@ -88,6 +90,22 @@ export interface TaskChanges {
 	when_end?: DateString | null;
 	/** "check" marks it as a ⚠️ potential gap; "task" removes the mark. */
 	kind?: "task" | "check";
+	/** Local "YYYY-MM-DDTHH:MM", or null to remove the reminder. */
+	remind_at?: string | null;
+}
+
+/** A local "YYYY-MM-DDTHH:MM" as a moment, refusing times already past. */
+function reminderMoment(local: string, nowIso: string): string {
+	const [date, time] = local.split("T");
+	const iso = zonedMoment(date, time);
+	if (iso <= nowIso) throw new Error(`The reminder time ${local} has already passed`);
+	return iso;
+}
+
+/** A moment as local "YYYY-MM-DD HH:MM". */
+function localStamp(iso: string): string {
+	const t = localTime(iso);
+	return `${t.date} ${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
 
 export class NotFound extends Error {}
@@ -212,6 +230,7 @@ export class PrioritiesData {
 			due: task.deadline ?? undefined,
 			start_by: task.do_by ?? undefined,
 			repeat: task.repeat ? describeRepeat(task.repeat, task.do_by ?? task.deadline) : undefined,
+			remind_at: task.remind_at ? localStamp(task.remind_at) : undefined,
 			steps: task.steps.length
 				? {
 						progress: `${steps.done} of ${steps.total}`,
@@ -381,6 +400,7 @@ export class PrioritiesData {
 			);
 			if (key) keys.set(key, task);
 			if (task.repeat && !task.do_by && !task.deadline) task.deadline = this.now;
+			if (input.remind_at) task.remind_at = reminderMoment(input.remind_at, this.at);
 			task.steps = this.buildSteps(input.steps);
 			if (input.note?.trim()) task.notes = [{ id: newId(), text: input.note.trim(), uid: this.uid, via: "mcp", at: this.at }];
 			const { id, ...data } = task;
@@ -433,6 +453,10 @@ export class PrioritiesData {
 		}
 		// A dated task re-files by its new date.
 		if (changes.due !== undefined || changes.start_by !== undefined) u.order = null;
+		if (changes.remind_at !== undefined) {
+			u.remind_at = changes.remind_at ? reminderMoment(changes.remind_at, this.at) : null;
+			what.push(changes.remind_at ? `set a reminder for ${changes.remind_at.replace("T", " ")}` : "removed the reminder");
+		}
 		if (changes.kind && changes.kind !== (task.kind ?? "task")) {
 			u.kind = changes.kind;
 			what.push(changes.kind === "task" ? "no longer a potential gap" : "marked as a potential gap");
