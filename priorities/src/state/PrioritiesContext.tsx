@@ -1,8 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import type { CalendarFeed, Household, Note, Step, Task } from '../types';
 import type { SignedInUser, Store } from '../data/store';
-import { today } from '../lib/dates';
-import { deferTo } from '../lib/horizon';
 import {
   buildTask,
   completeTask,
@@ -29,8 +27,6 @@ export interface Priorities {
   reopen(task: Task, deleteNextId?: string | null): Promise<void>;
   skip(task: Task): Promise<void>;
   remove(task: Task): Promise<void>;
-  /** Not this week: starts it next Monday; the due date stays. */
-  notThisWeek(task: Task): Promise<void>;
   addNote(task: Task, text: string): Promise<void>;
   setSteps(task: Task, steps: Step[], what?: string): Promise<void>;
   saveHouseRules(text: string): Promise<void>;
@@ -104,9 +100,6 @@ export function PrioritiesProvider({
     },
     async remove(task) {
       await store.deleteTask(hid, task.id);
-    },
-    async notThisWeek(task) {
-      await update(task, deferTo('month', today()), 'not this week');
     },
     async addNote(task, text) {
       const note: Note = { id: newId(), text: text.trim(), uid: user.uid, via: 'app', at: stamp() };

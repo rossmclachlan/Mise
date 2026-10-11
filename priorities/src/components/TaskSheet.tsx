@@ -3,7 +3,6 @@ import { Check, ChevronDown, ExternalLink, Plus, Trash2, X } from 'lucide-react'
 import type { RepeatRule, Step, Task } from '../types';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
 import { formatDate, formatShort, localDay, today } from '../lib/dates';
-import { effectiveHorizon } from '../lib/horizon';
 import { newId } from '../lib/ops';
 import { describeRepeat, nextOccurrence } from '../lib/repeat';
 import { usePriorities } from '../state/PrioritiesContext';
@@ -151,9 +150,6 @@ function Body({
           rows={1}
           className="min-w-0 flex-1 resize-none bg-transparent text-xl font-bold text-ink focus:outline-none [field-sizing:content]"
         />
-        <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-variant">
-          <X size={22} />
-        </button>
       </div>
 
       {done && (
@@ -197,28 +193,21 @@ function Body({
 
       {!done && <ReminderField task={task} />}
 
+      {/* No Done here: opening a task means editing it; it's ticked off from the list. */}
       <div className="flex flex-wrap gap-2">
-        {done ? (
+        {done && (
           <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.reopen(task)}>
             Reopen
           </button>
-        ) : (
-          <>
-            <button type="button" className="btn-filled flex-1" onClick={() => !justPickedDate() && onDone(task)}>
-              <Check size={18} /> Done
-            </button>
-            {effectiveHorizon(task, now) === 'now' && (
-              <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.notThisWeek(task)}>
-                Not this week
-              </button>
-            )}
-            {task.repeat && (
-              <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.skip(task)}>
-                Skip this time
-              </button>
-            )}
-          </>
         )}
+        {!done && task.repeat && (
+          <button type="button" className="btn-outlined flex-1" onClick={() => !justPickedDate() && t.skip(task)}>
+            Skip this time
+          </button>
+        )}
+        <button type="button" className="btn-filled flex-1" onClick={() => !justPickedDate() && onClose()}>
+          Close
+        </button>
       </div>
 
       <div className="border-t-[1.5px] border-outline pt-3">
