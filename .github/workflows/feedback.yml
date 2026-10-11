@@ -8,6 +8,13 @@ name: Feedback to issues
 on:
   schedule:
     - cron: "*/15 * * * *"
+  # Also runs when the job itself changes, so a change is checked straight away.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/feedback-to-issues.ts"
+      - "mcp-worker/src/firestore.ts"
+      - ".github/workflows/feedback.yml"
   workflow_dispatch:
 
 permissions:
