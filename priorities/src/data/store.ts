@@ -1,3 +1,4 @@
+import type { FeedbackRecord } from '../../../src/components/ui/feedback';
 import type { Household, NotifyPrefs, PushSubscriptionRecord, Task } from '../types';
 
 export interface SignedInUser {
@@ -21,6 +22,8 @@ export interface Store {
   /** Adds (or, with null, removes) one phone's notification subscription. */
   setPushSubscription(hid: string, id: string, sub: PushSubscriptionRecord | null): Promise<void>;
   setNotifyPrefs(hid: string, uid: string, prefs: NotifyPrefs): Promise<void>;
+  /** Saves a bug report or idea on the household; the feedback Action turns it into a GitHub issue. */
+  sendFeedback(hid: string, id: string, feedback: FeedbackRecord): Promise<void>;
 
   /** Shared tasks plus this person's personal tasks, kept live. */
   onTasks(hid: string, uid: string, cb: (tasks: Task[]) => void, onError: (e: Error) => void): () => void;

@@ -135,6 +135,9 @@ export const demoStore: Store = {
     household = { ...household, notify: { ...household.notify, [uid]: prefs } };
     householdSubs.forEach((f) => f(household));
   },
+  async sendFeedback(_hid, id, feedback) {
+    console.info('Feedback (demo mode, not sent)', id, feedback);
+  },
   onTasks(_hid, uid, cb) {
     const emit = () =>
       cb(tasks.filter((t) => t.list === 'shared' || t.owner_uid === uid).map((t) => ({ ...t })));

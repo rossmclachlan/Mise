@@ -167,7 +167,7 @@ export function Home() {
 
   return (
     <>
-      <Header onHouseRules={() => setSection('rules')} />
+      <Header onHouseRules={() => setSection('rules')} where={section} />
       <div className="flex min-h-0 flex-1">
         <SideNav active={section} onChange={setSection} openCount={sections.now.length} onAdd={() => setAdding(true)} />
         <main className="relative min-w-0 flex-1 overflow-y-auto">

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { ListChecks, LogOut } from 'lucide-react';
+import { ListChecks, LogOut, MessageSquareWarning } from 'lucide-react';
 import { signOut, type User } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../../lib/firebase';
 import { BottomSheet } from './BottomSheet';
+import { FeedbackSheet } from './FeedbackSheet';
+import { feedbackId, type FeedbackDraft } from './feedback';
 import { LookPicker } from './LookPicker';
 import { Seal } from './Seal';
 
@@ -17,6 +20,8 @@ function randomFoodEmoji(): string {
 
 interface TopAppBarProps {
   user: User;
+  /** The screen that's showing, sent with feedback. */
+  where: string;
 }
 
 function initials(user: User): string {
@@ -46,8 +51,21 @@ function Avatar({ user, size }: { user: User; size: number }) {
   );
 }
 
-export function TopAppBar({ user }: TopAppBarProps) {
+/** Saved under the Mise account; the feedback Action turns it into a GitHub issue. */
+async function sendFeedback(user: User, where: string, draft: FeedbackDraft) {
+  await setDoc(doc(db, 'users', user.uid, 'feedback', feedbackId()), {
+    ...draft,
+    where,
+    by_uid: user.uid,
+    by_name: user.displayName || user.email || 'Mise',
+    at: new Date().toISOString(),
+    user_agent: navigator.userAgent,
+  });
+}
+
+export function TopAppBar({ user, where }: TopAppBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [logoEmoji] = useState(randomFoodEmoji);
 
   return (
@@ -80,6 +98,17 @@ export function TopAppBar({ user }: TopAppBarProps) {
             </span>
           </div>
 
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              setFeedbackOpen(true);
+            }}
+            className="btn-outlined w-full"
+          >
+            <MessageSquareWarning size={18} /> Send feedback
+          </button>
+
           <a href="/Mise/priorities/" className="btn-outlined w-full">
             <ListChecks size={18} /> Open Priorities (to-dos)
           </a>
@@ -89,6 +118,8 @@ export function TopAppBar({ user }: TopAppBarProps) {
           </button>
         </div>
       </BottomSheet>
+
+      <FeedbackSheet isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} onSend={(draft) => sendFeedback(user, where, draft)} />
     </>
   );
 }

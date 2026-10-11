@@ -1,3 +1,4 @@
+import type { FeedbackRecord } from '../../src/components/ui/feedback';
 // Dates without a time are stored as 'YYYY-MM-DD' strings; moments in time as
 // full ISO strings. Firestore stores both as plain strings.
 export type DateString = string;
@@ -156,6 +157,8 @@ export interface Household {
   notify?: Record<string, NotifyPrefs>;
   /** The day each person's digest last went out, so it's sent once a day. Written by the Worker. */
   digest_sent?: Record<string, DateString>;
+  /** Bug reports and ideas waiting to become GitHub issues (see .github/workflows/feedback.yml). */
+  feedback?: Record<string, FeedbackRecord>;
 }
 
 /** Whose tasks to show: their uids. Empty = everyone's. */

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { BookText, Copy, LogOut, UtensilsCrossed } from 'lucide-react';
+import { BookText, Copy, LogOut, MessageSquareWarning, UtensilsCrossed } from 'lucide-react';
 import { BottomSheet } from '../../../src/components/ui/BottomSheet';
+import { FeedbackSheet } from '../../../src/components/ui/FeedbackSheet';
+import { feedbackId } from '../../../src/components/ui/feedback';
 import { LookPicker } from '../../../src/components/ui/LookPicker';
 import { Seal } from '../../../src/components/ui/Seal';
 import { emojiPairFor } from '../lib/emoji';
@@ -9,9 +11,10 @@ import { usePriorities } from '../state/PrioritiesContext';
 import { initial } from '../lib/format';
 import { NotificationSettings } from './NotificationSettings';
 
-export function Header({ onHouseRules }: { onHouseRules: () => void }) {
+export function Header({ onHouseRules, where }: { onHouseRules: () => void; where: string }) {
   const { user, household, nameOf, store } = usePriorities();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [emoji] = useState(() => emojiPairFor());
   const myName = nameOf(user.uid);
@@ -91,6 +94,16 @@ export function Header({ onHouseRules }: { onHouseRules: () => void }) {
           >
             <BookText size={18} /> House rules and school calendar
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              setFeedbackOpen(true);
+            }}
+            className="btn-outlined w-full"
+          >
+            <MessageSquareWarning size={18} /> Send feedback
+          </button>
           <a href="/Mise/meals/" className="btn-outlined w-full">
             <UtensilsCrossed size={18} /> Open Mise (meals)
           </a>
@@ -99,6 +112,21 @@ export function Header({ onHouseRules }: { onHouseRules: () => void }) {
           </button>
         </div>
       </BottomSheet>
+
+      <FeedbackSheet
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        onSend={(draft) =>
+          store.sendFeedback(household.id, feedbackId(), {
+            ...draft,
+            where,
+            by_uid: user.uid,
+            by_name: myName,
+            at: new Date().toISOString(),
+            user_agent: navigator.userAgent,
+          })
+        }
+      />
     </>
   );
 }

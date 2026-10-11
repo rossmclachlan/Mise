@@ -1,0 +1,37 @@
+name: Feedback to issues
+
+# Feedback sent from either app's "Send feedback" sheet waits in Firestore; this
+# files each one as a GitHub issue (labelled bug or feature) and deletes it.
+# A scheduled Claude routine then fixes the bug issues; feature issues collect
+# until we work through them.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: feedback
+  cancel-in-progress: false
+
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: File new feedback as issues
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node --experimental-transform-types scripts/feedback-to-issues.ts

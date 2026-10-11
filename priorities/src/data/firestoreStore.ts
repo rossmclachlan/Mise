@@ -74,6 +74,9 @@ export const firestoreStore: Store = {
   async setNotifyPrefs(hid, uid, prefs) {
     await updateDoc(doc(db, 'households', hid), { [`notify.${uid}`]: prefs });
   },
+  async sendFeedback(hid, id, feedback) {
+    await updateDoc(doc(db, 'households', hid), { [`feedback.${id}`]: feedback });
+  },
 
   onTasks(hid, uid, cb, onError) {
     let shared: Task[] = [];

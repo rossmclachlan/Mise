@@ -31,3 +31,9 @@
   `deploy-mise-mcp.yml`. It imports `src/types.ts` and `src/utils` from the app and
   `mcp-worker/src/firestore.ts`; run `npm run type-check` in `mise-mcp/` after
   changing those.
+- **Send feedback** (both apps' account menus, `src/components/ui/FeedbackSheet.tsx`)
+  saves to Firestore (Priorities: `households/{hid}.feedback.{id}`; Mise:
+  `users/{uid}/feedback`). `.github/workflows/feedback.yml` runs every 15 min and
+  files each item as a GitHub issue labelled `feedback` + `bug`/`feature` + app,
+  then deletes it. A scheduled Claude routine fixes open `feedback`+`bug` issues
+  and closes them; `feature` issues stay open to be worked through together.

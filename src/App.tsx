@@ -284,7 +284,7 @@ function AuthenticatedApp({ user }: { user: User }) {
 
   return (
     <>
-      <TopAppBar user={user} />
+      <TopAppBar user={user} where={mode} />
       <div className="flex min-h-0 flex-1">
         <SideNav active={mode} onChange={handleModeChange} onAddRecipe={() => setShowAddRecipe(true)} />
         <main className="relative min-w-0 flex-1 overflow-y-auto">{content}</main>
