@@ -129,6 +129,17 @@ export interface PushSubscriptionRecord {
   device: string;
 }
 
+export interface NotifyResult {
+  at: string;
+  what: 'digest' | 'reminder' | 'test';
+  /** Phones it reached, phones that had dropped off (now forgotten), and phones where sending failed. */
+  sent: number;
+  gone: number;
+  failed: number;
+  /** The push service's reply when sending failed, e.g. "403". */
+  error?: string;
+}
+
 export interface NotifyPrefs {
   /** Local hour (0-23) for the morning digest; null = no digest. Absent = the default (DIGEST_HOUR). */
   digest_hour?: number | null;
@@ -157,6 +168,10 @@ export interface Household {
   notify?: Record<string, NotifyPrefs>;
   /** The day each person's digest last went out, so it's sent once a day. Written by the Worker. */
   digest_sent?: Record<string, DateString>;
+  /** The last notification sent to each person, and how many of their phones it reached. Written by the Worker. */
+  notify_last?: Record<string, NotifyResult>;
+  /** A test notification someone asked for (when they asked), sent and cleared by the Worker's next run. */
+  push_test?: Record<string, string>;
   /** Bug reports and ideas waiting to become GitHub issues (see .github/workflows/feedback.yml). */
   feedback?: Record<string, FeedbackRecord>;
 }

@@ -92,7 +92,7 @@ export async function encryptPayload(target: PushTarget, payload: string): Promi
 	return concat(salt, recordSize, new Uint8Array([asPublic.length]), asPublic, cipher);
 }
 
-export type PushResult = "sent" | "gone" | "failed";
+export type PushResult = "sent" | "gone" | { failed: number };
 
 /** Sends one push. "gone": the phone unsubscribed or the subscription expired; forget it. */
 export async function sendPush(
@@ -109,12 +109,13 @@ export async function sendPush(
 			"content-encoding": "aes128gcm",
 			"content-type": "application/octet-stream",
 			ttl: String(24 * 3600),
-			urgency: "normal",
+			// High, so a phone asleep overnight (Android's Doze) shows it now instead of at its next wake.
+			urgency: "high",
 		},
 		body: await encryptPayload(target, payload),
 	});
 	if (res.ok) return "sent";
 	if (res.status === 404 || res.status === 410) return "gone";
 	console.log(JSON.stringify({ event: "push_failed", status: res.status, body: (await res.text()).slice(0, 300) }));
-	return "failed";
+	return { failed: res.status };
 }

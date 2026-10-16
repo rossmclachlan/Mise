@@ -22,6 +22,8 @@ export interface Store {
   /** Adds (or, with null, removes) one phone's notification subscription. */
   setPushSubscription(hid: string, id: string, sub: PushSubscriptionRecord | null): Promise<void>;
   setNotifyPrefs(hid: string, uid: string, prefs: NotifyPrefs): Promise<void>;
+  /** Asks the Worker to send this person a test notification on its next run. */
+  requestPushTest(hid: string, uid: string): Promise<void>;
   /** Saves a bug report or idea on the household; the feedback Action turns it into a GitHub issue. */
   sendFeedback(hid: string, id: string, feedback: FeedbackRecord): Promise<void>;
 

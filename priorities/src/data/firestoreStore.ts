@@ -84,6 +84,9 @@ export const firestoreStore: Store = {
   setNotifyPrefs(hid, uid, prefs) {
     return queued(updateDoc(doc(db, 'households', hid), { [`notify.${uid}`]: prefs }));
   },
+  requestPushTest(hid, uid) {
+    return queued(updateDoc(doc(db, 'households', hid), { [`push_test.${uid}`]: new Date().toISOString() }));
+  },
   async sendFeedback(hid, id, feedback) {
     await updateDoc(doc(db, 'households', hid), { [`feedback.${id}`]: feedback });
   },

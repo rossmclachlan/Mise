@@ -113,5 +113,17 @@ describe.skipIf(!host)("notifications against the Firestore emulator", () => {
 		const h = await household();
 		expect(h.push_public_key).toBe(keys.publicKey);
 		expect(Object.keys(h.push_subscriptions!).sort()).toEqual(["e1", "r1"]);
+		expect(h.notify_last?.emily).toMatchObject({ what: "reminder", sent: 1, gone: 1, failed: 0 });
+	});
+
+	it("sends a test someone asked for, notes how it went, and clears the request", async () => {
+		await db.commit([{ kind: "update", path: `households/${H}`, data: { push_test: { emily: "2026-10-07T17:00:00Z" } } }]);
+		await run("2026-10-07T17:01:00Z");
+		expect(pushes.map((p) => p.to).sort()).toEqual(["https://push.example/emily/1", "https://push.example/emily/2"]);
+		const h = await household();
+		expect(h.push_test).toEqual({});
+		expect(h.notify_last).toEqual({
+			emily: { at: "2026-10-07T17:01:00.000Z", what: "test", sent: 2, gone: 0, failed: 0 },
+		});
 	});
 });

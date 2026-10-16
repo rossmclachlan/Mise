@@ -4,6 +4,23 @@ import { formatClock } from '../lib/dates';
 import { DIGEST_HOUR, DIGEST_HOURS } from '../lib/notify';
 import { currentSubscription, pushSupport, resubscribeIfDropped, subscribe, subscriptionId, unsubscribe } from '../data/push';
 import { usePriorities } from '../state/PrioritiesContext';
+import type { NotifyResult } from '../types';
+
+const WHAT = { digest: 'Morning digest', reminder: 'Reminder', test: 'Test' } as const;
+
+/** "Last: Morning digest, Oct 16 7:00 AM, reached 1 phone", or why it didn't. */
+function lastLine(r: NotifyResult): string {
+  const when = new Date(r.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const phones = (n: number) => `${n} phone${n === 1 ? '' : 's'}`;
+  const how = r.sent
+    ? `reached ${phones(r.sent)}`
+    : r.failed
+      ? `couldn’t be sent (${r.error ?? 'error'})`
+      : r.gone
+        ? 'your phone had dropped off, so it’s been taken off the list'
+        : 'no phone was on';
+  return `Last: ${WHAT[r.what]}, ${when}, ${how}.`;
+}
 
 /**
  * Rendered once while signed in: if this phone turned notifications on and has
@@ -51,6 +68,8 @@ export function NotificationSettings() {
   const onHere = !!thisId && subs[thisId]?.uid === user.uid;
   const anyOfMine = Object.values(subs).some((s) => s.uid === user.uid);
   const prefs = household.notify?.[user.uid] ?? {};
+  const last = household.notify_last?.[user.uid];
+  const testing = !!household.push_test?.[user.uid];
   const digestHour = prefs.digest_hour === undefined ? DIGEST_HOUR : prefs.digest_hour;
 
   async function turnOn() {
@@ -113,6 +132,22 @@ export function NotificationSettings() {
         </button>
       )}
       {problem && <p className="text-xs text-error">{problem}</p>}
+
+      {anyOfMine && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-ink-variant">
+            {testing ? 'Test on its way: it should arrive within 5 minutes.' : last ? lastLine(last) : 'Nothing sent yet.'}
+          </span>
+          <button
+            type="button"
+            onClick={() => store.requestPushTest(household.id, user.uid)}
+            disabled={testing}
+            className="btn-outlined shrink-0 px-3 py-1.5 text-sm"
+          >
+            Send a test
+          </button>
+        </div>
+      )}
 
       {(onHere || anyOfMine) && (
         <label className="flex items-center justify-between gap-3">

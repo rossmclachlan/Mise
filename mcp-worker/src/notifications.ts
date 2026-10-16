@@ -3,9 +3,9 @@
 
 import { localTime } from "../../priorities/src/lib/dates";
 import { DIGEST_HOUR, digestFor, reminderFor, reminderRecipients, type PushMessage } from "../../priorities/src/lib/notify";
-import type { Household, Task } from "../../priorities/src/types";
+import type { Household, NotifyResult, Task } from "../../priorities/src/types";
 import type { Firestore, Write } from "./firestore";
-import { generateVapidKeys, sendPush, type VapidKeys } from "./webpush";
+import { generateVapidKeys, sendPush, type PushResult, type VapidKeys } from "./webpush";
 
 /** Who the pushes are from, for the push services (VAPID "sub"). */
 const SUBJECT = "https://rossmclachlan.github.io/Mise/priorities/";
@@ -50,14 +50,43 @@ export async function notifyHousehold({ db, keys, now, fetcher }: NotifyDeps, h:
 	const subs = h.push_subscriptions ?? {};
 	const gone = new Set<string>();
 	const sent: string[] = [];
+	// Fields written back to the household doc; a path in mask left out of data is deleted.
+	const household: Record<string, unknown> = {};
+	const mask: string[] = [];
 
-	async function send(uid: string, msg: PushMessage) {
+	/** Sends to each of the person's phones, and notes how it went (shown in the app's Notifications menu). */
+	async function send(uid: string, msg: PushMessage, what: NotifyResult["what"]) {
+		const result: NotifyResult = { at: nowIso, what, sent: 0, gone: 0, failed: 0 };
 		for (const [id, sub] of Object.entries(subs)) {
 			if (sub.uid !== uid || gone.has(id)) continue;
-			const r = await sendPush(sub, JSON.stringify(msg), keys, SUBJECT, fetcher);
-			if (r === "gone") gone.add(id);
-			if (r === "sent") sent.push(`${msg.tag}:${id}`);
+			let r: PushResult;
+			try {
+				r = await sendPush(sub, JSON.stringify(msg), keys, SUBJECT, fetcher);
+			} catch (e) {
+				console.log(JSON.stringify({ event: "push_failed", error: String(e) }));
+				r = { failed: 0 };
+			}
+			if (r === "gone") {
+				gone.add(id);
+				result.gone++;
+			} else if (r === "sent") {
+				sent.push(`${msg.tag}:${id}`);
+				result.sent++;
+			} else {
+				result.failed++;
+				result.error = r.failed ? String(r.failed) : "network";
+			}
 		}
+		household.notify_last = { ...(household.notify_last as object), [uid]: result };
+		if (!mask.includes(`notify_last.${uid}`)) mask.push(`notify_last.${uid}`);
+	}
+
+	// Test notifications asked for from the app's menu.
+	for (const uid of Object.keys(h.push_test ?? {})) {
+		if (h.members.includes(uid)) {
+			await send(uid, { title: "Test from Priorities", body: "Notifications reach this phone.", url: "./", tag: "test" }, "test");
+		}
+		mask.push(`push_test.${uid}`);
 	}
 
 	const writes: Write[] = [];
@@ -69,14 +98,12 @@ export async function notifyHousehold({ db, keys, now, fetcher }: NotifyDeps, h:
 		const task = { ...d.data, id: d.id } as Task;
 		if (!task.done_at) {
 			const setter = [...task.history].reverse().find((e) => e.what.includes("set a reminder"))?.uid ?? task.created_by.uid;
-			for (const uid of reminderRecipients(task, setter)) await send(uid, reminderFor(task));
+			for (const uid of reminderRecipients(task, setter)) await send(uid, reminderFor(task), "reminder");
 		}
 		writes.push({ kind: "update", path: `${tasksPath}/${task.id}`, data: { remind_at: null, reminded_at: task.remind_at } });
 	}
 
 	// Morning digests, once a day each, at the hour each person picked.
-	const household: Record<string, unknown> = {};
-	const mask: string[] = [];
 	let tasks: Task[] | null = null;
 	for (const uid of h.members) {
 		const pref = h.notify?.[uid]?.digest_hour;
@@ -86,7 +113,7 @@ export async function notifyHousehold({ db, keys, now, fetcher }: NotifyDeps, h:
 		if (!Object.values(subs).some((s) => s.uid === uid)) continue;
 		tasks ??= (await db.query<Omit<Task, "id">>(tasksPath, [])).map((t) => ({ ...t.data, id: t.id }) as Task);
 		const msg = digestFor(tasks, uid, local.date);
-		if (msg) await send(uid, msg);
+		if (msg) await send(uid, msg, "digest");
 		household.digest_sent = { ...(household.digest_sent as object), [uid]: local.date };
 		mask.push(`digest_sent.${uid}`);
 	}
@@ -100,7 +127,7 @@ export async function notifyHousehold({ db, keys, now, fetcher }: NotifyDeps, h:
 	if (mask.length) writes.push({ kind: "update", path: `households/${h.id}`, data: household, mask });
 
 	if (writes.length) await db.commit(writes);
-	if (sent.length || gone.size || due.length) {
+	if (sent.length || gone.size || due.length || mask.some((m) => m.startsWith("notify_last."))) {
 		console.log(JSON.stringify({ event: "notified", household: h.id, sent, gone: [...gone], reminders: due.length }));
 	}
 }
