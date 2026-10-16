@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Household, Task } from './types';
 import type { SignedInUser, Store } from './data/store';
 import { usePWAUpdate } from '../../src/hooks/usePWAUpdate';
+import { OfflineNote } from '../../src/components/ui/OfflineNote';
 import { PrioritiesProvider } from './state/PrioritiesContext';
 import { LoginScreen } from './components/LoginScreen';
 import { HouseholdSetup } from './components/HouseholdSetup';
@@ -97,6 +98,7 @@ export default function App({ store }: { store: Store }) {
           </button>
         </div>
       )}
+      <OfflineNote />
       {user === LOADING ? (
         <Spinner />
       ) : user ? (

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,4 +16,9 @@ export const auth = getAuth(app);
 // Optional fields (e.g. Recipe.notes, GroceryItem.from_day) are commonly
 // passed through as `undefined` rather than omitted; setDoc()/updateDoc()
 // throw on that by default, so ignore it instead of scrubbing every call site.
-export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+// Keeps a copy of the data on the phone, so the app opens and takes changes
+// offline; changes sync once it's back online, even after the app was closed.
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});

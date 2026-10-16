@@ -29,6 +29,16 @@ function data(task: Task): Omit<Task, 'id'> {
   return rest;
 }
 
+/**
+ * Everyday edits show at once (Firestore applies them locally) and sync when
+ * the server is reachable, so they don't wait for it: offline, waiting would
+ * leave a sheet stuck open until the connection came back.
+ */
+function queued(write: Promise<void>): Promise<void> {
+  write.catch((e) => console.error('Priorities: a change was refused', e));
+  return Promise.resolve();
+}
+
 export const firestoreStore: Store = {
   onAuth(cb) {
     return onAuthStateChanged(auth, (u) => cb(u ? { uid: u.uid, email: u.email } : null));
@@ -65,14 +75,14 @@ export const firestoreStore: Store = {
       [`member_names.${uid}`]: displayName,
     });
   },
-  async updateHousehold(hid, update) {
-    await updateDoc(doc(db, 'households', hid), update as Record<string, unknown>);
+  updateHousehold(hid, update) {
+    return queued(updateDoc(doc(db, 'households', hid), update as Record<string, unknown>));
   },
-  async setPushSubscription(hid, id, sub) {
-    await updateDoc(doc(db, 'households', hid), { [`push_subscriptions.${id}`]: sub ?? deleteField() });
+  setPushSubscription(hid, id, sub) {
+    return queued(updateDoc(doc(db, 'households', hid), { [`push_subscriptions.${id}`]: sub ?? deleteField() }));
   },
-  async setNotifyPrefs(hid, uid, prefs) {
-    await updateDoc(doc(db, 'households', hid), { [`notify.${uid}`]: prefs });
+  setNotifyPrefs(hid, uid, prefs) {
+    return queued(updateDoc(doc(db, 'households', hid), { [`notify.${uid}`]: prefs }));
   },
   async sendFeedback(hid, id, feedback) {
     await updateDoc(doc(db, 'households', hid), { [`feedback.${id}`]: feedback });
@@ -108,19 +118,19 @@ export const firestoreStore: Store = {
       unsubPersonal();
     };
   },
-  async addTask(hid, task) {
-    await setDoc(doc(tasksCol(hid), task.id), data(task));
+  addTask(hid, task) {
+    return queued(setDoc(doc(tasksCol(hid), task.id), data(task)));
   },
-  async updateTask(hid, id, update) {
-    await updateDoc(doc(tasksCol(hid), id), update as Record<string, unknown>);
+  updateTask(hid, id, update) {
+    return queued(updateDoc(doc(tasksCol(hid), id), update as Record<string, unknown>));
   },
-  async completeWithNext(hid, id, update, next) {
+  completeWithNext(hid, id, update, next) {
     const batch = writeBatch(db);
     batch.update(doc(tasksCol(hid), id), update as Record<string, unknown>);
     if (next) batch.set(doc(tasksCol(hid), next.id), data(next));
-    await batch.commit();
+    return queued(batch.commit());
   },
-  async deleteTask(hid, id) {
-    await deleteDoc(doc(tasksCol(hid), id));
+  deleteTask(hid, id) {
+    return queued(deleteDoc(doc(tasksCol(hid), id)));
   },
 };

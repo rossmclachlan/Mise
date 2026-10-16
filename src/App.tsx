@@ -25,6 +25,7 @@ import { GroceryView } from './components/shop/ShopView';
 import { CookList } from './components/cook/CookList';
 import { CookView } from './components/cook/CookView';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { OfflineNote } from './components/ui/OfflineNote';
 
 // ─── Spinner ───────────────────────────────────────────────────────────────
 
@@ -320,6 +321,7 @@ function App() {
           <LoginScreen />
         </Narrow>
       )}
+      <OfflineNote />
       {needsRefresh && (
         <div className="flex items-center justify-between border-t-[1.5px] border-ink bg-sun-container px-4 py-2.5">
           <span className="text-sm font-bold text-ink">

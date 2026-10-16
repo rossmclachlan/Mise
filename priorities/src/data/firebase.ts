@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Same Firebase project as Mise, but a separately *named* app instance.
 // Firebase keeps one signed-in user per origin and app name, and both apps
@@ -19,4 +19,9 @@ const app = initializeApp(
 );
 
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+// Keeps a copy of the data on the phone, so the app opens and takes changes
+// offline; changes sync once it's back online, even after the app was closed.
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
