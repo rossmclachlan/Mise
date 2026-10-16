@@ -6,6 +6,7 @@ import { PrioritiesProvider } from './state/PrioritiesContext';
 import { LoginScreen } from './components/LoginScreen';
 import { HouseholdSetup } from './components/HouseholdSetup';
 import { Home } from './components/Home';
+import { KeepNotificationsOn } from './components/NotificationSettings';
 
 function Spinner() {
   return (
@@ -71,6 +72,7 @@ function SignedIn({ store, user }: { store: Store; user: SignedInUser }) {
   return (
     <PrioritiesProvider store={store} user={user} household={household} tasks={tasks}>
       <Home />
+      <KeepNotificationsOn />
     </PrioritiesProvider>
   );
 }

@@ -2,8 +2,30 @@ import { useEffect, useState } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { formatClock } from '../lib/dates';
 import { DIGEST_HOUR, DIGEST_HOURS } from '../lib/notify';
-import { currentSubscription, pushSupport, subscribe, subscriptionId, unsubscribe } from '../data/push';
+import { currentSubscription, pushSupport, resubscribeIfDropped, subscribe, subscriptionId, unsubscribe } from '../data/push';
 import { usePriorities } from '../state/PrioritiesContext';
+
+/**
+ * Rendered once while signed in: if this phone turned notifications on and has
+ * since dropped off the list, quietly puts it back.
+ */
+export function KeepNotificationsOn() {
+  const { user, household, store } = usePriorities();
+  const key = household.push_public_key;
+  const subs = household.push_subscriptions;
+  // Re-checks when the list changes, e.g. the Worker forgot this phone while the app was open.
+  const listed = Object.keys(subs ?? {}).sort().join(',');
+
+  useEffect(() => {
+    if (!key) return;
+    resubscribeIfDropped(key, user.uid, subs ?? {})
+      .then((r) => r && store.setPushSubscription(household.id, r.id, r.record))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, listed, user.uid, household.id, store]);
+
+  return null;
+}
 
 /** Notifications, in the account menu: turn them on for this phone, and pick the morning digest's time. */
 export function NotificationSettings() {

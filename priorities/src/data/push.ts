@@ -47,8 +47,35 @@ export async function currentSubscription(): Promise<PushSubscription | null> {
   return (await reg?.pushManager.getSubscription()) ?? null;
 }
 
-/** Asks permission (must be called from a tap) and subscribes this phone. */
-export async function subscribe(publicKey: string, uid: string): Promise<{ id: string; record: PushSubscriptionRecord }> {
+// Whether notifications were turned on or off on this phone, from the menu.
+const WANT_KEY = 'priorities-push';
+
+function setWanted(on: boolean) {
+  try {
+    localStorage.setItem(WANT_KEY, on ? 'on' : 'off');
+  } catch {
+    // Private mode: nothing to remember, so nothing gets re-subscribed.
+  }
+}
+
+function wanted(): 'on' | 'off' | null {
+  try {
+    const v = localStorage.getItem(WANT_KEY);
+    return v === 'on' || v === 'off' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Asks permission (must be called from a tap) and subscribes this phone.
+ * quiet: re-subscribing in the background, so no "Notifications are on" message.
+ */
+export async function subscribe(
+  publicKey: string,
+  uid: string,
+  { quiet = false }: { quiet?: boolean } = {},
+): Promise<{ id: string; record: PushSubscriptionRecord }> {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('denied');
   const reg = await navigator.serviceWorker.ready;
@@ -67,6 +94,8 @@ export async function subscribe(publicKey: string, uid: string): Promise<{ id: s
     created_at: new Date().toISOString(),
     device: deviceName(),
   };
+  setWanted(true);
+  if (quiet) return { id: await subscriptionId(sub.endpoint), record };
   // Shows straight away that notifications work on this phone.
   await reg.showNotification('Notifications are on', {
     body: 'Priorities will let you know here.',
@@ -77,9 +106,34 @@ export async function subscribe(publicKey: string, uid: string): Promise<{ id: s
 }
 
 export async function unsubscribe(): Promise<string | null> {
+  setWanted(false);
   const sub = await currentSubscription();
   if (!sub) return null;
   const id = await subscriptionId(sub.endpoint);
   await sub.unsubscribe();
   return id;
+}
+
+/**
+ * Keeps notifications on for a phone that turned them on: the phone can drop
+ * its subscription (and the Worker then forgets it), while the permission is
+ * still granted. Re-subscribes without asking, and returns what to save, or
+ * null when this phone is already on the list (or never turned them on).
+ */
+export async function resubscribeIfDropped(
+  publicKey: string,
+  uid: string,
+  subs: Record<string, PushSubscriptionRecord>,
+): Promise<{ id: string; record: PushSubscriptionRecord } | null> {
+  if (pushSupport() !== 'ok' || Notification.permission !== 'granted') return null;
+  const want = wanted();
+  if (want === 'off') return null;
+  const existing = await currentSubscription();
+  // Phones that turned notifications on before this was remembered count as on while subscribed.
+  if (!want && !existing) return null;
+  if (existing && toB64url(existing.options.applicationServerKey) === publicKey && subs[await subscriptionId(existing.endpoint)]) {
+    return null;
+  }
+  const next = await subscribe(publicKey, uid, { quiet: true });
+  return subs[next.id] ? null : next;
 }
