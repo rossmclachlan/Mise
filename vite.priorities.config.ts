@@ -20,9 +20,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // Updates install themselves: a waiting update kept Chrome on an old
-      // version (and an old app identity) until someone tapped Install.
-      registerType: 'autoUpdate',
+      // Updates install as the app opens, or from the Install bar if one turns
+      // up while it's open (src/hooks/usePWAUpdate.ts), never mid-use.
+      registerType: 'prompt',
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       // Shows and opens notifications (public/push-sw.js).
       workbox: { importScripts: ['push-sw.js'] },
