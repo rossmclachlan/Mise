@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import '@fontsource/young-serif/latin-400.css';
+import { keepPageInPlace } from '../../src/components/ui/keepPageInPlace';
 import './index.css';
 import App from './App';
 import type { Store } from './data/store';
@@ -14,6 +15,8 @@ async function pickStore(): Promise<Store> {
   }
   return (await import('./data/firestoreStore')).firestoreStore;
 }
+
+keepPageInPlace();
 
 pickStore().then((store) => {
   createRoot(document.getElementById('root')!).render(
