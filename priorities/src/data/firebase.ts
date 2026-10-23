@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { syncWhileVisible } from '../../../src/components/ui/syncWhileVisible';
 
 // Same Firebase project as Mise, but a separately *named* app instance.
 // Firebase keeps one signed-in user per origin and app name, and both apps
@@ -25,3 +26,4 @@ export const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
+syncWhileVisible(db);
