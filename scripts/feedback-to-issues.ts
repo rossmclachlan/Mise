@@ -110,4 +110,12 @@ async function main() {
 	console.log(count ? `${count} feedback item(s) filed.` : "No new feedback.");
 }
 
-await main();
+try {
+	await main();
+} catch (e) {
+	// Firebase's free daily quota ran out (it resets at midnight Pacific). The
+	// feedback stays in Firestore and the next run files it, so this is a warning
+	// rather than a failed run that emails Ross.
+	if (!String(e).includes("(429)")) throw e;
+	console.log(`::warning::Firebase quota exceeded; feedback will be filed on a later run. ${String(e).split("\n")[0]}`);
+}
