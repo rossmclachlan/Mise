@@ -4,6 +4,7 @@
 import { localTime } from "../../priorities/src/lib/dates";
 import { DIGEST_HOUR, digestFor, reminderFor, reminderRecipients, type PushMessage } from "../../priorities/src/lib/notify";
 import type { Household, NotifyResult, Task } from "../../priorities/src/types";
+import { tagRecentDone } from "./archive";
 import type { Firestore, Write } from "./firestore";
 import { generateVapidKeys, sendPush, type PushResult, type VapidKeys } from "./webpush";
 
@@ -35,6 +36,16 @@ export async function runNotifications(deps: NotifyDeps): Promise<void> {
 	const households = await deps.db.query<Omit<Household, "id">>("households", []);
 	for (const doc of households) {
 		const h = { ...doc.data, id: doc.id } as Household;
+		// Once per household, as soon as this version runs: tag recent finished tasks
+		// so the apps can stop loading every task ever done.
+		if (!h.done_recent_ready) {
+			try {
+				const tagged = await tagRecentDone(deps.db, h, localTime(deps.now).date, deps.now.toISOString());
+				console.log(JSON.stringify({ event: "tagged_recent_done", household: h.id, tagged }));
+			} catch (e) {
+				console.log(JSON.stringify({ event: "tag_failed", household: h.id, error: String(e) }));
+			}
+		}
 		try {
 			await notifyHousehold(deps, h);
 		} catch (e) {
@@ -111,7 +122,8 @@ export async function notifyHousehold({ db, keys, now, fetcher }: NotifyDeps, h:
 		if (hour === null || h.digest_sent?.[uid] === local.date) continue;
 		if (local.hour < hour || local.hour >= hour + DIGEST_GRACE_HOURS) continue;
 		if (!Object.values(subs).some((s) => s.uid === uid)) continue;
-		tasks ??= (await db.query<Omit<Task, "id">>(tasksPath, [])).map((t) => ({ ...t.data, id: t.id }) as Task);
+		// The digest is about open tasks only, so finished ones aren't read.
+		tasks ??= (await db.query<Omit<Task, "id">>(tasksPath, [["done_at", "EQUAL", null]])).map((t) => ({ ...t.data, id: t.id }) as Task);
 		const msg = digestFor(tasks, uid, local.date);
 		if (msg) await send(uid, msg, "digest");
 		household.digest_sent = { ...(household.digest_sent as object), [uid]: local.date };

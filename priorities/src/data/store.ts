@@ -27,8 +27,14 @@ export interface Store {
   /** Saves a bug report or idea on the household; the feedback Action turns it into a GitHub issue. */
   sendFeedback(hid: string, id: string, feedback: FeedbackRecord): Promise<void>;
 
-  /** Shared tasks plus this person's personal tasks, kept live. */
-  onTasks(hid: string, uid: string, cb: (tasks: Task[]) => void, onError: (e: Error) => void): () => void;
+  /**
+   * Shared tasks plus this person's personal tasks, kept live. With recentOnly,
+   * only open and recently finished ones (see lib/archive.ts), so a reconnect
+   * re-reads less.
+   */
+  onTasks(hid: string, uid: string, cb: (tasks: Task[]) => void, onError: (e: Error) => void, recentOnly?: boolean): () => void;
+  /** Every task this person can see, finished long ago included; read once, for Done's older history and search. */
+  loadAllTasks(hid: string, uid: string): Promise<Task[]>;
   addTask(hid: string, task: Task): Promise<void>;
   updateTask(hid: string, id: string, update: Partial<Task>): Promise<void>;
   /** Marks one occurrence done and creates the next, atomically. */

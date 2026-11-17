@@ -7,6 +7,7 @@
 // their own personal list, never the other person's.
 
 import { addDays, localDay, localTime, weekEnd, zonedMoment } from "../../priorities/src/lib/dates";
+import { RECENT_DAYS } from "../../priorities/src/lib/archive";
 import { factsBetween } from "../../priorities/src/lib/calendar";
 import { HORIZON_NAMES } from "../../priorities/src/lib/format";
 import {
@@ -38,7 +39,7 @@ import { describeRepeat } from "../../priorities/src/lib/repeat";
 import { matchesSearch, similarTitles } from "../../priorities/src/lib/search";
 import { canSee, isOnMe } from "../../priorities/src/lib/visibility";
 import type { CalendarFact, DateString, Household, Horizon, RadarRun, RepeatRule, Step, Task } from "../../priorities/src/types";
-import type { Doc, Firestore, Write } from "./firestore";
+import type { Doc, FieldFilter, Firestore, Write } from "./firestore";
 
 export type OwnerWord = "me" | "partner" | "both";
 export type ListWord = "mine" | "all";
@@ -168,17 +169,28 @@ export class PrioritiesData {
 		return `households/${hid}/tasks`;
 	}
 
-	/** Shared tasks plus this person's personal tasks. */
-	async visibleTasks(): Promise<Task[]> {
+	/**
+	 * Shared tasks plus this person's personal tasks. "recent" (the default)
+	 * leaves out tasks finished over 8 weeks ago, as the apps do, so a call
+	 * doesn't read the whole history; "all" is for search and old history.
+	 */
+	async visibleTasks(scope: "recent" | "all" = "recent"): Promise<Task[]> {
 		const h = await this.getHousehold();
-		const [shared, personal] = await Promise.all([
-			this.db.query<Omit<Task, "id">>(this.tasksPath(h.id), [["list", "EQUAL", "shared"]]),
-			this.db.query<Omit<Task, "id">>(this.tasksPath(h.id), [
+		const lists: FieldFilter[][] = [
+			[["list", "EQUAL", "shared"]],
+			[
 				["list", "EQUAL", "personal"],
 				["owner_uid", "EQUAL", this.uid],
-			]),
-		]);
-		return [...shared, ...personal].map(asTask);
+			],
+		];
+		// Until the Worker has tagged recent finished tasks, everything is read.
+		const parts: FieldFilter[][] =
+			scope === "recent" && h.done_recent_ready ? [[["done_at", "EQUAL", null]], [["done_recent", "EQUAL", true]]] : [[]];
+		const results = await Promise.all(
+			lists.flatMap((list) => parts.map((part) => this.db.query<Omit<Task, "id">>(this.tasksPath(h.id), [...list, ...part]))),
+		);
+		// A task moving between open and finished can briefly match both.
+		return [...new Map(results.flat().map((d) => [d.id, asTask(d)])).values()];
 	}
 
 	async getTask(id: string): Promise<Task> {
@@ -265,8 +277,10 @@ export class PrioritiesData {
 	// ── Reading ──────────────────────────────────────────────────────────────
 
 	async list(opts: { list?: ListWord; horizon?: HorizonWord; owner?: OwnerWord; done_since?: DateString }) {
+		// Finished tasks from over 8 weeks ago are read only when asked for.
+		const old = (opts.horizon === "done" && !opts.done_since) || (opts.done_since !== undefined && opts.done_since < addDays(this.now, -RECENT_DAYS));
+		let tasks = await this.visibleTasks(old ? "all" : "recent");
 		const partner = await this.partnerUid();
-		let tasks = await this.visibleTasks();
 		const list = opts.list ?? "all";
 		if (list === "mine") tasks = tasks.filter((t) => isOnMe(t, this.uid));
 		if (opts.owner) {
@@ -297,7 +311,8 @@ export class PrioritiesData {
 	}
 
 	async search(query: string, includeDone: boolean) {
-		const tasks = (await this.visibleTasks()).filter((t) => (includeDone || !t.done_at) && matchesSearch(t, query));
+		// Searching finished tasks covers all of them, however old.
+		const tasks = (await this.visibleTasks(includeDone ? "all" : "recent")).filter((t) => (includeDone || !t.done_at) && matchesSearch(t, query));
 		return Promise.all(tasks.map((t) => this.describe(t)));
 	}
 

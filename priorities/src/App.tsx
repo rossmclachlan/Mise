@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Household, Task } from './types';
 import type { SignedInUser, Store } from './data/store';
 import { usePWAUpdate } from '../../src/hooks/usePWAUpdate';
@@ -57,21 +57,39 @@ function SignedIn({ store, user }: { store: Store; user: SignedInUser }) {
   useEffect(() => store.onHousehold(user.uid, setHousehold, setError), [store, user.uid]);
 
   const hid = household && household !== LOADING ? household.id : null;
+  // Once the Worker has tagged recently finished tasks, load only open and recent ones.
+  const recentOnly = household && household !== LOADING ? Boolean(household.done_recent_ready) : false;
   useEffect(() => {
     if (!hid) return;
-    const unsub = store.onTasks(hid, user.uid, setTasks, setError);
+    const unsub = store.onTasks(hid, user.uid, setTasks, setError, recentOnly);
     return () => {
       unsub();
       setTasks(null);
     };
+  }, [store, hid, user.uid, recentOnly]);
+
+  // Every task, read once when someone asks for older history; live ones win over these.
+  const [older, setOlder] = useState<Task[] | null>(null);
+  const loadOlder = useCallback(async () => {
+    if (hid) setOlder(await store.loadAllTasks(hid, user.uid));
   }, [store, hid, user.uid]);
+  const allTasks = useMemo(
+    () => (tasks && older ? [...new Map([...older, ...tasks].map((t) => [t.id, t])).values()] : tasks),
+    [tasks, older],
+  );
 
   if (error) return <Narrow><ErrorScreen error={error} store={store} /></Narrow>;
   if (household === LOADING) return <Spinner />;
   if (!household) return <Narrow><HouseholdSetup store={store} user={user} /></Narrow>;
-  if (!tasks) return <Spinner />;
+  if (!allTasks) return <Spinner />;
   return (
-    <PrioritiesProvider store={store} user={user} household={household} tasks={tasks}>
+    <PrioritiesProvider
+      store={store}
+      user={user}
+      household={household}
+      tasks={allTasks}
+      history={{ partial: recentOnly && !older, loadOlder }}
+    >
       <Home />
       <KeepNotificationsOn />
     </PrioritiesProvider>

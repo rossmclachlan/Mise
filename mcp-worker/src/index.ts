@@ -5,7 +5,9 @@ import { z } from "zod";
 import { setTimeZone, today } from "../../priorities/src/lib/dates";
 import { DEFAULT_HOUSE_RULES } from "../../priorities/src/lib/houseRules";
 import { AuthHandler, type Props } from "./auth";
+import { untagOldDone } from "./archive";
 import { refreshAll, refreshHousehold } from "./calendar";
+import type { Household } from "../../priorities/src/types";
 import { Firestore, type ServiceAccount } from "./firestore";
 import { runNotifications, vapidKeys } from "./notifications";
 import { SERVER_INSTRUCTIONS, WEEKLY_RADAR } from "./guidance";
@@ -48,6 +50,16 @@ const radarKey = z
 		"Radar items only: a stable key, type:date[:slug], e.g. childcare:2026-10-12, gift:2026-11-03:grandma, registration:2026-11-01:winter-camp. A key already used (open or done, by either of us) is skipped, so the same thing is never raised twice.",
 	);
 
+/** Daily: finished tasks that are no longer recent drop out of what the apps load. */
+async function untagAll(db: Firestore, day: string) {
+	for (const doc of await db.query<Omit<Household, "id">>("households", [])) {
+		const h = { ...doc.data, id: doc.id } as Household;
+		if (!h.done_recent_ready) continue;
+		const untagged = await untagOldDone(db, h, day);
+		if (untagged) console.log(JSON.stringify({ event: "untagged_old_done", household: h.id, untagged }));
+	}
+}
+
 function firestoreFor(env: Env): Firestore {
 	const emulatorHost = env.FIRESTORE_EMULATOR_HOST;
 	return new Firestore({
@@ -65,21 +77,22 @@ export class PrioritiesMCP extends McpAgent<Env, Record<string, never>, Props> {
 	}
 
 	/** A fresh view for one tool call: dates are "now" in our time zone. */
-	private data(): PrioritiesData {
+	private data(db = this.db()): PrioritiesData {
 		setTimeZone(this.env.TIMEZONE);
-		return new PrioritiesData(this.db(), this.props!.uid, today(), new Date().toISOString());
+		return new PrioritiesData(db, this.props!.uid, today(), new Date().toISOString());
 	}
 
 	/** Logs the call (never secrets) and turns failures into a readable tool error. */
 	private async run(tool: string, args: unknown, fn: (d: PrioritiesData) => Promise<unknown>): Promise<ToolResult> {
 		const started = Date.now();
+		const db = this.db();
 		try {
-			const result = await fn(this.data());
-			console.log(JSON.stringify({ tool, uid: this.props?.uid, args, ok: true, ms: Date.now() - started }));
+			const result = await fn(this.data(db));
+			console.log(JSON.stringify({ tool, uid: this.props?.uid, args, ok: true, ms: Date.now() - started, reads: db.reads }));
 			return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
-			console.log(JSON.stringify({ tool, uid: this.props?.uid, args, ok: false, error: message }));
+			console.log(JSON.stringify({ tool, uid: this.props?.uid, args, ok: false, error: message, reads: db.reads }));
 			return { content: [{ type: "text", text: `Error: ${message}` }], isError: true };
 		}
 	}
@@ -407,10 +420,23 @@ export default {
 	// every few minutes, send notifications that have come due.
 	async scheduled(controller, env, ctx) {
 		setTimeZone(env.TIMEZONE);
+		const db = firestoreFor(env);
+		const logReads = (job: string) => console.log(JSON.stringify({ event: "firestore_reads", job, reads: db.reads }));
 		if (controller.cron === CALENDAR_CRON) {
-			ctx.waitUntil(refreshAll(firestoreFor(env), today(), new Date().toISOString()));
+			ctx.waitUntil(
+				(async () => {
+					await refreshAll(db, today(), new Date().toISOString());
+					await untagAll(db, today());
+					logReads("daily");
+				})(),
+			);
 			return;
 		}
-		ctx.waitUntil((async () => runNotifications({ db: firestoreFor(env), keys: await vapidKeys(env.OAUTH_KV), now: new Date() }))());
+		ctx.waitUntil(
+			(async () => {
+				await runNotifications({ db, keys: await vapidKeys(env.OAUTH_KV), now: new Date() });
+				logReads("notifications");
+			})(),
+		);
 	},
 } satisfies ExportedHandler<Env>;

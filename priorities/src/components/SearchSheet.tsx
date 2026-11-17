@@ -9,7 +9,7 @@ import { matchesSearch } from '../lib/search';
 import { canSee } from '../lib/visibility';
 import { GAPS_EMOJI, HANDLED_EMOJI, HANDLED_NAME, HORIZON_EMOJI, HORIZON_NAMES, formatWhen } from '../lib/format';
 import { usePriorities } from '../state/PrioritiesContext';
-import { OwnerChip } from './bits';
+import { OlderHistoryButton, OwnerChip } from './bits';
 
 const HORIZON_ORDER: Horizon[] = ['now', 'month', 'later'];
 const MAX_RESULTS = 50;
@@ -114,6 +114,7 @@ function Body({ onOpen, onClose }: { onOpen: (id: string) => void; onClose: () =
           ))}
         </div>
       )}
+      {q.trim() && <OlderHistoryButton label="Also search tasks finished over 8 weeks ago" />}
       {results.length > MAX_RESULTS && (
         <p className="text-center text-xs text-ink-variant">Showing the first {MAX_RESULTS}. Add a word to narrow it down.</p>
       )}

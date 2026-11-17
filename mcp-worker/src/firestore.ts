@@ -138,6 +138,12 @@ export class Firestore {
 	private readonly base: string;
 	private readonly root: string;
 	private readonly fetcher: typeof fetch;
+	/**
+	 * Documents read so far, as Firestore bills them: one per document returned,
+	 * and one for a get or query that finds nothing. Logged by the callers, so
+	 * the Worker's logs show what each tool call and cron run costs.
+	 */
+	reads = 0;
 
 	constructor(private readonly cfg: FirestoreConfig) {
 		this.fetcher = cfg.fetcher ?? fetch.bind(globalThis);
@@ -167,6 +173,7 @@ export class Firestore {
 	/** One document by path ("households/abc"), or null if it doesn't exist. */
 	async get<T>(path: string): Promise<Doc<T> | null> {
 		const res = await this.fetcher(`${this.base}/${this.root}/${path}`, { headers: await this.headers() });
+		this.reads++;
 		if (res.status === 404) return null;
 		if (!res.ok) throw new Error(`Firestore GET failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
 		const doc = (await res.json()) as { name: string; fields?: Record<string, Value> };
@@ -178,9 +185,12 @@ export class Firestore {
 		const parts = collectionPath.split("/");
 		const collectionId = parts.pop()!;
 		const parent = [this.root, ...parts].join("/");
-		const where = filters.map(([field, op, value]) => ({
-			fieldFilter: { field: { fieldPath: field }, op, value: toValue(value) },
-		}));
+		// Firestore matches null with a unary IS_NULL filter, not EQUAL.
+		const where = filters.map(([field, op, value]) =>
+			value === null && op === "EQUAL"
+				? { unaryFilter: { field: { fieldPath: field }, op: "IS_NULL" } }
+				: { fieldFilter: { field: { fieldPath: field }, op, value: toValue(value) } },
+		);
 		const structuredQuery: Record<string, unknown> = { from: [{ collectionId }] };
 		if (where.length === 1) structuredQuery.where = where[0];
 		if (where.length > 1) structuredQuery.where = { compositeFilter: { op: "AND", filters: where } };
@@ -190,9 +200,11 @@ export class Firestore {
 			`${this.base}/${parent}:runQuery`,
 			{ structuredQuery },
 		);
-		return rows
+		const docs = rows
 			.filter((r) => r.document)
 			.map((r) => ({ id: r.document!.name.split("/").pop()!, data: fromFields(r.document!.fields ?? {}) as T }));
+		this.reads += Math.max(1, docs.length);
+		return docs;
 	}
 
 	/** Applies all writes atomically: either every one lands or none does. */

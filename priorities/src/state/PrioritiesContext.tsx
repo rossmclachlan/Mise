@@ -17,6 +17,8 @@ export interface Priorities {
   user: SignedInUser;
   household: Household;
   tasks: Task[];
+  /** partial: finished tasks older than 8 weeks aren't loaded; loadOlder reads them once. */
+  history: { partial: boolean; loadOlder(): Promise<void> };
   store: Store;
   nameOf(uid: string | null | undefined): string;
   otherUid: string | null;
@@ -47,12 +49,14 @@ export function PrioritiesProvider({
   user,
   household,
   tasks,
+  history,
   children,
 }: {
   store: Store;
   user: SignedInUser;
   household: Household;
   tasks: Task[];
+  history: Priorities['history'];
   children: ReactNode;
 }) {
   const hid = household.id;
@@ -78,6 +82,7 @@ export function PrioritiesProvider({
     user,
     household,
     tasks,
+    history,
     store,
     nameOf,
     otherUid: household.members.find((m) => m !== user.uid) ?? null,

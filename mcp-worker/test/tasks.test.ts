@@ -2,6 +2,7 @@
 // (firebase emulators:exec starts it and sets FIRESTORE_EMULATOR_HOST).
 import { beforeEach, describe, expect, it } from "vitest";
 import { Firestore } from "../src/firestore";
+import { tagRecentDone, untagOldDone } from "../src/archive";
 import { refreshHousehold } from "../src/calendar";
 import { NotFound, PrioritiesData } from "../src/tasks";
 
@@ -252,6 +253,38 @@ describe.skipIf(!host)("PrioritiesData against the Firestore emulator", () => {
 		expect(raw!.data.assignee).toEqual(["emily"]);
 		expect(raw!.data.steps).toEqual([{ id: "s", title: "Look", done_at: null }]);
 		expect((await db.get<{ schema: number }>(`households/${H}`))!.data.schema).toBe(2);
+	});
+
+	it("loads open and recently finished tasks once tagged, and everything when asked", async () => {
+		const ross = as("ross");
+		const [old, recent, booked] = (await ross.add([
+			{ title: "Renew registration", owner: "me" },
+			{ title: "Return library books", owner: "me" },
+			{ title: "Book summer camp", owner: "me" },
+		])) as { id: string }[];
+		// Finished long ago, finished last week, and finished long ago for a date still ahead.
+		await new PrioritiesData(db, "ross", "2026-07-01", "2026-07-01T18:00:00.000Z").complete(old.id, {});
+		await ross.complete(recent.id, {});
+		await new PrioritiesData(db, "ross", "2026-07-01", "2026-07-01T18:00:00.000Z").complete(booked.id, { when: "2027-07-12" });
+		const h = { ...(await db.get<Record<string, unknown>>(`households/${H}`))!.data, id: H } as never;
+		// Every finished task gets done_recent when completed; tagging corrects the old one.
+		expect(await tagRecentDone(db, h, NOW, AT)).toBe(1);
+		const titles = async (d: PrioritiesData, scope?: "recent" | "all") => (await d.visibleTasks(scope)).map((t) => t.title).sort();
+		const counted = new Firestore({ projectId: PROJECT, emulatorHost: host });
+		const fresh = new PrioritiesData(counted, "ross", NOW, AT);
+		expect(await titles(fresh)).toEqual(["Book dentist", "Book summer camp", "Call plumber", "Return library books", "Ross's own thing"]);
+		// The household, then four queries: 5 tasks, plus 1 for the empty one (Firestore bills that too).
+		expect(counted.reads).toBe(7);
+		expect(await titles(fresh, "all")).toContain("Renew registration");
+		// Searching finished tasks covers the old ones.
+		expect((await fresh.search("registration", true)).map((t) => t.title)).toEqual(["Renew registration"]);
+		// Two months on, last week's task drops out; the booking stays until its date.
+		const later = { ...(await db.get<Record<string, unknown>>(`households/${H}`))!.data, id: H } as never;
+		expect(await untagOldDone(db, later, "2026-12-20")).toBe(1);
+		expect(await titles(new PrioritiesData(db, "ross", "2026-12-20", "2026-12-20T18:00:00.000Z"))).toContain("Book summer camp");
+		// Reopening an old task brings it back.
+		await ross.reopen(old.id);
+		expect(await titles(new PrioritiesData(db, "ross", NOW, AT))).toContain("Renew registration");
 	});
 
 	it("reports a missing household clearly", async () => {

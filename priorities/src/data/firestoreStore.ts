@@ -5,6 +5,7 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  getDocs,
   onSnapshot,
   query,
   setDoc,
@@ -91,35 +92,43 @@ export const firestoreStore: Store = {
     await updateDoc(doc(db, 'households', hid), { [`feedback.${id}`]: feedback });
   },
 
-  onTasks(hid, uid, cb, onError) {
-    let shared: Task[] = [];
-    let personal: Task[] = [];
-    const emit = () => cb([...shared, ...personal]);
+  onTasks(hid, uid, cb, onError, recentOnly) {
     const toTasks = (docs: { id: string; data(): unknown }[]) =>
       docs.map((d) => normalizeTask({ ...(d.data() as object), id: d.id } as Task));
-
-    // Two queries, because Firestore rules only let each person read their own
-    // personal tasks: a single query over everything would be refused.
-    const unsubShared = onSnapshot(
-      query(tasksCol(hid), where('list', '==', 'shared')),
-      (snap) => {
-        shared = toTasks(snap.docs);
-        emit();
-      },
-      onError,
-    );
-    const unsubPersonal = onSnapshot(
-      query(tasksCol(hid), where('list', '==', 'personal'), where('owner_uid', '==', uid)),
-      (snap) => {
-        personal = toTasks(snap.docs);
-        emit();
-      },
-      onError,
-    );
-    return () => {
-      unsubShared();
-      unsubPersonal();
-    };
+    // Firestore rules only let each person read their own private tasks, so
+    // shared and private are separate queries. With recentOnly each is split
+    // again into open tasks and recently finished ones; a task moving between
+    // them can briefly be in both, so they're merged by id.
+    const lists = [where('list', '==', 'shared'), [where('list', '==', 'personal'), where('owner_uid', '==', uid)]];
+    const parts = recentOnly ? [where('done_at', '==', null), where('done_recent', '==', true)] : [null];
+    const results: Task[][] = [];
+    const unsubs: (() => void)[] = [];
+    for (const list of lists) {
+      for (const part of parts) {
+        const i = results.push([]) - 1;
+        const filters = [...[list].flat(), ...(part ? [part] : [])];
+        unsubs.push(
+          onSnapshot(
+            query(tasksCol(hid), ...filters),
+            (snap) => {
+              results[i] = toTasks(snap.docs);
+              cb([...new Map(results.flat().map((t) => [t.id, t])).values()]);
+            },
+            onError,
+          ),
+        );
+      }
+    }
+    return () => unsubs.forEach((u) => u());
+  },
+  async loadAllTasks(hid, uid) {
+    const toTasks = (docs: { id: string; data(): unknown }[]) =>
+      docs.map((d) => normalizeTask({ ...(d.data() as object), id: d.id } as Task));
+    const [shared, personal] = await Promise.all([
+      getDocs(query(tasksCol(hid), where('list', '==', 'shared'))),
+      getDocs(query(tasksCol(hid), where('list', '==', 'personal'), where('owner_uid', '==', uid))),
+    ]);
+    return [...toTasks(shared.docs), ...toTasks(personal.docs)];
   },
   addTask(hid, task) {
     return queued(setDoc(doc(tasksCol(hid), task.id), data(task)));

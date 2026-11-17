@@ -14,11 +14,12 @@ import {
   overlaps,
   withDue,
 } from './horizon';
-import { completeTask, compareOpen, orderBetween, skipOccurrence, buildTask } from './ops';
+import { completeTask, compareOpen, orderBetween, reopenTask, skipOccurrence, buildTask } from './ops';
 import { classify, factsBetween, factsFromIcs } from './calendar';
 import { describeRepeat, nextOccurrence } from './repeat';
 import { canSee, matchesFilter } from './visibility';
 import { migrateTask, normalizeTask } from './migrate';
+import { stillRecent } from './archive';
 import { matchesSearch, similarTitles } from './search';
 
 const ROSS = 'ross';
@@ -419,5 +420,22 @@ describe('withDue', () => {
   });
   it('clearing the due date leaves the start date', () => {
     expect(withDue({ do_by: '2026-10-20', deadline: '2026-11-03' }, null)).toEqual({ deadline: null, order: null });
+  });
+});
+
+describe('what the apps load', () => {
+  it('keeps finished tasks for 8 weeks, and bookings until their date', () => {
+    expect(stillRecent(task(), NOW)).toBe(false); // open tasks load anyway
+    expect(stillRecent(task({ done_at: '2026-08-13T18:00:00.000Z' }), NOW)).toBe(true); // 8 weeks ago
+    expect(stillRecent(task({ done_at: '2026-08-11T18:00:00.000Z' }), NOW)).toBe(false);
+    expect(stillRecent(task({ done_at: '2026-03-01T18:00:00.000Z', when: '2027-07-12' }), NOW)).toBe(true);
+    expect(stillRecent(task({ done_at: '2026-03-01T18:00:00.000Z', when: '2026-09-28', when_end: '2026-10-09' }), NOW)).toBe(true);
+    expect(stillRecent(task({ done_at: '2026-03-01T18:00:00.000Z', when: '2026-09-28' }), NOW)).toBe(false);
+  });
+
+  it('marks completed tasks recent, and reopened ones not', () => {
+    const t = task();
+    expect(completeTask(t, actor, AT).update.done_recent).toBe(true);
+    expect(reopenTask({ ...t, done_at: AT }, actor, AT).done_recent).toBe(false);
   });
 });

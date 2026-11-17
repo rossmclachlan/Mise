@@ -8,7 +8,7 @@
 		"dev": "wrangler dev",
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit",
-		"test": "cd .. && npx vitest run mcp-worker/test"
+		"test": "cd .. && npx vitest run --no-file-parallelism mcp-worker/test"
 	},
 	"dependencies": {
 		"@cloudflare/workers-oauth-provider": "^0.8.3",

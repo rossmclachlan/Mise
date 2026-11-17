@@ -255,3 +255,27 @@ export function PeopleChips({ value, onChange }: { value: string[]; onChange: (v
     </div>
   );
 }
+
+/** Finished tasks older than 8 weeks aren't loaded until asked for; this asks. Hidden once they are. */
+export function OlderHistoryButton({ label = 'Show older history' }: { label?: string }) {
+  const { history } = usePriorities();
+  const [loading, setLoading] = useState(false);
+  if (!history.partial) return null;
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          await history.loadOlder();
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="btn-outlined w-full"
+    >
+      {loading ? 'Loading…' : label}
+    </button>
+  );
+}

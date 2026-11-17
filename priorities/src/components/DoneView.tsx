@@ -5,7 +5,7 @@ import { addDays, formatShort, localDay, today, weekEnd, weekStart } from '../li
 import { WINDOW_DAYS, isHandledAhead } from '../lib/horizon';
 import { HANDLED_EMOJI, HANDLED_NAME } from '../lib/format';
 import { matchesSearch } from '../lib/search';
-import { PeopleChips, TakenCareRow } from './bits';
+import { OlderHistoryButton, PeopleChips, TakenCareRow } from './bits';
 import { useVisible } from '../state/useVisible';
 import { usePriorities } from '../state/PrioritiesContext';
 
@@ -105,6 +105,7 @@ export function DoneView({ onOpen }: { onOpen: (id: string) => void }) {
           </section>
         )}
       </div>
+      <OlderHistoryButton label="Show history before the last 8 weeks" />
     </div>
   );
 }

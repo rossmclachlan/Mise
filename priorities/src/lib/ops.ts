@@ -51,6 +51,7 @@ export function buildTask(input: NewTaskInput, actor: Actor, at: IsoString): Tas
     kind: input.kind ?? 'task',
     order: null,
     done_at: null,
+    done_recent: false,
     done_by: null,
     outcome_note: null,
     when: input.when ?? null,
@@ -88,6 +89,7 @@ export function completeTask(
   const doneOn = localDay(at);
   const update: Partial<Task> = {
     done_at: at,
+    done_recent: true,
     done_by: actor.uid,
     outcome_note: details.outcome_note ?? task.outcome_note,
     when: details.when ?? task.when,
@@ -109,6 +111,7 @@ export function completeTask(
       deadline:
         task.deadline && due ? addDays(nextDue, daysBetween(due, task.deadline)) : null,
       done_at: null,
+      done_recent: false,
       done_by: null,
       outcome_note: null,
       when: null,
@@ -131,6 +134,7 @@ export function completeTask(
 export function reopenTask(task: Task, actor: Actor, at: IsoString): Partial<Task> {
   return {
     done_at: null,
+    done_recent: false,
     done_by: null,
     history: [...task.history, historyEntry(actor, 'reopened', at)],
   };

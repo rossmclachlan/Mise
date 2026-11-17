@@ -80,6 +80,7 @@ let household: Household = {
   name: 'Our household',
   members: [ROSS, EMILY],
   member_names: { [ROSS]: 'Ross', [EMILY]: 'Emily' },
+  done_recent_ready: new Date().toISOString(),
   calendar_feeds: [{ name: 'Lincoln Elementary', url: 'https://example.org/lincoln.ics' }],
   calendar_refreshed_at: new Date().toISOString(),
   calendar_facts: [
@@ -141,6 +142,9 @@ export const demoStore: Store = {
   },
   async sendFeedback(_hid, id, feedback) {
     console.info('Feedback (demo mode, not sent)', id, feedback);
+  },
+  async loadAllTasks(_hid, uid) {
+    return tasks.filter((t) => t.list === 'shared' || t.owner_uid === uid).map((t) => ({ ...t }));
   },
   onTasks(_hid, uid, cb) {
     const emit = () =>

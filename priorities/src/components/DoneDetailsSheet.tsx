@@ -32,7 +32,8 @@ function Form({ task, onClose }: { task: Task; onClose: () => void }) {
   async function save() {
     setBusy(true);
     const details = { outcome_note: note.trim() || null, when, when_end: when && end && end > when ? end : null };
-    if (task.done_at) await update(task, details, 'updated the outcome');
+    // Editing a finished task loads it again (an old one might now have a date ahead).
+    if (task.done_at) await update(task, { ...details, done_recent: true }, 'updated the outcome');
     else await complete(task, details);
     setBusy(false);
     onClose();

@@ -58,6 +58,8 @@ export interface Task {
    */
   order: number | null;
   done_at: IsoString | null;
+  /** Finished and still loaded by the apps (see lib/archive.ts); the Worker clears it once the task is old. */
+  done_recent?: boolean;
   done_by: string | null;
   outcome_note: string | null;
   /**
@@ -162,6 +164,8 @@ export interface Household {
   radar_claim?: { uid: string; at: IsoString };
   /** 2 once existing tasks were moved to the simpler model (every task has a person; dates place tasks). */
   schema?: number;
+  /** When the Worker first tagged recently finished tasks; until then the apps load every task. */
+  done_recent_ready?: IsoString;
   /** Notifications: the Worker publishes its VAPID public key here; phones subscribe with it. */
   push_public_key?: string;
   push_subscriptions?: Record<string, PushSubscriptionRecord>;
